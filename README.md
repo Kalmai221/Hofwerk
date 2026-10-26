@@ -10,13 +10,36 @@ implementation of the 2018 HOF Suite (see [Credits](#credits)).
 ## What it does
 
 - Opens and saves `.hof` files while keeping their original encoding (Windows-1252 or UTF-8).
-- Edits the depot settings, destinations, bus stops and routes.
+- Edits destinations, bus stops and routes, and the depot's **Settings**: general settings (display name and service
+  trip destination), the announcement / roll sign / side plate **folders** (with a tick when the folder exists in your
+  OMSI install) and the **IBIS codes**.
 - Home screen with your recent files and every `.hof` of your Steam OMSI install (Windows, Linux, Flatpak and extra
   library drives).
 - **String presets:** names for the string slots ("IBIS 1", "ANNAX (side)" …) so you do not have to remember what
   "String 7" means. See [`Presets/`](Presets/README.md) to add your own through a pull request.
 
 Not built yet: map and trip import, export, and a visual route timeline.
+
+## Install
+
+Download the installer for your system from the [Releases](../../releases) page. Each one is a single file.
+
+- **Windows:** `Hofwerk-Setup-<version>-win-x64.exe`. Double-click it. It installs just for you (no administrator
+  rights), adds a Start menu entry, and can add a desktop shortcut and offer Hofwerk in "Open with" for `.hof`
+  files. Remove it from Windows' *Installed apps* or with the uninstaller in the install folder. The installer is not
+  code-signed yet, so Windows SmartScreen may ask you to choose *More info → Run anyway*.
+- **Linux:** `Hofwerk-Setup-<version>-linux-x64.tar.gz`. Unpack it and run the file inside:
+
+  ```bash
+  tar -xzf Hofwerk-Setup-*-linux-x64.tar.gz
+  ./Hofwerk-Setup-*-linux-x64
+  ```
+
+  It installs to `~/.local/share/hofwerk`, adds Hofwerk to your applications menu and a `hofwerk` command. The menu
+  entry has an *Uninstall Hofwerk* action. *Not tested on a real Linux desktop yet.*
+
+For scripts, both installers also run without a window:
+`Setup --silent [--dir PATH] [--desktop-shortcut] [--file-association]`, and `Uninstall --silent --uninstall`.
 
 ## Build
 
@@ -28,6 +51,12 @@ dotnet run --project src/Hofwerk.WinUI -r win-x64      # Windows
 dotnet run --project src/Hofwerk.Linux                 # Linux (also runs on Windows)
 ```
 
+To build the installer yourself (PowerShell 5.1 or 7; the result lands in `dist/`):
+
+```powershell
+pwsh installer/build-installer.ps1 -Rid win-x64 -Version 0.1.0
+```
+
 ## Project layout
 
 | Folder | What is in it |
@@ -36,13 +65,16 @@ dotnet run --project src/Hofwerk.Linux                 # Linux (also runs on Win
 | `src/Hofwerk.ViewModels` | Everything the screens show and do, shared by both front ends. |
 | `src/Hofwerk.WinUI` | Windows front end (WinUI 3). |
 | `src/Hofwerk.Linux` | Linux front end (Avalonia). |
+| `src/Hofwerk.Installer.Engine` | Installing and uninstalling: copying files, shortcuts, registry or menu entries. No UI. |
+| `src/Hofwerk.Installer` | The setup window (Avalonia). The same program, without the app attached, is the uninstaller. |
+| `installer/` | Script that builds the one-file installers. |
 | `Presets/` | String presets built into the app. One folder per preset. |
 | `tests/` | Unit tests, including a round-trip check against real OMSI files when OMSI is installed. |
 
 ## Releases
 
-Pushing a tag such as `v0.1.0` builds the Windows app and publishes a GitHub release
-(`.github/workflows/release.yml`).
+Pushing a tag such as `v0.1.0` runs the tests, builds the Windows and Linux installers, and publishes them as a
+GitHub release (`.github/workflows/release.yml`).
 
 ## Thank you
 

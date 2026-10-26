@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Hofwerk.Installer.Engine/Hofwerk.Installer.Engine.csproj" />
+    <Project Path="src/Hofwerk.Installer/Hofwerk.Installer.csproj" />
     <Project Path="src/Hofwerk.Linux/Hofwerk.Linux.csproj" />
     <Project Path="src/Hofwerk.Core/Hofwerk.Core.csproj" />
     <Project Path="src/Hofwerk.ViewModels/Hofwerk.ViewModels.csproj" />

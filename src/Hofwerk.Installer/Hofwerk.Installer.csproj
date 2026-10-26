@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Hofwerk.Setup</AssemblyName>
+    <RootNamespace>Hofwerk.Installer</RootNamespace>
+    <ApplicationIcon>Assets\Hofwerk.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Compiled bindings need no reflection, which is what lets the program be trimmed. -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+    <!-- Keep the setup program, which is also the uninstaller, as small as possible. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <TrimmerSingleWarn>true</TrimmerSingleWarn>
+    <!-- No ICU needed, so it also starts on Linux systems without libicu installed. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Trimming switches COM off by default; creating Start menu shortcuts goes through the Windows scripting host. -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hofwerk.Installer.Engine\Hofwerk.Installer.Engine.csproj" />
+    <!-- Finds where OMSI is installed, for the "Where is OMSI 2?" step. -->
+    <ProjectReference Include="..\Hofwerk.Core\Hofwerk.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -10,12 +10,15 @@ permissions:
   contents: write
 
 env:
-  APP_PROJECT: src/Hofwerk.WinUI/Hofwerk.WinUI.csproj
   TEST_PROJECT: tests/Hofwerk.Core.Tests/Hofwerk.Core.Tests.csproj
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -23,40 +26,63 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet test ${{ env.TEST_PROJECT }} -c Release
 
-  build-windows:
+  # One file per platform: the installer with the app attached inside it. See installer/build-installer.ps1.
+  # The build itself already starts the published app, visits every page and saves a file (installer/check-app.ps1).
+  windows:
     needs: test
     runs-on: windows-latest
-    strategy:
-      matrix:
-        rid: [win-x64, win-arm64]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $v = '${{ github.ref_name }}' -replace '^v', ''
+          if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
+          ./installer/build-installer.ps1 -Rid win-x64 -Version $v
 
-      # Unpackaged + self-contained WinUI 3: a folder that runs anywhere on Windows 10 1809+ with no installer.
-      - name: Publish
-        shell: bash
-        run: >
-          dotnet publish "$APP_PROJECT" -c Release -r ${{ matrix.rid }}
-          -p:Version=${GITHUB_REF_NAME#v}
-          -p:DebugType=None
-          -o publish/${{ matrix.rid }}
-
-      - name: Package
-        shell: bash
-        run: 7z a "Hofwerk-${GITHUB_REF_NAME}-${{ matrix.rid }}.zip" ./publish/${{ matrix.rid }}/*
+      # The finished installer is tested the way a user meets it. These use Windows PowerShell 5.1, as they were written for.
+      - name: Test the installer (silent install, launch, update, uninstall)
+        shell: powershell
+        run: ./installer/test-installer.ps1 -Setup (Get-ChildItem dist/*.exe | Select-Object -First 1).FullName
+      - name: Test the installer window (every step, answering the OMSI question both ways)
+        shell: powershell
+        run: ./installer/check-setup-ui.ps1 -Setup (Get-ChildItem dist/*.exe | Select-Object -First 1).FullName
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.rid }}
-          path: Hofwerk-*.zip
+          name: installer-windows
+          path: dist/*
 
-  # Linux build (Avalonia UI) gets added here once that front end exists.
+  linux:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $v = '${{ github.ref_name }}' -replace '^v', ''
+          if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
+          ./installer/build-installer.ps1 -Rid linux-x64 -Version $v
+
+      # Installs and removes it on a real Linux system: files, menu entry, icon, settings, uninstaller.
+      - name: Test the installer (silent install, update, uninstall)
+        shell: pwsh
+        run: ./installer/test-installer-linux.ps1 -Archive (Get-ChildItem dist/*.tar.gz | Select-Object -First 1).FullName
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-linux
+          path: dist/*
 
   release:
-    needs: build-windows
+    needs: [windows, linux]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:

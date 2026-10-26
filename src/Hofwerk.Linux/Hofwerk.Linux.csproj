@@ -5,11 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- The command and executable are lowercase "hofwerk", the usual Linux style. -->
+    <AssemblyName>hofwerk</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
+    <!-- The installer copies this into the user's icon theme for the applications menu. -->
+    <Content Include="Assets\hofwerk.png" CopyToOutputDirectory="PreserveNewest" Link="hofwerk.png" />
   </ItemGroup>
 
   <ItemGroup>

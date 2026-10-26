@@ -44,6 +44,11 @@
             <StreamGeometry x:Key="IconHome">M4,11 L12,4 L20,11 M6,9.5 V20 H10 V14 H14 V20 H18 V9.5</StreamGeometry>
             <StreamGeometry x:Key="IconLibrary">M5,4 H19 V8.5 H5 Z M5,10 H19 V14.5 H5 Z M5,16 H19 V20 H5 Z</StreamGeometry>
             <StreamGeometry x:Key="IconFolder">M3,7 V18 H21 V9 H12 L10,7 Z</StreamGeometry>
+            <StreamGeometry x:Key="IconCheck">M5,12.5 L10,17.5 L19,7.5</StreamGeometry>
+            <StreamGeometry x:Key="IconCross">M6,6 L18,18 M18,6 L6,18</StreamGeometry>
+            <StreamGeometry x:Key="IconUp">M12,19 V5 M6,11 L12,5 L18,11</StreamGeometry>
+            <StreamGeometry x:Key="IconChevron">M9,6 L15,12 L9,18</StreamGeometry>
+            <StreamGeometry x:Key="IconDocument">M7,3 H14 L19,8 V21 H7 Z M14,3 V8 H19 M10,13 H16 M10,17 H16</StreamGeometry>
             <StreamGeometry x:Key="IconBus">M5,4 H19 V17 H5 Z M5,12 H19 M8,20 V17 M16,20 V17 M5,8 H19</StreamGeometry>
         </ResourceDictionary>
     </Window.Resources>
@@ -71,6 +76,26 @@
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="14,7" />
         </Style>
+        <Style Selector="Path.small, Path.big">
+            <Setter Property="Stroke" Value="{DynamicResource Muted}" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Stretch" Value="Uniform" />
+        </Style>
+        <Style Selector="Path.accent">
+            <Setter Property="Stroke" Value="{DynamicResource SystemAccentColor}" />
+        </Style>
+        <Style Selector="Path.small">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+        </Style>
+        <Style Selector="Path.big">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Opacity" Value="0.55" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
         <Style Selector="Path.icon">
             <Setter Property="Stroke" Value="{Binding $parent[ListBoxItem].Foreground}" />
             <Setter Property="StrokeThickness" Value="1.7" />
@@ -88,6 +113,46 @@
             <Setter Property="Margin" Value="0,2" />
         </Style>
 
+        <!-- Sidebar details: section labels, count badges, file state dot -->
+        <Style Selector="TextBlock.navheader">
+            <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="LetterSpacing" Value="1" />
+            <Setter Property="Margin" Value="4,10,0,0" />
+        </Style>
+        <Style Selector="Border.badge">
+            <Setter Property="Background" Value="#2A3B82F6" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="8,1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.badge TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Ellipse.state">
+            <Setter Property="Fill" Value="#22C55E" />
+        </Style>
+        <Style Selector="Ellipse.state.unsaved">
+            <Setter Property="Fill" Value="#F59E0B" />
+        </Style>
+
+        <!-- Home tabs -->
+        <Style Selector="Button.tab">
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="16,7" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.tab.active">
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.tab.active:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1D4ED8" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
         <!-- Entry lists -->
         <Style Selector="ListBox.entries">
             <Setter Property="Background" Value="Transparent" />
@@ -99,7 +164,7 @@
         </Style>
     </Window.Styles>
 
-    <Grid ColumnDefinitions="232,*">
+    <Grid x:Name="RootGrid" ColumnDefinitions="232,*">
 
         <!-- Sidebar -->
         <Border Background="{DynamicResource SidebarBackground}" Padding="12,16" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource CardStroke}">
@@ -114,58 +179,70 @@
                         <TextBlock Text="OMSI depot editor" Classes="caption" Margin="0" />
                     </StackPanel>
                 </StackPanel>
-
-                <Border DockPanel.Dock="Bottom" Classes="card" Padding="12" CornerRadius="10"
-                        IsVisible="{Binding FilePath, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <!-- The file being edited, always in view -->
+                <Border DockPanel.Dock="Bottom" Classes="card" Padding="14,12" CornerRadius="10" Margin="0,8,0,0">
                     <StackPanel Spacing="2">
-                        <TextBlock Text="Current file" Classes="caption" Margin="0" />
-                        <TextBlock Text="{Binding FilePath}" TextTrimming="CharacterEllipsis" FontSize="12" />
+                        <TextBlock Text="CURRENT FILE" Classes="caption" Margin="0" FontSize="11" LetterSpacing="1" />
+                        <TextBlock Text="{Binding FileDisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding FileFolder}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding FileFolder}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0" IsVisible="{Binding HasFile}">
+                            <Ellipse Classes="state" Classes.unsaved="{Binding IsDirty}" Width="8" Height="8" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding FileStateText}" FontSize="12" VerticalAlignment="Center" />
+                            <Button Content="Save" Click="OnSave" Padding="12,3" FontSize="12" IsVisible="{Binding IsDirty}" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <ListBox x:Name="Nav" Classes="nav" Background="Transparent" SelectionChanged="OnNavChanged">
-                    <ListBoxItem Tag="home">
+                    <ListBoxItem Tag="header" IsHitTestVisible="False" Focusable="False"><TextBlock Text="START" Classes="navheader" /></ListBoxItem>
+                    <ListBoxItem Tag="home" AutomationProperties.Name="Home">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Path Classes="icon" Data="{StaticResource IconHome}" />
                             <TextBlock Text="Home" VerticalAlignment="Center" />
                         </StackPanel>
                     </ListBoxItem>
-                    <ListBoxItem Tag="presets">
+                    <ListBoxItem Tag="presets" AutomationProperties.Name="String Presets">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Path Classes="icon" Data="{StaticResource IconLibrary}" />
-                            <TextBlock Text="Presets" VerticalAlignment="Center" />
+                            <TextBlock Text="String Presets" VerticalAlignment="Center" />
                         </StackPanel>
                     </ListBoxItem>
-                    <ListBoxItem Tag="settings" IsEnabled="{Binding HasFile}">
+
+                    <ListBoxItem Tag="header" IsHitTestVisible="False" Focusable="False"><TextBlock Text="EDITOR" Classes="navheader" /></ListBoxItem>
+                    <ListBoxItem Tag="settings" IsEnabled="{Binding HasFile}" AutomationProperties.Name="Settings">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Path Classes="icon" Data="{StaticResource IconSettings}" />
                             <TextBlock Text="Settings" VerticalAlignment="Center" />
                         </StackPanel>
                     </ListBoxItem>
-                    <ListBoxItem Tag="destinations" IsEnabled="{Binding HasFile}">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
+                    <ListBoxItem Tag="destinations" IsEnabled="{Binding HasFile}" AutomationProperties.Name="Destinations">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                             <Path Classes="icon" Data="{StaticResource IconSign}" />
-                            <TextBlock Text="Destinations" VerticalAlignment="Center" />
-                        </StackPanel>
+                            <TextBlock Grid.Column="1" Text="Destinations" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="badge" IsVisible="{Binding HasFile}"><TextBlock Text="{Binding Termini.Count}" /></Border>
+                        </Grid>
                     </ListBoxItem>
-                    <ListBoxItem Tag="busstops" IsEnabled="{Binding HasFile}">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
+                    <ListBoxItem Tag="busstops" IsEnabled="{Binding HasFile}" AutomationProperties.Name="Bus stops">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                             <Path Classes="icon" Data="{StaticResource IconPin}" />
-                            <TextBlock Text="Bus stops" VerticalAlignment="Center" />
-                        </StackPanel>
+                            <TextBlock Grid.Column="1" Text="Bus stops" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="badge" IsVisible="{Binding HasFile}"><TextBlock Text="{Binding BusStops.Count}" /></Border>
+                        </Grid>
                     </ListBoxItem>
-                    <ListBoxItem Tag="routes" IsEnabled="{Binding HasFile}">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
+                    <ListBoxItem Tag="routes" IsEnabled="{Binding HasFile}" AutomationProperties.Name="Routes">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                             <Path Classes="icon" Data="{StaticResource IconRoute}" />
-                            <TextBlock Text="Routes" VerticalAlignment="Center" />
-                        </StackPanel>
+                            <TextBlock Grid.Column="1" Text="Routes" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="badge" IsVisible="{Binding HasFile}"><TextBlock Text="{Binding Routes.Count}" /></Border>
+                        </Grid>
                     </ListBoxItem>
-                    <ListBoxItem Tag="problems" IsVisible="{Binding HasProblems}">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
+                    <ListBoxItem Tag="problems" IsVisible="{Binding HasProblems}" AutomationProperties.Name="Problems">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                             <Path Classes="icon" Data="{StaticResource IconWarning}" />
-                            <TextBlock Text="Problems" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding Problems.Count}" VerticalAlignment="Center" Opacity="0.7" />
-                        </StackPanel>
+                            <TextBlock Grid.Column="1" Text="Problems" VerticalAlignment="Center" />
+                            <Border Grid.Column="2" Classes="badge"><TextBlock Text="{Binding Problems.Count}" /></Border>
+                        </Grid>
                     </ListBoxItem>
                 </ListBox>
             </DockPanel>
@@ -189,70 +266,112 @@
 
             <!-- Status bar -->
             <Border DockPanel.Dock="Bottom" Padding="28,8">
-                <TextBlock Text="{Binding Status}" Foreground="{DynamicResource Muted}" FontSize="12" />
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                    <TextBlock Text="{Binding Status}" Foreground="{DynamicResource Muted}" FontSize="12" />
+                    <TextBlock Grid.Column="1" Text="{Binding FileDisplayPath}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="PrefixCharacterEllipsis" HorizontalAlignment="Right" />
+                </Grid>
             </Border>
 
             <Grid Margin="28,6,28,0">
 
                 <!-- Home -->
-                <Grid x:Name="HomePanel" RowDefinitions="Auto,*" RowSpacing="16">
-                    <Border Classes="card" Padding="28">
+                <Grid x:Name="HomePanel" RowDefinitions="Auto,Auto,*" RowSpacing="16">
+
+                    <!-- Welcome: the two things you usually want -->
+                    <Border CornerRadius="14" Padding="28,24">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                                <GradientStop Offset="0" Color="{DynamicResource SystemAccentColorDark1}" />
+                                <GradientStop Offset="0" Color="{DynamicResource SystemAccentColorLight1}" />
                                 <GradientStop Offset="1" Color="{DynamicResource SystemAccentColorDark2}" />
                             </LinearGradientBrush>
                         </Border.Background>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <StackPanel Spacing="6" VerticalAlignment="Center">
-                                <TextBlock Text="Edit your OMSI depot files" FontSize="24" FontWeight="SemiBold" Foreground="White" />
-                                <TextBlock Text="Destinations, bus stops and routes in one place. Your file's original encoding is kept when you save."
-                                           Foreground="#E6FFFFFF" TextWrapping="Wrap" MaxWidth="520" />
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="22">
+                            <Image Source="/Assets/hofwerk.png" Width="60" Height="60" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Welcome to Hofwerk" FontSize="24" FontWeight="SemiBold" Foreground="White" />
+                                    <TextBlock Text="Edit destinations, bus stops and routes for OMSI. You can also drop a .hof file onto this window."
+                                               Foreground="#E6FFFFFF" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Open a .hof file…" Click="OnOpen" Padding="18,9" />
+                                    <Button Click="OnContinue" Padding="18,9" IsVisible="{Binding HasRecent}">
+                                        <TextBlock Text="{Binding LatestTitle, StringFormat='Continue: {0}'}" MaxWidth="300" TextTrimming="CharacterEllipsis" />
+                                    </Button>
+                                </StackPanel>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="Open a .hof file…" Click="OnOpen" Padding="22,12" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,0,0,12">
-                        <Border Classes="card">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="Recent files" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
-                                <TextBlock DockPanel.Dock="Top" Text="Files you open will show up here." Foreground="{DynamicResource Muted}"
-                                           IsVisible="{Binding !HasRecent}" />
-                                <ListBox Classes="entries" ItemsSource="{Binding Recent}" SelectionChanged="OnPickEntry" IsVisible="{Binding HasRecent}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="core:HofFileEntry">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
+                    <!-- One list at a time -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
+                        <Button Content="Recent files" Classes="tab" Classes.active="{Binding ShowRecentTab}" Click="OnHomeRecent" />
+                        <Button Content="OMSI library" Classes="tab" Classes.active="{Binding ShowLibraryTab}" Click="OnHomeLibrary" />
+                    </StackPanel>
 
-                        <Border Grid.Column="1" Classes="card">
-                            <DockPanel>
-                                <TextBlock DockPanel.Dock="Top" Text="OMSI library" FontWeight="SemiBold" FontSize="16" />
-                                <TextBlock DockPanel.Dock="Top" Margin="0,2,0,10" FontSize="12" TextTrimming="CharacterEllipsis"
-                                           Foreground="{DynamicResource Muted}"
-                                           Text="{Binding OmsiFolder, TargetNullValue='OMSI was not found automatically. Use “Open a .hof file” instead.'}" />
-                                <TextBox DockPanel.Dock="Top" PlaceholderText="Filter by vehicle or file name" Text="{Binding OmsiFilter}"
-                                         IsVisible="{Binding HasOmsi}" Margin="0,0,0,8" />
-                                <ListBox Classes="entries" ItemsSource="{Binding OmsiFiles}" SelectionChanged="OnPickEntry" IsVisible="{Binding HasOmsi}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="core:HofFileEntry">
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <Border Grid.Row="2" Classes="card" Margin="0,0,0,12" IsVisible="{Binding ShowRecentTab}">
+                        <Grid>
+                            <StackPanel Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding !HasRecent}">
+                                <Path Data="{StaticResource IconDocument}" Classes="big" />
+                                <TextBlock Text="Files you open will show up here." Foreground="{DynamicResource Muted}" TextAlignment="Center" />
+                                <Button Content="Browse the OMSI library" Click="OnHomeLibrary" HorizontalAlignment="Center" Margin="0,8,0,0" IsVisible="{Binding HasOmsi}" />
+                            </StackPanel>
+                            <ListBox Classes="entries" ItemsSource="{Binding Recent}" SelectionChanged="OnPickEntry" IsVisible="{Binding HasRecent}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="core:HofFileEntry">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" AutomationProperties.Name="{Binding Title}">
+                                            <Path Data="{StaticResource IconDocument}" Classes="small" VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Border>
-                    </Grid>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="2" Classes="card" Margin="0,0,0,12" IsVisible="{Binding ShowLibraryTab}">
+                        <DockPanel>
+                            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+                                <Button Command="{Binding OmsiUpCommand}" IsVisible="{Binding CanGoUp}" Padding="8,6" ToolTip.Tip="Up one folder" AutomationProperties.Name="Up one folder">
+                                    <Path Data="{StaticResource IconUp}" Classes="small" Stroke="{Binding $parent[Button].Foreground}" />
+                                </Button>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding OmsiLocation}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding OmsiHeadline}" Foreground="{DynamicResource Muted}" FontSize="12" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Change OMSI folder…" Click="OnChangeOmsi" />
+                            </Grid>
+                            <TextBox DockPanel.Dock="Top" PlaceholderText="Search all vehicles" Text="{Binding OmsiFilter}"
+                                     IsVisible="{Binding HasOmsi}" Margin="0,0,0,8" />
+
+                            <StackPanel Spacing="6" VerticalAlignment="Center" HorizontalAlignment="Center" IsVisible="{Binding !HasOmsi}">
+                                <Path Data="{StaticResource IconFolder}" Classes="big" />
+                                <TextBlock Text="OMSI 2 was not found automatically." Foreground="{DynamicResource Muted}" TextAlignment="Center" />
+                                <Button Content="Select the OMSI folder…" Click="OnChangeOmsi" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                            </StackPanel>
+
+                            <ListBox Classes="entries" ItemsSource="{Binding OmsiItems}" SelectionChanged="OnPickOmsiItem" IsVisible="{Binding HasOmsi}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="core:OmsiItem">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" AutomationProperties.Name="{Binding Name}">
+                                            <Path Data="{StaticResource IconFolder}" Classes="small accent" VerticalAlignment="Center" IsVisible="{Binding IsFolder}" />
+                                            <Path Data="{StaticResource IconDocument}" Classes="small" VerticalAlignment="Center" IsVisible="{Binding !IsFolder}" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                                           IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                            </StackPanel>
+                                            <Path Grid.Column="2" Data="{StaticResource IconChevron}" Classes="small" Width="12" Height="12" VerticalAlignment="Center"
+                                                  IsVisible="{Binding IsFolder}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Preset library -->
@@ -308,34 +427,123 @@
 
                     <!-- Settings -->
                     <ScrollViewer x:Name="SettingsPanel">
-                        <Border Classes="card" MaxWidth="600" HorizontalAlignment="Left">
-                            <StackPanel>
-                                <TextBlock Classes="caption" Text="Name of the depot" Margin="0,0,0,4" />
-                                <TextBox Text="{Binding Name}" />
-                                <TextBlock Classes="caption" Text="Service trip (destination shown when not in service)" />
-                                <TextBox Text="{Binding ServiceTrip}" />
-                                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-                                    <StackPanel>
-                                        <TextBlock Classes="caption" Text="Strings per destination" />
-                                        <NumericUpDown Value="{Binding TerminusStringCount}" Minimum="0" Maximum="64" FormatString="0" />
+                        <StackPanel Spacing="16" MaxWidth="820" HorizontalAlignment="Left" Margin="0,0,16,16">
+
+                            <!-- General settings -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="14">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="General settings" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock Text="The name of the depot, and the destination shown when the bus is not in service."
+                                                   Foreground="{DynamicResource Muted}" TextWrapping="Wrap" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Classes="caption" Text="Strings per bus stop" />
-                                        <NumericUpDown Value="{Binding BusStopStringCount}" Minimum="0" Maximum="64" FormatString="0" />
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Display name" Classes="caption" Margin="0" />
+                                        <TextBox Text="{Binding Name}" AutomationProperties.Name="Display name" />
                                     </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Service trip destination" Classes="caption" Margin="0" />
+                                        <ComboBox HorizontalAlignment="Stretch" PlaceholderText="Choose a destination"
+                                                  ItemsSource="{Binding ServiceTripChoices}" SelectedItem="{Binding SelectedServiceTrip}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ServiceTripChoice">
+                                                    <TextBlock Text="{Binding Display}" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Folders -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Folders" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap"
+                                                   Text="The names of the folders your bus pack reads announcements and destination textures from. A tick means a folder with that name was found under Vehicles in your OMSI folder." />
+                                    </StackPanel>
+                                    <ItemsControl ItemsSource="{Binding Folders}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:FolderRow">
+                                                <Grid ColumnDefinitions="130,*,28,100" ColumnSpacing="12" Margin="0,0,0,10">
+                                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center" ToolTip.Tip="{Binding Hint}" />
+                                                    <TextBox Grid.Column="1" PlaceholderText="Folder name" Text="{Binding Name}" />
+                                                    <Panel Grid.Column="2" VerticalAlignment="Center" ToolTip.Tip="{Binding StatusText}">
+                                                        <Path Data="{StaticResource IconCheck}" Stroke="#22C55E" StrokeThickness="2.2" StrokeLineCap="Round" StrokeJoin="Round"
+                                                              Stretch="Uniform" Width="16" Height="16" IsVisible="{Binding IsFound}" />
+                                                        <Path Data="{StaticResource IconCross}" Stroke="#EF4444" StrokeThickness="2.2" StrokeLineCap="Round" StrokeJoin="Round"
+                                                              Stretch="Uniform" Width="14" Height="14" IsVisible="{Binding IsMissing}" />
+                                                    </Panel>
+                                                    <Button Grid.Column="3" Content="Create…" Click="OnCreateFolder" HorizontalAlignment="Stretch"
+                                                            HorizontalContentAlignment="Center" IsVisible="{Binding CanCreate}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Foreground="{DynamicResource Muted}" FontSize="12" TextWrapping="Wrap"
+                                               Text="Create… asks where to make a missing folder, because that depends on the bus pack (for example Vehicles/Announcements)." />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- IBIS codes -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="12">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="IBIS codes" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap"
+                                                   Text="Changes the last two numbers of the IBIS code when you enter 900, 800 and 500 routes. The codes are listed in the documentation of your bus. The default is “00”." />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="9xx" Classes="caption" Margin="0" />
+                                            <TextBox Width="88" MaxLength="2" PlaceholderText="00" Text="{Binding Ibis9xx}" AutomationProperties.Name="9xx" />
+                                        </StackPanel>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="8xx" Classes="caption" Margin="0" />
+                                            <TextBox Width="88" MaxLength="2" PlaceholderText="00" Text="{Binding Ibis8xx}" AutomationProperties.Name="8xx" />
+                                        </StackPanel>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="5xx" Classes="caption" Margin="0" />
+                                            <TextBox Width="88" MaxLength="2" PlaceholderText="00" Text="{Binding Ibis5xx}" AutomationProperties.Name="5xx" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Advanced -->
+                            <Expander Header="Advanced" HorizontalAlignment="Stretch">
+                                <StackPanel Spacing="12" Margin="4,8,4,4">
+                                    <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap"
+                                               Text="How many text lines OMSI reads for every destination and bus stop. Your bus decides this; change it only if you know you need to." />
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Strings per destination" Classes="caption" Margin="0" />
+                                            <NumericUpDown Width="200" Value="{Binding TerminusStringCount}" Minimum="0" Maximum="64" FormatString="0" />
+                                        </StackPanel>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="Strings per bus stop" Classes="caption" Margin="0" />
+                                            <NumericUpDown Width="200" Value="{Binding BusStopStringCount}" Minimum="0" Maximum="64" FormatString="0" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Expander>
+                        </StackPanel>
                     </ScrollViewer>
 
                     <!-- Destinations -->
                     <Grid x:Name="DestinationsPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
                         <DockPanel>
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
-                                <Button Content="Add" Command="{Binding AddTerminusCommand}" />
-                                <Button Content="Remove" Command="{Binding RemoveTerminusCommand}" />
+                            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                                    <TextBlock Text="{Binding Termini.Count, StringFormat='{}{0} in this file'}" Classes="caption" Margin="0" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Content="Add" Command="{Binding AddTerminusCommand}" AutomationProperties.Name="Add destination" />
+                                    <Button Grid.Column="2" Content="Copy" Command="{Binding DuplicateTerminusCommand}" AutomationProperties.Name="Duplicate destination" />
+                                    <Button Grid.Column="3" Content="Remove" Command="{Binding RemoveTerminusCommand}" AutomationProperties.Name="Remove destination" />
+                                </Grid>
+                                <TextBox Text="{Binding TerminusFilter}" PlaceholderText="Search destinations" AutomationProperties.Name="Search destinations" />
                             </StackPanel>
-                            <ListBox Classes="entries" ItemsSource="{Binding Termini}" SelectedItem="{Binding SelectedTerminus}">
+                            <ListBox Classes="entries" ItemsSource="{Binding FilteredTermini}" SelectedItem="{Binding SelectedTerminus}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:TerminusViewModel">
                                         <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
@@ -348,14 +556,14 @@
                             <Border Classes="card" x:DataType="vm:TerminusViewModel" Margin="0,0,0,12">
                                 <StackPanel>
                                     <TextBlock Classes="caption" Text="Code (ident)" Margin="0,0,0,4" />
-                                    <TextBox Text="{Binding Ident}" />
+                                    <TextBox Text="{Binding Ident}" AutomationProperties.Name="Code (ident)" />
                                     <CheckBox Margin="0,14,0,0" IsChecked="{Binding IsAllExit}"
                                               Content="All exit – nobody boards (e.g. not in service)" />
                                     <StackPanel IsVisible="{Binding !IsAllExit}">
                                         <TextBlock Classes="caption" Text="Terminus stop (where everybody gets off)" />
                                         <TextBox Text="{Binding Station}" />
                                     </StackPanel>
-                                    <ItemsControl ItemsSource="{Binding Strings}">
+                                    <ItemsControl ItemsSource="{Binding Strings}" Margin="0,8,0,0">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:StringItem">
                                                 <Grid ColumnDefinitions="26,200,*" ColumnSpacing="12" Margin="0,0,0,8">
@@ -375,11 +583,16 @@
                     <!-- Bus stops -->
                     <Grid x:Name="BusStopsPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
                         <DockPanel>
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
-                                <Button Content="Add" Command="{Binding AddBusStopCommand}" />
-                                <Button Content="Remove" Command="{Binding RemoveBusStopCommand}" />
+                            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                                    <TextBlock Text="{Binding BusStops.Count, StringFormat='{}{0} in this file'}" Classes="caption" Margin="0" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Content="Add" Command="{Binding AddBusStopCommand}" AutomationProperties.Name="Add bus stop" />
+                                    <Button Grid.Column="2" Content="Copy" Command="{Binding DuplicateBusStopCommand}" AutomationProperties.Name="Duplicate bus stop" />
+                                    <Button Grid.Column="3" Content="Remove" Command="{Binding RemoveBusStopCommand}" AutomationProperties.Name="Remove bus stop" />
+                                </Grid>
+                                <TextBox Text="{Binding BusStopFilter}" PlaceholderText="Search bus stops" AutomationProperties.Name="Search bus stops" />
                             </StackPanel>
-                            <ListBox Classes="entries" ItemsSource="{Binding BusStops}" SelectedItem="{Binding SelectedBusStop}">
+                            <ListBox Classes="entries" ItemsSource="{Binding FilteredBusStops}" SelectedItem="{Binding SelectedBusStop}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:BusStopViewModel">
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
@@ -387,72 +600,123 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </DockPanel>
-                        <ScrollViewer Grid.Column="1" DataContext="{Binding SelectedBusStop}"
-                                      IsVisible="{Binding, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <Border Classes="card" x:DataType="vm:BusStopViewModel" Margin="0,0,0,12">
-                                <StackPanel>
-                                    <TextBlock Classes="caption" Text="Name" Margin="0,0,0,4" />
-                                    <TextBox Text="{Binding Name}" />
-                                    <ItemsControl ItemsSource="{Binding Strings}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:StringItem">
-                                                <Grid ColumnDefinitions="26,200,*" ColumnSpacing="12" Margin="0,0,0,8">
-                                                    <TextBlock Text="{Binding Index}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Label}" TextTrimming="CharacterEllipsis"
-                                                               VerticalAlignment="Center" ToolTip.Tip="{Binding Hint}" />
-                                                    <TextBox Grid.Column="2" Text="{Binding Value}" FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
+                        <ScrollViewer Grid.Column="1" IsVisible="{Binding SelectedBusStop, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding BusStopUsage}" Classes="caption" Margin="4,0,0,6" />
+                                <Border Classes="card" DataContext="{Binding SelectedBusStop}" x:DataType="vm:BusStopViewModel" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Classes="caption" Text="Name" Margin="0,0,0,4" />
+                                        <TextBox Text="{Binding Name}" AutomationProperties.Name="Name" />
+                                        <ItemsControl ItemsSource="{Binding Strings}" Margin="0,8,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:StringItem">
+                                                    <Grid ColumnDefinitions="26,200,*" ColumnSpacing="12" Margin="0,0,0,8">
+                                                        <TextBlock Text="{Binding Index}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                                                                   VerticalAlignment="Center" ToolTip.Tip="{Binding Hint}" />
+                                                        <TextBox Grid.Column="2" Text="{Binding Value}" FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </ScrollViewer>
                     </Grid>
 
                     <!-- Routes -->
                     <Grid x:Name="RoutesPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
                         <DockPanel>
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
-                                <Button Content="Add" Command="{Binding AddRouteCommand}" />
-                                <Button Content="Remove" Command="{Binding RemoveRouteCommand}" />
+                            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                                    <TextBlock Text="{Binding Routes.Count, StringFormat='{}{0} in this file'}" Classes="caption" Margin="0" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Content="Add" Command="{Binding AddRouteCommand}" AutomationProperties.Name="Add route" />
+                                    <Button Grid.Column="2" Content="Copy" Command="{Binding DuplicateRouteCommand}" AutomationProperties.Name="Duplicate route" />
+                                    <Button Grid.Column="3" Content="Remove" Command="{Binding RemoveRouteCommand}" AutomationProperties.Name="Remove route" />
+                                </Grid>
+                                <TextBox Text="{Binding RouteFilter}" PlaceholderText="Search routes" AutomationProperties.Name="Search routes" />
                             </StackPanel>
-                            <ListBox Classes="entries" ItemsSource="{Binding Routes}" SelectedItem="{Binding SelectedRoute}">
+                            <ListBox Classes="entries" ItemsSource="{Binding FilteredRoutes}" SelectedItem="{Binding SelectedRoute}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:RouteViewModel">
-                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding StopSummary}" Classes="caption" Margin="0,2,0,0" />
+                                        </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </DockPanel>
-                        <Grid Grid.Column="1" DataContext="{Binding SelectedRoute}" x:DataType="vm:RouteViewModel"
-                              IsVisible="{Binding, Converter={x:Static ObjectConverters.IsNotNull}}" RowDefinitions="Auto,*">
-                            <Border Classes="card">
-                                <Grid ColumnDefinitions="*,*,*,2*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
-                                    <TextBlock Classes="caption" Text="Route code" Margin="0,0,0,4" />
-                                    <TextBox Grid.Row="1" Text="{Binding Ident}" />
-                                    <TextBlock Grid.Column="1" Classes="caption" Text="Destination code" Margin="0,0,0,4" />
-                                    <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding TerminusIdent}" />
-                                    <TextBlock Grid.Column="2" Classes="caption" Text="Line" Margin="0,0,0,4" />
-                                    <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding Line}" />
-                                    <TextBlock Grid.Column="3" Classes="caption" Text="Name" Margin="0,0,0,4" />
-                                    <TextBox Grid.Column="3" Grid.Row="1" Text="{Binding Name}" />
-                                </Grid>
-                            </Border>
-                            <DockPanel Grid.Row="1" Margin="0,12,0,0">
-                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
-                                    <Button Content="Add stop" Command="{Binding AddStopCommand}" />
-                                    <Button Content="Remove stop" Command="{Binding RemoveStopCommand}" />
-                                </StackPanel>
-                                <ListBox Classes="entries" ItemsSource="{Binding Stops}" SelectedItem="{Binding SelectedStop}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:StringItem">
-                                            <TextBox Text="{Binding Value}" />
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </DockPanel>
-                        </Grid>
+
+                        <ScrollViewer Grid.Column="1" IsVisible="{Binding SelectedRoute, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <StackPanel Spacing="12" Margin="0,0,0,12">
+                                <Border Classes="card">
+                                    <Grid x:Name="RouteFields" ColumnDefinitions="*,*,2*,2*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                                        <TextBlock Classes="caption" Text="Route code" Margin="0,0,0,4" />
+                                        <TextBox Grid.Row="1" Text="{Binding SelectedRoute.Ident}" AutomationProperties.Name="Route code" />
+                                        <TextBlock Grid.Column="1" Classes="caption" Text="Line" Margin="0,0,0,4" />
+                                        <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding SelectedRoute.Line}" AutomationProperties.Name="Line" />
+                                        <TextBlock Grid.Column="2" Classes="caption" Text="Destination" Margin="0,0,0,4" />
+                                        <ComboBox Grid.Column="2" Grid.Row="1" HorizontalAlignment="Stretch" ItemsSource="{Binding DestinationChoices}"
+                                                  SelectedItem="{Binding SelectedRouteDestination}" AutomationProperties.Name="Destination">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:DestinationChoice"><TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis" /></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Grid.Column="3" Classes="caption" Text="Name" Margin="0,0,0,4" />
+                                        <TextBox Grid.Column="3" Grid.Row="1" Text="{Binding SelectedRoute.Name}" AutomationProperties.Name="Name" />
+                                    </Grid>
+                                </Border>
+
+                                <Border Classes="card">
+                                    <StackPanel Spacing="10">
+                                        <TextBlock Text="{Binding RouteWarning}" Foreground="{DynamicResource SystemAccentColor}" TextWrapping="Wrap"
+                                                   IsVisible="{Binding RouteWarning, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        <Grid x:Name="StopsGrid" ColumnDefinitions="*,Auto,*" ColumnSpacing="12" RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+                                            <StackPanel x:Name="AllStopsBox" Spacing="6">
+                                                <TextBlock Text="All stops" FontWeight="SemiBold" AutomationProperties.Name="All stops" />
+                                                <TextBlock Text="Bus stops defined in this file – double-click to add" Classes="caption" Margin="0" />
+                                                <TextBox Text="{Binding StopPickerFilter}" PlaceholderText="Search bus stops" AutomationProperties.Name="Search bus stops to add" />
+                                                <ListBox x:Name="AllStopsList" Classes="entries" Height="280" ItemsSource="{Binding StopPickerStops}"
+                                                         SelectedItem="{Binding SelectedPickerStop}" DoubleTapped="OnPickerDoubleTapped">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:BusStopViewModel">
+                                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </StackPanel>
+                                            <StackPanel x:Name="StopButtons" Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                                                <Button Content="Add →" Command="{Binding AddPickedStopCommand}" AutomationProperties.Name="Add stop to route" />
+                                                <Button Content="↑" Command="{Binding SelectedRoute.MoveStopUpCommand}" AutomationProperties.Name="Move stop up" />
+                                                <Button Content="↓" Command="{Binding SelectedRoute.MoveStopDownCommand}" AutomationProperties.Name="Move stop down" />
+                                                <Button Content="Remove" Command="{Binding SelectedRoute.RemoveStopCommand}" AutomationProperties.Name="Remove stop from route" />
+                                                <Button Content="Clear" Command="{Binding SelectedRoute.ClearStopsCommand}" AutomationProperties.Name="Clear route stops" />
+                                            </StackPanel>
+                                            <StackPanel x:Name="RouteStopsBox" Grid.Column="2" Spacing="6">
+                                                <TextBlock Text="Route stops" FontWeight="SemiBold" AutomationProperties.Name="Route stops" />
+                                                <TextBlock Text="{Binding SelectedRoute.StopSummary}" Classes="caption" Margin="0" />
+                                                <TextBlock Text="No stops yet – double-click a stop on the left to add it."
+                                                           Classes="caption" Margin="0" TextWrapping="Wrap" IsVisible="{Binding !SelectedRoute.HasStops}" />
+                                                <ListBox x:Name="RouteStopsList" Classes="entries" Height="280" ItemsSource="{Binding SelectedRoute.Stops}"
+                                                         SelectedItem="{Binding SelectedRoute.SelectedStop}">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:RouteStopViewModel">
+                                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                                <Border Grid.Column="1" Classes="badge" IsVisible="{Binding IsUnknown}"
+                                                                        ToolTip.Tip="Not in your bus stop list"><TextBlock Text="?" /></Border>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                </ListBox>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Grid>
 
                     <!-- Problems found while reading -->

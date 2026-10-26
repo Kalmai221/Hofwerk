@@ -13,16 +13,65 @@
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
+    <!-- Publish only the parts of the .NET framework the app uses; this roughly halves the app. Only framework code is trimmed. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <TrimmerSingleWarn>true</TrimmerSingleWarn>
+    <!-- Generates, at build time, the WinRT marshalling code for the collections the app passes to WinUI; the trimmer cannot see it otherwise. -->
+    <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
+    <CsWinRTAotWarningLevel>1</CsWinRTAotWarningLevel>
     <AssemblyName>Hofwerk</AssemblyName>
     <ApplicationIcon>Assets\Hofwerk.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- WinRT finds its marshalling helpers by reflection, so the WinRT assemblies must be kept whole. -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="WinRT.Runtime" />
+    <TrimmerRootAssembly Include="Microsoft.Windows.SDK.NET" />
+    <TrimmerRootAssembly Include="Microsoft.WinUI" />
+    <TrimmerRootAssembly Include="Microsoft.InteractiveExperiences.Projection" />
+  </ItemGroup>
+
+  <!--
+    dotnet publish of an unpackaged WinUI app leaves out the app's resource index (Hofwerk.pri) and its compiled XAML,
+    so the published app dies in InitializeComponent with "XAML parsing failed". The build output has them; add them.
+  -->
+  <Target Name="HofwerkPublishResources" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_HofwerkResource Include="$(OutDir)$(AssemblyName).pri;$(OutDir)*.xbf" />
+      <ResolvedFileToPublish Include="@(_HofwerkResource)" RelativePath="%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+  <!-- Runtime parts that only matter for debugging, crash dumps, HTTP/3 or alternative garbage collectors. -->
+  <Target Name="HofwerkSlimPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_HofwerkUnused Include="@(ResolvedFileToPublish)"
+                      Condition="'%(Filename)%(Extension)' == 'mscordbi.dll'
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))
+                              Or '%(Filename)%(Extension)' == 'clrgc.dll'
+                              Or '%(Filename)%(Extension)' == 'clrgcexp.dll'
+                              Or '%(Filename)%(Extension)' == 'msquic.dll'
+                              Or '%(Filename)%(Extension)' == 'createdump.exe'
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))
+                              Or '%(Extension)' == '.pdb'" />
+      <ResolvedFileToPublish Remove="@(_HofwerkUnused)" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\Hofwerk.ViewModels\Hofwerk.ViewModels.csproj" />
   </ItemGroup>
+  <!--
+    Only the parts of the Windows App SDK Hofwerk uses. The all-in-one Microsoft.WindowsAppSDK package also brings
+    the AI and machine-learning runtimes (onnxruntime, DirectML), Search and Widgets, about 50 MB that go unused.
+  -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="2.3.12" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.9" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="2.1.9" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.5.1" />
   </ItemGroup>
 </Project>

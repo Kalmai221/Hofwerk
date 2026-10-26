@@ -38,13 +38,21 @@ public partial class MainViewModel : ViewModelBase
 
     // Home screen: recently opened files and the .hof files of the detected OMSI install.
     readonly RecentFiles _recent = new();
-    List<HofFileEntry> _omsiFiles = [];
+    OmsiBrowser _browser = new([]);
+    string _omsiPath = ""; // the folder shown in the library, relative to Vehicles
     public ObservableCollection<HofFileEntry> Recent { get; } = [];
-    public ObservableCollection<HofFileEntry> OmsiFiles { get; } = [];
+    public ObservableCollection<OmsiItem> OmsiItems { get; } = [];
     public bool HasRecent => Recent.Count > 0;
     public bool HasOmsi => OmsiFolder is not null;
     [ObservableProperty] public partial string? OmsiFolder { get; set; }
     [ObservableProperty] public partial string OmsiFilter { get; set; } = "";
+
+    // The three summary cards at the top of Home.
+    public HofFileEntry? LatestRecent => Recent.FirstOrDefault();
+    public string LatestTitle => LatestRecent?.Title ?? "Nothing opened yet";
+    public string LatestDetail => LatestRecent?.Subtitle ?? "Open a .hof file and it will wait for you here.";
+    public string OmsiHeadline => HasOmsi ? $"{_browser.FileCount:N0} .hof files found" : "OMSI 2 not found";
+    public string OmsiDetail => OmsiFolder ?? "Use “Open a .hof file” to pick one yourself.";
 
     // String presets: the library of slot-name sets and the one currently in use (saved in the app settings).
     readonly AppSettings _settings;
@@ -63,13 +71,26 @@ public partial class MainViewModel : ViewModelBase
     {
         _settings = settings;
         _userPresetsFolder = userPresetsFolder ?? PresetLibrary.UserFolder;
+        InitEditorLists();
         Termini.CollectionChanged += (_, _) => Touch();
-        BusStops.CollectionChanged += (_, _) => Touch();
+        BusStops.CollectionChanged += (_, _) =>
+        {
+            Touch();
+            RefreshKnownStops();
+        };
         Routes.CollectionChanged += (_, _) => Touch();
         Problems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasProblems));
-        Recent.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasRecent));
+        Recent.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(HasRecent));
+            OnPropertyChanged(nameof(LatestRecent));
+            OnPropertyChanged(nameof(LatestTitle));
+            OnPropertyChanged(nameof(LatestDetail));
+        };
+        WatchFolderRows();
         RefreshPresets();
         RefreshHome();
+        HomeTab = HasRecent || !HasOmsi ? 0 : 1; // start on whichever list has something to show
     }
 
     /// <summary>Reads the built-in and user presets again, e.g. after the user dropped a new folder in.</summary>
@@ -107,34 +128,79 @@ public partial class MainViewModel : ViewModelBase
 
     public void RefreshHome()
     {
-        SetRecent(_recent.Load());
 
-        OmsiFolder = OmsiLocator.FindInstallFolders().FirstOrDefault();
-        _omsiFiles = OmsiFolder is null ? [] : OmsiLocator.FindHofFiles(OmsiFolder);
+        // The folder chosen in the installer or with Change... wins; otherwise look for Steam installs.
+        string? chosen = _settings.OmsiFolder;
+        OmsiFolder = !string.IsNullOrWhiteSpace(chosen) && Directory.Exists(chosen) ? chosen : OmsiLocator.FindInstallFolders().FirstOrDefault();
+        _vehicleIndexBuilt = false; // the folder checks on the Settings page read the new install next time they are shown
+        OnPropertyChanged(nameof(VehiclesFolder));
+        SetRecent(_recent.Load());   // after the OMSI folder is known, so paths can start at Vehicles\
+        OnPropertyChanged(nameof(FileDisplayPath));
+        OnPropertyChanged(nameof(FileFolder));
+        _browser = new OmsiBrowser(OmsiFolder is null ? [] : OmsiLocator.FindHofFiles(OmsiFolder));
+        _omsiPath = "";
         OnPropertyChanged(nameof(HasOmsi));
-        ApplyOmsiFilter();
+        OnPropertyChanged(nameof(OmsiHeadline));
+        OnPropertyChanged(nameof(OmsiDetail));
+        ShowOmsiFolder();
     }
 
-    partial void OnOmsiFilterChanged(string value) => ApplyOmsiFilter();
-
-    void ApplyOmsiFilter()
+    /// <summary>Remembers an OMSI folder picked by hand. Returns false, and says why in the status bar, if it is not an OMSI folder.</summary>
+    public bool TrySetOmsiFolder(string folder)
     {
-        string f = OmsiFilter.Trim();
-        OmsiFiles.Clear();
-        // Cap the list so typing in the filter stays instant even with a very large library.
-        foreach (var e in _omsiFiles
-                     .Where(e => f.Length == 0
-                                 || e.Title.Contains(f, StringComparison.OrdinalIgnoreCase)
-                                 || e.Subtitle.Contains(f, StringComparison.OrdinalIgnoreCase))
-                     .Take(300))
-            OmsiFiles.Add(e);
+        if (!OmsiLocator.LooksLikeOmsi(folder))
+        {
+            Status = "That doesn't look like an OMSI 2 folder: it needs a Vehicles folder and a Maps folder or Omsi.exe.";
+            return false;
+        }
+
+        _settings.OmsiFolder = folder;
+        _settings.Save();
+        RefreshHome();
+        Status = $"Using OMSI at {folder}";
+        return true;
+    }
+
+    // The OMSI library works like a file explorer: folders with .hof files first, then files. Typing searches everything.
+    public bool IsSearchingOmsi => OmsiFilter.Trim().Length > 0;
+    public bool CanGoUp => _omsiPath.Length > 0 && !IsSearchingOmsi;
+    public string OmsiLocation => IsSearchingOmsi ? $"Search results for “{OmsiFilter.Trim()}”" : OmsiBrowser.Breadcrumb(_omsiPath);
+
+    partial void OnOmsiFilterChanged(string value) => ShowOmsiFolder();
+
+    void ShowOmsiFolder()
+    {
+        OmsiItems.Clear();
+        foreach (var item in IsSearchingOmsi ? _browser.Search(OmsiFilter) : _browser.Browse(_omsiPath))
+            OmsiItems.Add(item);
+
+        OnPropertyChanged(nameof(IsSearchingOmsi));
+        OnPropertyChanged(nameof(CanGoUp));
+        OnPropertyChanged(nameof(OmsiLocation));
+    }
+
+    /// <summary>Clicking a row: a folder is entered (returns null), a file returns its path for the caller to open.</summary>
+    public string? ActivateOmsiItem(OmsiItem item)
+    {
+        if (!item.IsFolder) return item.Path;
+
+        _omsiPath = item.Path;
+        ShowOmsiFolder();
+        return null;
+    }
+
+    [RelayCommand]
+    void OmsiUp()
+    {
+        _omsiPath = OmsiBrowser.Parent(_omsiPath);
+        ShowOmsiFolder();
     }
 
     void SetRecent(IEnumerable<string> paths)
     {
         Recent.Clear();
         foreach (string p in paths)
-            Recent.Add(new HofFileEntry(p, Path.GetFileName(p), Path.GetDirectoryName(p) ?? ""));
+            Recent.Add(new HofFileEntry(p, Path.GetFileName(p), DisplayPath(Path.GetDirectoryName(p) ?? "")));
     }
 
     /// <summary>Opens a file and remembers it. Returns false (and says why in the status bar) if it can't be read.</summary>
@@ -161,7 +227,15 @@ public partial class MainViewModel : ViewModelBase
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(Name) or nameof(ServiceTrip) or nameof(TerminusStringCount) or nameof(BusStopStringCount)) Touch();
+        if (e.PropertyName is nameof(Name) or nameof(ServiceTrip) or nameof(TerminusStringCount) or nameof(BusStopStringCount)
+            or nameof(Ibis9xx) or nameof(Ibis8xx) or nameof(Ibis5xx)) Touch();
+        if (e.PropertyName is nameof(FilePath) or nameof(IsDirty))
+        {
+            OnPropertyChanged(nameof(FileDisplayName));
+            OnPropertyChanged(nameof(FileDisplayPath));
+            OnPropertyChanged(nameof(FileFolder));
+            OnPropertyChanged(nameof(FileStateText));
+        }
         if (e.PropertyName is nameof(FilePath) or nameof(IsDirty)) OnPropertyChanged(nameof(WindowTitle));
         if (e.PropertyName is nameof(FilePath)) OnPropertyChanged(nameof(HasFile));
     }
@@ -192,6 +266,11 @@ public partial class MainViewModel : ViewModelBase
             Termini.Clear(); foreach (var t in doc.Termini) Termini.Add(Track(new TerminusViewModel(t, Names)));
             BusStops.Clear(); foreach (var b in doc.BusStops) BusStops.Add(Track(new BusStopViewModel(b, Names)));
             Routes.Clear(); foreach (var r in doc.Routes) Routes.Add(Track(new RouteViewModel(r)));
+            LoadGlobals(doc.GlobalStrings);
+            RebuildServiceTripChoices();
+            RebuildDestinationChoices();
+            RefreshKnownStops();
+            RefreshFolderStatuses(rescan: false);
             Problems.Clear();
             foreach (var d in doc.Diagnostics) Problems.Add($"Line {d.Line}: {d.Message}");
             SelectedTerminus = Termini.FirstOrDefault();
@@ -226,7 +305,7 @@ public partial class MainViewModel : ViewModelBase
         };
         doc.Preamble.AddRange(_source.Preamble);
         doc.SuiteDirectories.AddRange(_source.SuiteDirectories);
-        doc.GlobalStrings.AddRange(_source.GlobalStrings);
+        doc.GlobalStrings.AddRange(GlobalLines());
         doc.Termini.AddRange(Termini.Select(t => t.ToModel()));
         doc.BusStops.AddRange(BusStops.Select(b => b.ToModel()));
         doc.Routes.AddRange(Routes.Select(r => r.ToModel()));
@@ -236,12 +315,15 @@ public partial class MainViewModel : ViewModelBase
     T Track<T>(T item) where T : ObservableObject
     {
         item.PropertyChanged += (_, _) => Touch();
+        if (item is RouteViewModel route) route.Stops.CollectionChanged += (_, _) => RefreshKnownStops();
+        if (item is BusStopViewModel stop) stop.Renamed += RenameStopInRoutes;
         return item;
     }
 
     [RelayCommand]
     void AddTerminus()
     {
+        TerminusFilter = "";
         var t = Track(new TerminusViewModel(new Terminus { Ident = NextIdent(Termini.Select(x => x.Ident)) }, Names));
         StringSlots.Resize(t.Strings, TerminusStringCount, StringSlotKind.Terminus, Names);
         AddAfter(Termini, SelectedTerminus, t);
@@ -254,6 +336,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     void AddBusStop()
     {
+        BusStopFilter = "";
         var b = Track(new BusStopViewModel(new BusStop { Name = "New stop" }, Names));
         StringSlots.Resize(b.Strings, BusStopStringCount, StringSlotKind.BusStop, Names);
         AddAfter(BusStops, SelectedBusStop, b);
@@ -266,6 +349,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     void AddRoute()
     {
+        RouteFilter = "";
         var r = Track(new RouteViewModel(new Route { Ident = NextIdent(Routes.Select(x => x.Ident)), Name = "New route" }));
         AddAfter(Routes, SelectedRoute, r);
         SelectedRoute = r;

@@ -21,6 +21,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hofwerk.Core\Hofwerk.Core.csproj" />
     <ProjectReference Include="..\..\src\Hofwerk.ViewModels\Hofwerk.ViewModels.csproj" />
+    <ProjectReference Include="..\..\src\Hofwerk.Installer.Engine\Hofwerk.Installer.Engine.csproj" />
+    <ProjectReference Include="..\..\src\Hofwerk.Installer\Hofwerk.Installer.csproj" />
   </ItemGroup>
 
 </Project>

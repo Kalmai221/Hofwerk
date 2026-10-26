@@ -115,13 +115,29 @@ public partial class BusStopViewModel : ObservableObject
     [ObservableProperty] public partial string Name { get; set; } = "";
     public ObservableCollection<StringItem> Strings { get; }
 
+    /// <summary>Raised with the old and the new name, so routes that use this stop can follow a rename.</summary>
+    public event Action<string, string>? Renamed;
+
+    partial void OnNameChanged(string oldValue, string newValue) => Renamed?.Invoke(oldValue, newValue);
+
     public BusStop ToModel() => new() { Name = Name, Strings = Strings.Select(s => s.Value).ToList() };
+}
+
+/// <summary>A stop on a route. <see cref="IsKnown"/> is false when no bus stop with that name is defined.</summary>
+public partial class RouteStopViewModel(string name) : ObservableObject
+{
+    [ObservableProperty] public partial string Name { get; set; } = name;
+    [ObservableProperty] public partial bool IsKnown { get; set; } = true;
+
+    public bool IsUnknown => !IsKnown;
+
+    partial void OnIsKnownChanged(bool value) => OnPropertyChanged(nameof(IsUnknown));
 }
 
 public partial class RouteViewModel : ObservableObject
 {
     // Stops that came from the old one-by-one form keep their extra lines so nothing is lost on save.
-    readonly Dictionary<StringItem, List<string>> _extra = [];
+    readonly Dictionary<RouteStopViewModel, List<string>> _extra = [];
 
     public RouteViewModel(Route r)
     {
@@ -131,31 +147,49 @@ public partial class RouteViewModel : ObservableObject
         Line = r.Line;
         foreach (var s in r.Stops)
         {
-            var item = new StringItem("Stop", s.Name);
-            if (s.Extra.Count > 0) _extra[item] = s.Extra;
-            Stops.Add(item);
+            var stop = Watch(new RouteStopViewModel(s.Name));
+            if (s.Extra.Count > 0) _extra[stop] = s.Extra;
+            Stops.Add(stop);
         }
-        StringSlots.Watch(Stops, () => OnPropertyChanged(nameof(Stops)));
+        Stops.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(Stops));
+            OnPropertyChanged(nameof(StopSummary));
+            OnPropertyChanged(nameof(HasStops));
+        };
     }
 
     [ObservableProperty] public partial string Ident { get; set; } = "";
     [ObservableProperty] public partial string Name { get; set; } = "";
     [ObservableProperty] public partial string TerminusIdent { get; set; } = "";
     [ObservableProperty] public partial string Line { get; set; } = "";
-    [ObservableProperty] public partial StringItem? SelectedStop { get; set; }
-    public ObservableCollection<StringItem> Stops { get; } = [];
+    [ObservableProperty] public partial RouteStopViewModel? SelectedStop { get; set; }
+    public ObservableCollection<RouteStopViewModel> Stops { get; } = [];
 
     public string Title => $"{Ident}  {Name}";
+    public string StopSummary => Stops.Count == 1 ? "1 stop" : $"{Stops.Count} stops";
+    public bool HasStops => Stops.Count > 0;
     partial void OnIdentChanged(string value) => OnPropertyChanged(nameof(Title));
     partial void OnNameChanged(string value) => OnPropertyChanged(nameof(Title));
 
-    [RelayCommand]
-    void AddStop()
+    // A renamed stop is an edit of the route, so the file counts as changed.
+    RouteStopViewModel Watch(RouteStopViewModel stop)
     {
-        var item = new StringItem("Stop", "");
+        stop.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(RouteStopViewModel.Name)) OnPropertyChanged(nameof(Stops));
+        };
+        return stop;
+    }
+
+    /// <summary>Adds a stop after the selected one (or at the end) and selects it.</summary>
+    public RouteStopViewModel AddStop(string name)
+    {
+        var stop = Watch(new RouteStopViewModel(name));
         int at = SelectedStop is null ? Stops.Count : Stops.IndexOf(SelectedStop) + 1;
-        Stops.Insert(at, item);
-        SelectedStop = item;
+        Stops.Insert(at, stop);
+        SelectedStop = stop;
+        return stop;
     }
 
     [RelayCommand]
@@ -163,8 +197,39 @@ public partial class RouteViewModel : ObservableObject
     {
         if (SelectedStop is null) return;
         int at = Stops.IndexOf(SelectedStop);
+        _extra.Remove(SelectedStop);
         Stops.RemoveAt(at);
         SelectedStop = Stops.Count == 0 ? null : Stops[Math.Min(at, Stops.Count - 1)];
+    }
+
+    [RelayCommand]
+    void MoveStopUp()
+    {
+        if (SelectedStop is null) return;
+        var keep = SelectedStop;
+        int at = Stops.IndexOf(keep);
+        if (at <= 0) return;
+        Stops.Move(at, at - 1);
+        SelectedStop = keep;
+    }
+
+    [RelayCommand]
+    void MoveStopDown()
+    {
+        if (SelectedStop is null) return;
+        var keep = SelectedStop;
+        int at = Stops.IndexOf(keep);
+        if (at < 0 || at >= Stops.Count - 1) return;
+        Stops.Move(at, at + 1);
+        SelectedStop = keep;
+    }
+
+    [RelayCommand]
+    void ClearStops()
+    {
+        Stops.Clear();
+        _extra.Clear();
+        SelectedStop = null;
     }
 
     public Route ToModel() => new()
@@ -173,7 +238,7 @@ public partial class RouteViewModel : ObservableObject
         Name = Name,
         TerminusIdent = TerminusIdent,
         Line = Line,
-        Stops = Stops.Select(s => new RouteStop { Name = s.Value, Extra = _extra.GetValueOrDefault(s) ?? [] }).ToList(),
+        Stops = Stops.Select(s => new RouteStop { Name = s.Name, Extra = _extra.GetValueOrDefault(s) ?? [] }).ToList(),
     };
 }
 

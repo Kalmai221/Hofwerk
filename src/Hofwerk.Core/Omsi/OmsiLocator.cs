@@ -17,18 +17,44 @@ public static partial class OmsiLocator
         IgnoreInaccessible = true,
     };
 
+    /// <summary>Every OMSI install found, most likely first: Steam libraries, then a few plain install locations on Windows.</summary>
     public static IReadOnlyList<string> FindInstallFolders()
     {
         var found = new List<string>();
+        void Add(string? dir)
+        {
+            if (dir is not null && LooksLikeOmsi(dir) && !found.Contains(dir, StringComparer.OrdinalIgnoreCase))
+                found.Add(dir);
+        }
+
         foreach (string library in SteamLibraries())
         {
             string? common = Child(Child(library, "steamapps"), "common");
             if (common is null) continue;
             foreach (string name in new[] { "OMSI 2", "OMSI" })
-                if (Child(common, name) is { } dir && !found.Contains(dir, StringComparer.OrdinalIgnoreCase))
-                    found.Add(dir);
+                Add(Child(common, name));
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+            foreach (string name in new[] { "OMSI 2", "OMSI" })
+            {
+                Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), name));
+                Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), name));
+            }
         }
         return found;
+    }
+
+    /// <summary>
+    /// True when the folder looks like an OMSI install: it has a Vehicles folder, plus either a Maps folder or the game's
+    /// executable. Used to confirm a detected folder and to warn about a folder picked by hand.
+    /// </summary>
+    public static bool LooksLikeOmsi(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) return false;
+        if (Child(folder, "Vehicles") is null) return false;
+        return Child(folder, "Maps") is not null || Child(folder, "Omsi.exe", file: true) is not null;
     }
 
     public static List<HofFileEntry> FindHofFiles(string omsiFolder)

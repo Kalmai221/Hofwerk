@@ -23,9 +23,7 @@ public static class PresetLibrary
     public const string DefaultId = "hof-suite-default";
     const string EmbeddedPrefix = "Presets/";
 
-    sealed record Manifest(string? Name, string? Author, string? Description, string? Url, string? Strings);
 
-    static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
 
     public static string UserFolder { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hofwerk", "Presets");
@@ -88,8 +86,8 @@ public static class PresetLibrary
     {
         if (read("preset.json") is not { } json) return null;
 
-        Manifest? m;
-        try { m = JsonSerializer.Deserialize<Manifest>(json, Json); }
+        PresetManifest? m;
+        try { m = JsonSerializer.Deserialize(json, HofwerkJson.Default.PresetManifest); }
         catch (JsonException) { return null; }
         if (m is null || string.IsNullOrWhiteSpace(m.Name)) return null;
 
@@ -107,3 +105,6 @@ public static class PresetLibrary
         catch (DecoderFallbackException) { return HofEncodings.Windows1252.GetString(bytes, skip, bytes.Length - skip); }
     }
 }
+
+/// <summary>The contents of a preset's preset.json.</summary>
+internal sealed record PresetManifest(string? Name, string? Author, string? Description, string? Url, string? Strings);

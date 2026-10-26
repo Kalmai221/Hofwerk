@@ -15,11 +15,14 @@ public sealed class AppSettings
     /// <summary>The string preset whose slot names the editor shows.</summary>
     public string ActivePresetId { get; set; } = PresetLibrary.DefaultId;
 
+    /// <summary>The OMSI folder chosen in the installer or on Home. Empty means "find it automatically".</summary>
+    public string? OmsiFolder { get; set; }
+
     public static AppSettings Load(string? path = null)
     {
         path ??= DefaultPath;
         AppSettings? s = null;
-        try { s = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)); }
+        try { s = JsonSerializer.Deserialize(File.ReadAllText(path), HofwerkJson.Default.AppSettings); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException) { }
 
         s ??= new AppSettings();
@@ -32,7 +35,7 @@ public sealed class AppSettings
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(_path, JsonSerializer.Serialize(this, HofwerkJson.Default.AppSettings));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

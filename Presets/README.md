@@ -46,7 +46,8 @@ the app under **Presets**, and every preset in this folder is built into the app
    Do not copy strings files out of someone else's paid or copyrighted add-on without their permission. If the names
    come from someone else, put their name in `author`, say so in `description`, and add them to
    `THIRD_PARTY_NOTICES.md`.
-4. Open a pull request. Nothing else needs to change: the app picks up every folder in `Presets/`.
+4. Open a pull request. Nothing else needs to change: the app picks up every folder in `Presets/`. A check runs on your
+   pull request and tells you if the preset does not load, has no author, or has no slots (`RepositoryPresetTests`).
 
 ## Use a preset without a pull request
 

@@ -15,7 +15,7 @@ public sealed class RecentFiles(string? storePath = null)
     {
         try
         {
-            var list = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(_path)) ?? [];
+            var list = JsonSerializer.Deserialize(File.ReadAllText(_path), HofwerkJson.Default.ListString) ?? [];
             return list.Where(File.Exists).ToList();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
@@ -34,7 +34,7 @@ public sealed class RecentFiles(string? storePath = null)
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(list));
+            File.WriteAllText(_path, JsonSerializer.Serialize(list, HofwerkJson.Default.ListString));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

@@ -1,0 +1,285 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:Hofwerk.Installer"
+        x:Class="Hofwerk.Installer.MainWindow"
+        x:DataType="local:InstallerViewModel"
+        Title="Hofwerk Setup"
+        Icon="/Assets/Hofwerk.ico"
+        Width="820" Height="540" CanResize="False"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="PageBackground" Color="#1B1B1F" />
+                    <SolidColorBrush x:Key="CardBackground" Color="#26262B" />
+                    <SolidColorBrush x:Key="CardStroke" Color="#34343B" />
+                    <SolidColorBrush x:Key="Muted" Color="#9A9AA5" />
+                    <SolidColorBrush x:Key="TrackBackground" Color="#34343B" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="PageBackground" Color="#F6F7FA" />
+                    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="CardStroke" Color="#DADDE5" />
+                    <SolidColorBrush x:Key="Muted" Color="#6B6F7B" />
+                    <SolidColorBrush x:Key="TrackBackground" Color="#E3E6EE" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <StreamGeometry x:Key="IconBus">M5,4 H19 V17 H5 Z M5,12 H19 M8,20 V17 M16,20 V17 M5,8 H19</StreamGeometry>
+            <StreamGeometry x:Key="IconCheck">M5,12.5 L10,17.5 L19,7.5</StreamGeometry>
+            <StreamGeometry x:Key="IconWarning">M12,4 L21,20 H3 Z M12,10 V14 M12,17 V17.2</StreamGeometry>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource PageBackground}" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStroke}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="20,10" />
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="28,11" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1D4ED8" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1E40AF" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="#3B82F6" />
+            <Setter Property="Background" Value="{DynamicResource TrackBackground}" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="MinHeight" Value="10" />
+            <Setter Property="Height" Value="10" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="300,*">
+
+        <!-- Brand panel -->
+        <Border>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                    <GradientStop Offset="0" Color="#3B82F6" />
+                    <GradientStop Offset="1" Color="#172578" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid RowDefinitions="*,Auto">
+                <Ellipse Width="260" Height="260" Fill="#16FFFFFF" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-110,0,0,-100" />
+                <Ellipse Width="200" Height="200" Fill="#16FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-70,-70,0" />
+
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                    <Border Width="108" Height="108" CornerRadius="30" Background="#2AFFFFFF" HorizontalAlignment="Center" Margin="0,0,0,10">
+                        <Path Data="{StaticResource IconBus}" Stroke="White" StrokeThickness="1.6" StrokeLineCap="Round" StrokeJoin="Round"
+                              Stretch="Uniform" Width="56" Height="56" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Hofwerk" FontSize="34" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+                    <TextBlock Text="OMSI depot editor" FontSize="14" Foreground="#D2FFFFFF" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding Version, StringFormat='Version {0}'}" FontSize="12" Foreground="#A8FFFFFF" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="1" Margin="24,0,24,22" TextWrapping="Wrap" TextAlignment="Center" FontSize="11.5" Foreground="#B8FFFFFF"
+                           Text="With thanks to Lukas G., creator of the original HOF Suite, for the inspiration." />
+            </Grid>
+        </Border>
+
+        <!-- Pages -->
+        <Grid Grid.Column="1" Margin="44,40,44,32">
+
+            <!-- Welcome: install or update -->
+            <Grid IsVisible="{Binding ShowInstallOptions}" RowDefinitions="Auto,Auto,*,Auto">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="{Binding Title}" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="A modern editor for OMSI 2 .hof files: destinations, bus stops and routes, with string presets that name every slot." />
+                </StackPanel>
+
+                <Border Grid.Row="1" Classes="card" Margin="0,24,0,0">
+                    <StackPanel Spacing="14">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Install location" FontWeight="SemiBold" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Text="{Binding Directory}" />
+                                <Button Grid.Column="1" Content="Browse…" Click="OnBrowse" Padding="16,8" />
+                            </Grid>
+                            <TextBlock Classes="muted" FontSize="12" Text="Installed just for you. No administrator rights needed." />
+                        </StackPanel>
+                        <CheckBox Content="Add a desktop shortcut" IsChecked="{Binding DesktopShortcut}" />
+                        <CheckBox Content="Offer Hofwerk in “Open with” for .hof files" IsChecked="{Binding FileAssociation}"
+                                  IsVisible="{Binding SupportsFileAssociation}" />
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Grid.Row="2" Margin="2,14,0,0" TextWrapping="Wrap" Foreground="#EF4444"
+                           Text="{Binding WelcomeError}" IsVisible="{Binding HasWelcomeError}" />
+
+                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button Content="Cancel" Click="OnClose" />
+                    <Button Content="{Binding PrimaryLabel}" Classes="primary" Command="{Binding NextCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Where is OMSI 2? -->
+            <Grid IsVisible="{Binding ShowLocation}" RowDefinitions="Auto,Auto,*,Auto">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Where is OMSI 2?" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="Hofwerk can list the .hof files of your game and open them with one click. You can change this later." />
+                </StackPanel>
+
+                <Border Grid.Row="1" Classes="card" Margin="0,24,0,0">
+                    <StackPanel Spacing="10">
+                        <!-- Found it -->
+                        <StackPanel Spacing="10" IsVisible="{Binding LocationDetected}">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Data="{StaticResource IconCheck}" Stroke="#22C55E" StrokeThickness="2.2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      Stretch="Uniform" Width="18" Height="18" VerticalAlignment="Center" />
+                                <TextBlock Text="We found OMSI 2 here:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <SelectableTextBlock Text="{Binding LocationPath}" TextWrapping="Wrap" />
+                            <TextBlock Text="Is this correct?" FontWeight="SemiBold" Margin="0,6,0,0" />
+                        </StackPanel>
+
+                        <!-- Could not find it -->
+                        <StackPanel Spacing="10" IsVisible="{Binding LocationNotFound}">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Data="{StaticResource IconWarning}" Stroke="#F59E0B" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      Stretch="Uniform" Width="18" Height="18" VerticalAlignment="Center" />
+                                <TextBlock Text="We couldn't find OMSI 2 automatically." FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Classes="muted" TextWrapping="Wrap"
+                                       Text="Select the folder you installed OMSI 2 into (the one that contains Vehicles and Maps), or skip this and set it up later." />
+                        </StackPanel>
+
+                        <!-- Picked by hand, looks right -->
+                        <StackPanel Spacing="10" IsVisible="{Binding LocationSelected}">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Data="{StaticResource IconCheck}" Stroke="#22C55E" StrokeThickness="2.2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      Stretch="Uniform" Width="18" Height="18" VerticalAlignment="Center" />
+                                <TextBlock Text="You selected:" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <SelectableTextBlock Text="{Binding LocationPath}" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <!-- Picked by hand, does not look like OMSI -->
+                        <StackPanel Spacing="10" IsVisible="{Binding LocationInvalid}">
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Path Data="{StaticResource IconWarning}" Stroke="#F59E0B" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      Stretch="Uniform" Width="18" Height="18" VerticalAlignment="Center" />
+                                <TextBlock Text="That doesn't look like an OMSI 2 folder." FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <SelectableTextBlock Text="{Binding LocationPath}" TextWrapping="Wrap" />
+                            <TextBlock Classes="muted" TextWrapping="Wrap"
+                                       Text="An OMSI 2 folder has a Vehicles folder and a Maps folder (or Omsi.exe). You can still use it, or choose another." />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="3" ColumnDefinitions="Auto,*">
+                    <Button Content="Back" Command="{Binding BackToWelcomeCommand}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                        <Button Content="Skip" Command="{Binding SkipLocationCommand}" />
+                        <Button Content="{Binding LocationChooseLabel}" Click="OnChooseOmsi" />
+                        <Button Content="{Binding LocationUseLabel}" Classes="primary" Command="{Binding UseLocationCommand}"
+                                IsVisible="{Binding LocationHasPath}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- Welcome: uninstall -->
+            <Grid IsVisible="{Binding ShowUninstallOptions}" RowDefinitions="Auto,Auto,*,Auto">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Remove Hofwerk?" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="This removes the app, its shortcuts and its entry in your installed apps. Your .hof files are never touched." />
+                </StackPanel>
+
+                <Border Grid.Row="1" Classes="card" Margin="0,24,0,0">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Installed in" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Directory}" Classes="muted" TextWrapping="Wrap" />
+                        <CheckBox Content="Also delete my settings, recent files and chosen preset" IsChecked="{Binding RemoveUserData}" Margin="0,6,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button Content="Cancel" Click="OnClose" />
+                    <Button Content="Uninstall" Classes="primary" Command="{Binding RunCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Working -->
+            <StackPanel IsVisible="{Binding ShowWorking}" VerticalAlignment="Center" Spacing="16">
+                <TextBlock Text="{Binding WorkingTitle}" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Percent}" FontSize="52" FontWeight="Light" Foreground="#3B82F6" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Fraction}" />
+                <TextBlock Text="{Binding Message}" Classes="muted" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <!-- Done -->
+            <Grid IsVisible="{Binding ShowDone}" RowDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="14">
+                    <Border Width="72" Height="72" CornerRadius="36" Background="#1F22C55E" HorizontalAlignment="Left">
+                        <Path Data="{StaticResource IconCheck}" Stroke="#22C55E" StrokeThickness="2.4" StrokeLineCap="Round" StrokeJoin="Round"
+                              Stretch="Uniform" Width="34" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="{Binding DoneTitle}" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding DoneDetail}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button Content="Close" Click="OnClose" />
+                    <Button Content="Launch Hofwerk" Classes="primary" Click="OnLaunch" IsVisible="{Binding ShowLaunch}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Failed -->
+            <Grid IsVisible="{Binding ShowFailed}" RowDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="14">
+                    <Border Width="72" Height="72" CornerRadius="36" Background="#1FEF4444" HorizontalAlignment="Left">
+                        <Path Data="{StaticResource IconWarning}" Stroke="#EF4444" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                              Stretch="Uniform" Width="34" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="That did not work" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding ErrorText}" Classes="muted" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button Content="Close" Click="OnClose" />
+                    <Button Content="Try again" Classes="primary" Command="{Binding TryAgainCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Nothing to do (a development build with no app attached) -->
+            <Grid IsVisible="{Binding ShowUnavailable}" RowDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="Nothing to install" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="This copy of the setup program has no app attached. Download Hofwerk-Setup from the project's Releases page." />
+                </StackPanel>
+                <Button Grid.Row="1" Content="Close" HorizontalAlignment="Right" Click="OnClose" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

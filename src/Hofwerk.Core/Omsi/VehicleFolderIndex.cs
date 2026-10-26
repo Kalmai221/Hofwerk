@@ -48,12 +48,15 @@ public sealed class VehicleFolderIndex
     }
 
     /// <summary>Folder names are a single path segment without characters Windows or Linux would reject.</summary>
+    static readonly char[] WindowsInvalidNameChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+
     public static bool IsValidFolderName(string name)
     {
         name = name.Trim();
         return name.Length > 0
                && name is not ("." or "..")
                && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+               && name.IndexOfAny(WindowsInvalidNameChars) < 0 // Linux allows these, but OMSI folders have to work on Windows too
                && !name.EndsWith('.');
     }
 

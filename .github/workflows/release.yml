@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+      - "V*"
   workflow_dispatch:
 
 permissions:
@@ -39,7 +40,7 @@ jobs:
       - name: Build the installer
         shell: pwsh
         run: |
-          $v = '${{ github.ref_name }}' -replace '^v', ''
+          $v = '${{ github.ref_name }}' -replace '^[vV]', ''
           if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
           ./installer/build-installer.ps1 -Rid win-x64 -Version $v
 
@@ -67,7 +68,7 @@ jobs:
       - name: Build the installer
         shell: pwsh
         run: |
-          $v = '${{ github.ref_name }}' -replace '^v', ''
+          $v = '${{ github.ref_name }}' -replace '^[vV]', ''
           if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
           ./installer/build-installer.ps1 -Rid linux-x64 -Version $v
 
@@ -83,7 +84,7 @@ jobs:
 
   release:
     needs: [windows, linux]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/V')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -94,4 +95,5 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+          # v1.2.3 is a normal release; anything with a suffix (V0.1-dev1, v1.0.0.0-rc2, ...) is marked as a pre-release.
           prerelease: ${{ contains(github.ref_name, '-') }}

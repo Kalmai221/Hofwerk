@@ -1,0 +1,17 @@
+# Keep line endings predictable across Windows and Linux.
+* text=auto
+*.cs text eol=lf
+*.xaml text eol=lf
+*.axaml text eol=lf
+*.csproj text eol=lf
+*.slnx text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+
+# Preset files are read by the app on any OS.
+Presets/**/*.txt text eol=lf
+
+# Binary assets
+*.ico binary
+*.png binary

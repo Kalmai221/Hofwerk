@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+publish/
+artifacts/
+
+# IDE and user files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# Test results
+TestResults/
+*.trx
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Local tooling
+.claude/
+*.tmp

@@ -1,0 +1,210 @@
+string 0:
+[TerminusString]
+IBIS 1
+IBIS 1
+>&&&&&&&&&&&&&&&&
+
+string 1:
+[TerminusString]
+ANNAX (1)
+ANNAX (1)
+&&&&&&&&&&&&&&&&
+
+string 2:
+[TerminusString]
+ANNAX (2)
+ANNAX (2)
+&&&&&&&&&&&&&&&&
+
+string 3:
+[TerminusString]
+ANNAX (Seite)
+ANNAX (side)
+&&&&&&&&&&&&&&&&
+
+string 4:
+[TerminusString]
+Rollband-Textur
+RLB texture
+
+
+string 5:
+[TerminusString]
+IBIS 2
+IBIS 2
+&&&&&&&&&&&&&&&&&&&&
+
+string 6:
+[TerminusString]
+Steckschild-Textur|Steckschild-Textur für 1000er Ziele
+Add Plate texture|Add Plate file for 1000-destinations
+
+
+string 7:
+[TerminusString]
+Krueger-Textur|Krueger-Textur, die die Matrix ersetzt
+Krueger texture|Krueger texture which replaces the matrix display
+
+
+string 8:
+[TerminusString]
+ANNAX Front|Für O307, O407 und MAN UEL
+ANNAX front|For O307, O407 and MAN UEL
+&&&&&&&&&&&&&&&
+
+string 9:
+[TerminusString]
+ANNAX Heck|Für O307, O407 und MAN UEL
+ANNAX rear|For O307, O407 and MAN UEL
+&&&&
+
+string 10:
+[TerminusString]
+Ikarus 280.02 Gegenroute
+Ikarus 280.02 reverse route
+
+
+string 11:
+[TerminusString]
+Vollmatrix (1) (Busfanat)
+Full Display (1) (Busfanat)
+
+
+string 12:
+[TerminusString]
+Vollmatrix (2) (Busfanat)
+Full Display (2) (Busfanat)
+
+
+string 13:
+[TerminusString]
+LAWO (Front 1) (Cooper)
+LAWO (front 1) (Cooper)
+
+
+string 14:
+[TerminusString]
+LAWO (Front 2) (Cooper)
+LAWO (front 2) (Cooper)
+
+
+string 15:
+[TerminusString]
+LAWO (Seite 1) (Cooper)
+LAWO (side 1) (Cooper)
+
+
+string 16:
+[TerminusString]
+LAWO (Seite 2) (Cooper)
+LAWO (side 2) (Cooper)
+
+
+string 17:
+[TerminusString]
+IBIS (Wien)|IBIS-Anzeige für Niederflur-Busse aus den Wien-Add-Ons 1 und 2
+IBIS (Vienna)|IBIS display for Addon 1 and 2 buses
+
+
+string 18:
+[TerminusString]
+MAN ÜL (1)
+MAN ÜL (1)
+
+
+string 19:
+[TerminusString]
+MAN ÜL (2)
+MAN ÜL (2)
+
+
+string 20:
+[TerminusString]
+MAN Stadtbus (Innenanzeige 1)
+MAN Stadtbus (inside display 1)
+
+
+string 21:
+[TerminusString]
+MAN Stadtbus (Innenanzeige 2)|(zusätzliche Information z.B. 'über')
+MAN Stadtbus (inside display 1)|extra information e.g. 'via'
+
+
+string 22:
+[TerminusString]
+LAWO (Heck) (Cooper)
+LAWO (rear) (Cooper)
+&&&&&&
+
+string 23:
+[TerminusString]
+einfache Krüger-Matrix (1)
+simple Krueger matrix (1)
+
+
+string 24:
+[TerminusString]
+einfache Krüger-Matrix (2)
+simple Krueger matrix (2)
+
+
+string 25:
+[TerminusString]
+Anzeigecode (Wien)|Anzeigecode für das Ansagegerät im LU 200 / GU 240 aus Wien
+display code (Vienna)|display code for announcements (LU 200 / GU 240 from Vienna)
+
+
+string 0:
+[BusstopString]
+IBIS 1
+IBIS 1
+>&&&&&&&&&&&&&&&&
+
+string 1:
+[BusstopString]
+Innenanzeige 1
+Inside display 1
+
+
+string 2:
+[BusstopString]
+Innenanzeige 2
+Inside display 2
+
+
+string 3:
+[BusstopString]
+IBIS 2
+IBIS 2
+&&&&&&&&&&&&&&&&&&&&
+
+string 4:
+[BusstopString]
+Haltestellen-Code (Wien)|Haltestellen- Code für Ansagengeräte
+Busstop code (Vienna)|Busstop code for announcements
+
+
+string 5:
+[BusstopString]
+Wabencode (iTram)
+Busstop code (iTram)
+
+
+string 6:
+[BusstopString]
+IBIS-Display (Wien)
+IBIS display (Vienna)
+
+
+string 7:
+[BusstopString]
+Ansagenlänge (Wien)
+Announcement length (Vienna)
+
+
+string 8:
+[BusstopString]
+Innenanzeige (Wien)|Innenanzeige, zwei Zeilen (getrennt mit '@') je 24 Zeichen
+Inside Display (Vienna)|Inside display, two lines (separated with '@') a 24 characters
+
+

@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_PROJECT: src/Hofwerk.WinUI/Hofwerk.WinUI.csproj
+  TEST_PROJECT: tests/Hofwerk.Core.Tests/Hofwerk.Core.Tests.csproj
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet test ${{ env.TEST_PROJECT }} -c Release
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        rid: [win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Unpackaged + self-contained WinUI 3: a folder that runs anywhere on Windows 10 1809+ with no installer.
+      - name: Publish
+        shell: bash
+        run: >
+          dotnet publish "$APP_PROJECT" -c Release -r ${{ matrix.rid }}
+          -p:Version=${GITHUB_REF_NAME#v}
+          -p:DebugType=None
+          -o publish/${{ matrix.rid }}
+
+      - name: Package
+        shell: bash
+        run: 7z a "Hofwerk-${GITHUB_REF_NAME}-${{ matrix.rid }}.zip" ./publish/${{ matrix.rid }}/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.rid }}
+          path: Hofwerk-*.zip
+
+  # Linux build (Avalonia UI) gets added here once that front end exists.
+
+  release:
+    needs: build-windows
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

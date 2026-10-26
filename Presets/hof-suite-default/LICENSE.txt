@@ -1,0 +1,16 @@
+﻿(C) 2018 Lukas G.
+
+(1) You are allowed to use, upload and edit this software, under the following conditions:
+
+(1.1) Attribution of the author
+
+(1.2) Linking to
+(1.2.1) https://gitlab.com/omsi2/hof-suite
+(1.2.2) https://forum.omnibussimulator.de/forum/index.php?thread/40888-hof-suite/
+(1.2.3) https://reboot.omsi-webdisk.de/file/773-hof-suite-en-de/
+
+(1.3) Description of the changes made to the program
+
+(1.4) Disclosure of the changed source code on a platform like GitLab, GitHub etc.
+
+(2) The HOF files written with this application are free to use.

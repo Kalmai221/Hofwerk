@@ -1,0 +1,7 @@
+{
+  "name": "HOF Suite Default",
+  "author": "Lukas G.",
+  "description": "The string slot names of the original HOF Suite: IBIS, ANNAX, LAWO, Krueger matrix and more.",
+  "url": "https://gitlab.com/omsi2/hof-suite",
+  "strings": "strings.txt"
+}

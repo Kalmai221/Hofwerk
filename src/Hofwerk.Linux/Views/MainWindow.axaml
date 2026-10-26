@@ -1,0 +1,464 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Hofwerk.ViewModels"
+        xmlns:core="using:Hofwerk.Core.Omsi"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1180" d:DesignHeight="740"
+        x:Class="Hofwerk.Linux.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Width="1180" Height="740" MinWidth="860" MinHeight="520"
+        Icon="/Assets/Hofwerk.ico"
+        WindowStartupLocation="CenterScreen"
+        Title="{Binding WindowTitle}">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBackground" Color="#1B1B1F" />
+                    <SolidColorBrush x:Key="SidebarBackground" Color="#151518" />
+                    <SolidColorBrush x:Key="CardBackground" Color="#26262B" />
+                    <SolidColorBrush x:Key="CardStroke" Color="#34343B" />
+                    <SolidColorBrush x:Key="Muted" Color="#9A9AA5" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBackground" Color="#F4F5F8" />
+                    <SolidColorBrush x:Key="SidebarBackground" Color="#E9EBF0" />
+                    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="CardStroke" Color="#DADDE5" />
+                    <SolidColorBrush x:Key="Muted" Color="#6B6F7B" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Line icons, 24x24 grid -->
+            <StreamGeometry x:Key="IconSettings">M4,6 H20 M4,12 H20 M4,18 H20 M9,3.5 V8.5 M15,9.5 V14.5 M7,15.5 V20.5</StreamGeometry>
+            <StreamGeometry x:Key="IconSign">M4,5 H20 V15 H4 Z M12,15 V20 M8,20 H16</StreamGeometry>
+            <StreamGeometry x:Key="IconPin">M12,21 C12,21 5,14.5 5,9.5 A7,7 0 0 1 19,9.5 C19,14.5 12,21 12,21 Z M9.5,9.5 A2.5,2.5 0 1 0 14.5,9.5 A2.5,2.5 0 1 0 9.5,9.5</StreamGeometry>
+            <StreamGeometry x:Key="IconRoute">M4,18 A2,2 0 1 0 8,18 A2,2 0 1 0 4,18 M16,6 A2,2 0 1 0 20,6 A2,2 0 1 0 16,6 M6,16 C6,10 18,14 18,8</StreamGeometry>
+            <StreamGeometry x:Key="IconWarning">M12,4 L21,20 H3 Z M12,10 V14 M12,17 V17.2</StreamGeometry>
+            <StreamGeometry x:Key="IconHome">M4,11 L12,4 L20,11 M6,9.5 V20 H10 V14 H14 V20 H18 V9.5</StreamGeometry>
+            <StreamGeometry x:Key="IconLibrary">M5,4 H19 V8.5 H5 Z M5,10 H19 V14.5 H5 Z M5,16 H19 V20 H5 Z</StreamGeometry>
+            <StreamGeometry x:Key="IconFolder">M3,7 V18 H21 V9 H12 L10,7 Z</StreamGeometry>
+            <StreamGeometry x:Key="IconBus">M5,4 H19 V17 H5 Z M5,12 H19 M8,20 V17 M16,20 V17 M5,8 H19</StreamGeometry>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource AppBackground}" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStroke}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="Foreground" Value="{DynamicResource Muted}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,14,0,4" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,7" />
+        </Style>
+        <Style Selector="Path.icon">
+            <Setter Property="Stroke" Value="{Binding $parent[ListBoxItem].Foreground}" />
+            <Setter Property="StrokeThickness" Value="1.7" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+        </Style>
+
+        <!-- Sidebar navigation -->
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+
+        <!-- Entry lists -->
+        <Style Selector="ListBox.entries">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.entries ListBoxItem">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,9" />
+            <Setter Property="Margin" Value="0,1" />
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="232,*">
+
+        <!-- Sidebar -->
+        <Border Background="{DynamicResource SidebarBackground}" Padding="12,16" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource CardStroke}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="8,0,0,20">
+                    <Border Width="34" Height="34" CornerRadius="9" Background="{DynamicResource SystemAccentColor}" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconBus}" Stroke="White" StrokeThickness="1.7" StrokeLineCap="Round" StrokeJoin="Round"
+                              Stretch="Uniform" Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Hofwerk" FontWeight="SemiBold" FontSize="16" />
+                        <TextBlock Text="OMSI depot editor" Classes="caption" Margin="0" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Classes="card" Padding="12" CornerRadius="10"
+                        IsVisible="{Binding FilePath, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="Current file" Classes="caption" Margin="0" />
+                        <TextBlock Text="{Binding FilePath}" TextTrimming="CharacterEllipsis" FontSize="12" />
+                    </StackPanel>
+                </Border>
+
+                <ListBox x:Name="Nav" Classes="nav" Background="Transparent" SelectionChanged="OnNavChanged">
+                    <ListBoxItem Tag="home">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconHome}" />
+                            <TextBlock Text="Home" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="presets">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconLibrary}" />
+                            <TextBlock Text="Presets" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="settings" IsEnabled="{Binding HasFile}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconSettings}" />
+                            <TextBlock Text="Settings" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="destinations" IsEnabled="{Binding HasFile}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconSign}" />
+                            <TextBlock Text="Destinations" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="busstops" IsEnabled="{Binding HasFile}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconPin}" />
+                            <TextBlock Text="Bus stops" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="routes" IsEnabled="{Binding HasFile}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconRoute}" />
+                            <TextBlock Text="Routes" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ListBoxItem>
+                    <ListBoxItem Tag="problems" IsVisible="{Binding HasProblems}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconWarning}" />
+                            <TextBlock Text="Problems" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Problems.Count}" VerticalAlignment="Center" Opacity="0.7" />
+                        </StackPanel>
+                    </ListBoxItem>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <!-- Main area -->
+        <DockPanel Grid.Column="1">
+
+            <!-- Header -->
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="28,22,28,10">
+                <StackPanel>
+                    <TextBlock x:Name="SectionTitle" Text="Welcome" FontSize="26" FontWeight="SemiBold" />
+                    <TextBlock x:Name="SectionHint" Classes="caption" Margin="0,2,0,0" Text="Open an OMSI .hof file to begin" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="Open…" Classes="accent" Click="OnOpen" />
+                    <Button Content="Save" Click="OnSave" IsEnabled="{Binding IsDirty}" />
+                    <Button Content="Save as…" Click="OnSaveAs" IsEnabled="{Binding FilePath, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Status bar -->
+            <Border DockPanel.Dock="Bottom" Padding="28,8">
+                <TextBlock Text="{Binding Status}" Foreground="{DynamicResource Muted}" FontSize="12" />
+            </Border>
+
+            <Grid Margin="28,6,28,0">
+
+                <!-- Home -->
+                <Grid x:Name="HomePanel" RowDefinitions="Auto,*" RowSpacing="16">
+                    <Border Classes="card" Padding="28">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                <GradientStop Offset="0" Color="{DynamicResource SystemAccentColorDark1}" />
+                                <GradientStop Offset="1" Color="{DynamicResource SystemAccentColorDark2}" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="Edit your OMSI depot files" FontSize="24" FontWeight="SemiBold" Foreground="White" />
+                                <TextBlock Text="Destinations, bus stops and routes in one place. Your file's original encoding is kept when you save."
+                                           Foreground="#E6FFFFFF" TextWrapping="Wrap" MaxWidth="520" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Open a .hof file…" Click="OnOpen" Padding="22,12" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,0,0,12">
+                        <Border Classes="card">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Recent files" FontWeight="SemiBold" FontSize="16" Margin="0,0,0,12" />
+                                <TextBlock DockPanel.Dock="Top" Text="Files you open will show up here." Foreground="{DynamicResource Muted}"
+                                           IsVisible="{Binding !HasRecent}" />
+                                <ListBox Classes="entries" ItemsSource="{Binding Recent}" SelectionChanged="OnPickEntry" IsVisible="{Binding HasRecent}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="core:HofFileEntry">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Classes="card">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="OMSI library" FontWeight="SemiBold" FontSize="16" />
+                                <TextBlock DockPanel.Dock="Top" Margin="0,2,0,10" FontSize="12" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource Muted}"
+                                           Text="{Binding OmsiFolder, TargetNullValue='OMSI was not found automatically. Use “Open a .hof file” instead.'}" />
+                                <TextBox DockPanel.Dock="Top" PlaceholderText="Filter by vehicle or file name" Text="{Binding OmsiFilter}"
+                                         IsVisible="{Binding HasOmsi}" Margin="0,0,0,8" />
+                                <ListBox Classes="entries" ItemsSource="{Binding OmsiFiles}" SelectionChanged="OnPickEntry" IsVisible="{Binding HasOmsi}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="core:HofFileEntry">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- Preset library -->
+                <ScrollViewer x:Name="PresetsPanel" IsVisible="False">
+                    <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Left" Margin="0,0,0,12">
+                        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
+                                   Text="A preset names the string slots of destinations and bus stops, so “String 7” becomes something you can recognise. Pick the one that matches your bus." />
+
+                        <ItemsControl ItemsSource="{Binding Presets}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PresetViewModel">
+                                    <Border Classes="card" Margin="0,0,0,12">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                            <StackPanel Spacing="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="16" />
+                                                    <TextBlock Text="{Binding Credit}" Foreground="{DynamicResource Muted}" VerticalAlignment="Bottom" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+                                                <TextBlock Foreground="{DynamicResource Muted}" FontSize="12">
+                                                    <Run Text="{Binding Source}" /><Run Text=" · " /><Run Text="{Binding SlotSummary}" />
+                                                </TextBlock>
+                                                <Button Content="Source" Classes="link" Click="OnPresetLink" IsVisible="{Binding HasUrl}"
+                                                        Padding="0" Background="Transparent" Foreground="{DynamicResource SystemAccentColor}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <Button Content="Use this preset" Click="OnUsePreset" IsVisible="{Binding !IsActive}" />
+                                                <TextBlock Text="✓ In use" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                                           Foreground="{DynamicResource SystemAccentColor}" IsVisible="{Binding IsActive}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Border Classes="card">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Add your own" FontWeight="SemiBold" FontSize="16" />
+                                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
+                                           Text="Drop a folder with a preset.json and a strings.txt into your presets folder, then refresh. To share a preset with everyone, add the same folder to Presets/ in the project and open a pull request; the Presets/README.md explains how." />
+                                <SelectableTextBlock Text="{Binding UserPresetsFolder}" Foreground="{DynamicResource Muted}" FontSize="12" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Open folder" Click="OnOpenPresetsFolder" />
+                                    <Button Content="Refresh" Click="OnRefreshPresets" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Grid IsVisible="{Binding HasFile}">
+
+                    <!-- Settings -->
+                    <ScrollViewer x:Name="SettingsPanel">
+                        <Border Classes="card" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel>
+                                <TextBlock Classes="caption" Text="Name of the depot" Margin="0,0,0,4" />
+                                <TextBox Text="{Binding Name}" />
+                                <TextBlock Classes="caption" Text="Service trip (destination shown when not in service)" />
+                                <TextBox Text="{Binding ServiceTrip}" />
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                                    <StackPanel>
+                                        <TextBlock Classes="caption" Text="Strings per destination" />
+                                        <NumericUpDown Value="{Binding TerminusStringCount}" Minimum="0" Maximum="64" FormatString="0" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Classes="caption" Text="Strings per bus stop" />
+                                        <NumericUpDown Value="{Binding BusStopStringCount}" Minimum="0" Maximum="64" FormatString="0" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </ScrollViewer>
+
+                    <!-- Destinations -->
+                    <Grid x:Name="DestinationsPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
+                                <Button Content="Add" Command="{Binding AddTerminusCommand}" />
+                                <Button Content="Remove" Command="{Binding RemoveTerminusCommand}" />
+                            </StackPanel>
+                            <ListBox Classes="entries" ItemsSource="{Binding Termini}" SelectedItem="{Binding SelectedTerminus}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:TerminusViewModel">
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                        <ScrollViewer Grid.Column="1" DataContext="{Binding SelectedTerminus}"
+                                      IsVisible="{Binding, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <Border Classes="card" x:DataType="vm:TerminusViewModel" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Classes="caption" Text="Code (ident)" Margin="0,0,0,4" />
+                                    <TextBox Text="{Binding Ident}" />
+                                    <CheckBox Margin="0,14,0,0" IsChecked="{Binding IsAllExit}"
+                                              Content="All exit – nobody boards (e.g. not in service)" />
+                                    <StackPanel IsVisible="{Binding !IsAllExit}">
+                                        <TextBlock Classes="caption" Text="Terminus stop (where everybody gets off)" />
+                                        <TextBox Text="{Binding Station}" />
+                                    </StackPanel>
+                                    <ItemsControl ItemsSource="{Binding Strings}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:StringItem">
+                                                <Grid ColumnDefinitions="26,200,*" ColumnSpacing="12" Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding Index}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" ToolTip.Tip="{Binding Hint}" />
+                                                    <TextBox Grid.Column="2" Text="{Binding Value}" FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- Bus stops -->
+                    <Grid x:Name="BusStopsPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
+                                <Button Content="Add" Command="{Binding AddBusStopCommand}" />
+                                <Button Content="Remove" Command="{Binding RemoveBusStopCommand}" />
+                            </StackPanel>
+                            <ListBox Classes="entries" ItemsSource="{Binding BusStops}" SelectedItem="{Binding SelectedBusStop}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BusStopViewModel">
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                        <ScrollViewer Grid.Column="1" DataContext="{Binding SelectedBusStop}"
+                                      IsVisible="{Binding, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <Border Classes="card" x:DataType="vm:BusStopViewModel" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Classes="caption" Text="Name" Margin="0,0,0,4" />
+                                    <TextBox Text="{Binding Name}" />
+                                    <ItemsControl ItemsSource="{Binding Strings}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:StringItem">
+                                                <Grid ColumnDefinitions="26,200,*" ColumnSpacing="12" Margin="0,0,0,8">
+                                                    <TextBlock Text="{Binding Index}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Label}" TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" ToolTip.Tip="{Binding Hint}" />
+                                                    <TextBox Grid.Column="2" Text="{Binding Value}" FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- Routes -->
+                    <Grid x:Name="RoutesPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
+                                <Button Content="Add" Command="{Binding AddRouteCommand}" />
+                                <Button Content="Remove" Command="{Binding RemoveRouteCommand}" />
+                            </StackPanel>
+                            <ListBox Classes="entries" ItemsSource="{Binding Routes}" SelectedItem="{Binding SelectedRoute}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RouteViewModel">
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                        <Grid Grid.Column="1" DataContext="{Binding SelectedRoute}" x:DataType="vm:RouteViewModel"
+                              IsVisible="{Binding, Converter={x:Static ObjectConverters.IsNotNull}}" RowDefinitions="Auto,*">
+                            <Border Classes="card">
+                                <Grid ColumnDefinitions="*,*,*,2*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                                    <TextBlock Classes="caption" Text="Route code" Margin="0,0,0,4" />
+                                    <TextBox Grid.Row="1" Text="{Binding Ident}" />
+                                    <TextBlock Grid.Column="1" Classes="caption" Text="Destination code" Margin="0,0,0,4" />
+                                    <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding TerminusIdent}" />
+                                    <TextBlock Grid.Column="2" Classes="caption" Text="Line" Margin="0,0,0,4" />
+                                    <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding Line}" />
+                                    <TextBlock Grid.Column="3" Classes="caption" Text="Name" Margin="0,0,0,4" />
+                                    <TextBox Grid.Column="3" Grid.Row="1" Text="{Binding Name}" />
+                                </Grid>
+                            </Border>
+                            <DockPanel Grid.Row="1" Margin="0,12,0,0">
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,12">
+                                    <Button Content="Add stop" Command="{Binding AddStopCommand}" />
+                                    <Button Content="Remove stop" Command="{Binding RemoveStopCommand}" />
+                                </StackPanel>
+                                <ListBox Classes="entries" ItemsSource="{Binding Stops}" SelectedItem="{Binding SelectedStop}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:StringItem">
+                                            <TextBox Text="{Binding Value}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- Problems found while reading -->
+                    <ListBox x:Name="ProblemsPanel" Classes="entries" IsVisible="False" ItemsSource="{Binding Problems}" />
+                </Grid>
+            </Grid>
+        </DockPanel>
+    </Grid>
+</Window>

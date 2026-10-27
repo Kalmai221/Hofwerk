@@ -7,6 +7,7 @@ namespace Hofwerk.Core.Tests;
 /// Checks the presets that live in the repository's Presets/ folder, so a pull request that adds or edits one
 /// fails here with a clear message instead of shipping a preset that silently does not load.
 /// </summary>
+[Trait("Area", "HofFiles")]
 public class RepositoryPresetTests
 {
     static string? FindPresetsFolder()

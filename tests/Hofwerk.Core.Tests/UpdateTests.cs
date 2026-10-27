@@ -6,6 +6,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Updates")]
 public class AppVersionTests
 {
     static AppVersion V(string s) => AppVersion.TryParse(s)!;
@@ -41,6 +42,7 @@ public class AppVersionTests
     public void Text_that_is_not_a_version_is_rejected(string text) => Assert.Null(AppVersion.TryParse(text));
 }
 
+[Trait("Area", "Updates")]
 public class UpdateTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-update-" + Guid.NewGuid().ToString("N"));
@@ -250,6 +252,7 @@ public class UpdateTests : IDisposable
     }
 }
 
+[Trait("Area", "Updates")]
 public class InstallerUpdateTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-setupupdate-" + Guid.NewGuid().ToString("N"));
@@ -321,6 +324,7 @@ public class InstallerUpdateTests : IDisposable
     }
 }
 
+[Trait("Area", "Updates")]
 public class PackUpdateTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-packupdate-" + Guid.NewGuid().ToString("N"));
@@ -427,8 +431,65 @@ public class PackUpdateTests : IDisposable
         Assert.Empty(Directory.GetFiles(Path.Combine(_dir, "dl")));   // the downloaded file is cleaned up
         Assert.True(closed);
     }
+
+    MainViewModel UpdatingModel(Action<string, string> applyPack, Action<string?> restart)
+    {
+        byte[] pack = [1, 2, 3, 4, 5];
+        var checker = new UpdateChecker(new HttpClient(new Fake(Release("0.2.0", pack.Length), pack, Sha(pack), [])), runtimeId: "win-x64");
+        var vm = new MainViewModel(AppSettings.Load(Path.Combine(_dir, "settings.json")), Path.Combine(_dir, "presets"));
+        vm.ConfigureUpdates(checker, AppVersion.TryParse("0.1.0")!, Path.Combine(_dir, "dl"), _ => { }, applyPack, restart);
+        return vm;
+    }
+
+    [Fact]
+    public async Task If_the_new_version_cannot_be_started_the_app_stays_open_and_says_so()
+    {
+        var vm = UpdatingModel((_, _) => { }, _ => throw new IOException("no way"));
+        bool closed = false;
+        vm.ExitRequested += () => closed = true;
+
+        await vm.CheckForUpdatesCommand.ExecuteAsync(null);
+        await vm.InstallUpdateCommand.ExecuteAsync(null);
+
+        Assert.False(closed);
+        Assert.Contains("0.2.0 is installed", vm.UpdateStatus);
+        Assert.Contains("open Hofwerk", vm.UpdateStatus);
+    }
+
+    [Fact]
+    public async Task Any_error_while_applying_the_update_is_reported_and_does_not_close_or_crash_the_app()
+    {
+        bool restarted = false;
+        var vm = UpdatingModel((_, _) => throw new NotSupportedException("COM is off"), _ => restarted = true);
+        bool closed = false;
+        vm.ExitRequested += () => closed = true;
+
+        await vm.CheckForUpdatesCommand.ExecuteAsync(null);
+        await vm.InstallUpdateCommand.ExecuteAsync(null);
+
+        Assert.False(closed);
+        Assert.False(restarted);
+        Assert.StartsWith("The update failed", vm.UpdateStatus);
+    }
+
+    [Fact]
+    public void Leftovers_of_an_update_are_removed_by_the_new_copy_once_it_runs()
+    {
+        string folder = Path.Combine(_dir, "install");
+        Directory.CreateDirectory(Path.Combine(folder, "sub"));
+        File.WriteAllText(Path.Combine(folder, "Hofwerk.dll"), "new");
+        File.WriteAllText(Path.Combine(folder, "Hofwerk.dll.hwold"), "old");
+        File.WriteAllText(Path.Combine(folder, "sub", "x.dll.hwold"), "old");
+        Assert.True(Hofwerk.Installer.Engine.InPlaceUpdate.HasLeftovers(folder));
+
+        UpdateChecker.CleanUpAfterUpdate(folder);
+
+        Assert.False(Hofwerk.Installer.Engine.InPlaceUpdate.HasLeftovers(folder));
+        Assert.True(File.Exists(Path.Combine(folder, "Hofwerk.dll")));   // the new files stay
+    }
 }
 
+[Trait("Area", "Updates")]
 public class VersionNamingTests
 {
     static AppVersion V(string s) => AppVersion.TryParse(s)!;

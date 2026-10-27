@@ -7,6 +7,8 @@ implementation of the 2018 HOF Suite (see [Credits](#credits)).
 - **Windows:** native WinUI 3 app (Mica, light and dark mode).
 - **Linux:** Avalonia app that shares all logic with the Windows one. *Builds, but has not been tested on Linux yet.*
 
+![Hofwerk's home screen on Windows and on Linux](docs/windows-and-linux.png)
+
 ## What it does
 
 - Opens and saves `.hof` files while keeping their original encoding (Windows-1252 or UTF-8).
@@ -18,11 +20,38 @@ implementation of the 2018 HOF Suite (see [Credits](#credits)).
 - **String presets:** names for the string slots ("IBIS 1", "ANNAX (side)" …) so you do not have to remember what
   "String 7" means. See [`Presets/`](Presets/README.md) to add your own through a pull request.
 
+- **Undo and redo**, optional **autosave**, and a question before closing with unsaved changes.
 - **New file from an OMSI map:** pick a map and Hofwerk fills in its bus stops, destinations and routes.
 - **Updates inside the app**, light and dark themes, and a "What's new" for every version.
 
 Hofwerk is still in pre-release (`V1-dev1`, `V1-dev2` ...). **V1** is the release that does everything HOF Suite does. See
 the [roadmap](ROADMAP.md) for what is done and what is left, and the [changelog](CHANGELOG.md) for what changed in each version.
+
+## Hofwerk and HOF Suite
+
+[HOF Suite](https://gitlab.com/omsi2/hof-suite) (Lukas G., 2018-2019) is the editor Hofwerk is modelled on. Hofwerk reads and
+writes the same `.hof` files, so you can switch between them. The list is based on HOF Suite's public changelog and source
+layout (see the [roadmap](ROADMAP.md)), so a detail may be missing.
+
+| | HOF Suite | Hofwerk |
+| --- | --- | --- |
+| Systems | Windows | **Windows and Linux** (Linux not tested on a real desktop yet) |
+| Edit destinations, bus stops, routes, depot settings | Yes | Yes |
+| Keeps the file's encoding, lists problems in a file | Yes | Yes |
+| Names for the string slots | Templates | String presets, built in and shared in `Presets/` |
+| New file from an OMSI map | Yes (*Import map*) | Yes, with the map's picture and name. Only for a new file so far |
+| Import a map into an existing file, import a single trip | Yes | Not yet |
+| Export one file to several bus folders (the list is kept in the file) | Yes | Yes, with a backup of replaced files |
+| Station links (`StnLinks.cfg`) | Yes | Not yet |
+| Translations | English and German | English only so far |
+| Updates inside the app, "What's new" | No | Yes |
+| Light, dark and system theme | No | Yes |
+| New files carry a plain-words guide to each section | No | Yes |
+| Error window with a ready-made bug report | No | Yes |
+| Second Windows version for computers where WinUI fails | No | Yes (the Avalonia one, downloaded when needed) |
+| Installer | Setup program | One-file installers, online or offline, no administrator rights |
+
+Hofwerk becomes **V1** when the "Not yet" rows are done. After that it goes beyond HOF Suite (see the roadmap).
 
 ## Install
 
@@ -50,7 +79,7 @@ For scripts, both installers also run without a window:
 You need the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```bash
-dotnet test tests/Hofwerk.Core.Tests
+./test.ps1                                             # all tests; see tests/README.md
 dotnet run --project src/Hofwerk.WinUI -r win-x64      # Windows
 dotnet run --project src/Hofwerk.Linux                 # Linux (also runs on Windows)
 ```

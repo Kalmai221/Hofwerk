@@ -27,6 +27,12 @@ public sealed class AppSettings
     /// </summary>
     public bool PreferCompatibilityVersion { get; set; }
 
+    /// <summary>Save the open file by itself a little after the last change.</summary>
+    public bool AutoSave { get; set; }
+
+    /// <summary>How many seconds after the last change autosave saves (5, 30 or 120).</summary>
+    public int AutoSaveSeconds { get; set; } = 30;
+
     /// <summary>Look for a newer version when the app starts.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
@@ -35,6 +41,10 @@ public sealed class AppSettings
     /// pre-release, off otherwise. Once the user flips the switch it is their choice.
     /// </summary>
     public bool? AllowPreReleases { get; set; }
+
+    /// <summary>The recent files list lives next to the settings file, so settings kept somewhere else (a test) keep their own list too.</summary>
+    [JsonIgnore]
+    public string RecentFilesPath => Path.Combine(Path.GetDirectoryName(_path)!, "recent.json");
 
     public static AppSettings Load(string? path = null)
     {

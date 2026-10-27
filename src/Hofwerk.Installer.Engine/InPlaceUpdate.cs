@@ -175,6 +175,17 @@ public static class InPlaceUpdate
         File.WriteAllLines(manifest, lines);
     }
 
+    /// <summary>True while files of an earlier update (the old version's, set aside) are still in the folder.</summary>
+    public static bool HasLeftovers(string directory)
+    {
+        if (!Directory.Exists(directory)) return false;
+        try
+        {
+            return new[] { OldSuffix, NewSuffix }.Any(suffix => Directory.EnumerateFiles(directory, "*" + suffix, SearchOption.AllDirectories).Any());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return false; }
+    }
+
     /// <summary>Deletes files an earlier update could not remove because the old version was still running.</summary>
     public static void CleanLeftovers(string directory)
     {

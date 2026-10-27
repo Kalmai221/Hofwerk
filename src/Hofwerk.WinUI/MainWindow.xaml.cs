@@ -55,7 +55,8 @@ public sealed partial class MainWindow : Window
         ApplyTheme(ViewModel.ThemeId, animate: false);
         ViewModel.ThemeChanged += id => ApplyTheme(id, animate: true);
         // After an update download the installer is running; close so it can replace the files.
-        ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => Application.Current.Exit());
+        ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => { _closeConfirmed = true; Application.Current.Exit(); });
+        AppWindow.Closing += OnWindowClosing;
         Root.Loaded += async (_, _) =>
         {
             ApplyCaptionButtonColors();
@@ -353,6 +354,7 @@ public sealed partial class MainWindow : Window
         };
         var browse = new Button { Content = "Choose another map folder…" };
         var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.75 };
+        var reading = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };   // while the map is being read
         var busStops = new CheckBox { Content = "Bus stops", IsChecked = true };
         var destinations = new CheckBox { Content = "Destinations", IsChecked = true };
         var routes = new CheckBox { Content = "Routes, with their stops", IsChecked = true };
@@ -360,6 +362,7 @@ public sealed partial class MainWindow : Window
         var mapPanel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
         mapPanel.Children.Add(maps);
         mapPanel.Children.Add(browse);
+        mapPanel.Children.Add(reading);
         mapPanel.Children.Add(summary);
         var parts = new StackPanel { Spacing = 4 };
         parts.Children.Add(new TextBlock { Text = "Take from the map", Margin = new Thickness(0, 4, 0, 0) });
@@ -390,6 +393,7 @@ public sealed partial class MainWindow : Window
         {
             mapPanel.Visibility = model.FromMap ? Visibility.Visible : Visibility.Collapsed;
             summary.Text = model.Summary;
+            reading.Visibility = model.IsReading ? Visibility.Visible : Visibility.Collapsed;
             dialog.IsPrimaryButtonEnabled = model.CanContinue;
         }
         kind.SelectionChanged += (_, _) => model.FromMap = kind.SelectedIndex == 1;
@@ -507,6 +511,213 @@ public sealed partial class MainWindow : Window
     }
 
     void OnRefreshPresets(object sender, RoutedEventArgs e) => ViewModel.RefreshPresets();
+
+    // ---- Export: the file goes into every vehicle folder in its own list (HOF Suite's [HOF_SUITE_DIRECTORIES]) -------------
+
+    public static IReadOnlyList<string> AutoSaveChoices => MainViewModel.AutoSaveChoices;
+
+    // ---- Closing with unsaved work: ask first (with autosave on, the work is simply saved) -----------------------
+
+    bool _closeConfirmed;
+    bool _askingToClose;
+
+    void OnWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+    {
+        if (_closeConfirmed || ViewModel.EverythingSavedForClose()) return;
+
+        args.Cancel = true;                      // decided before anything is awaited
+        if (_askingToClose) return;
+        _askingToClose = true;
+        _ = AskBeforeClosingAsync();
+    }
+
+    async Task AskBeforeClosingAsync()
+    {
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = Root.XamlRoot,
+                RequestedTheme = Root.ActualTheme,
+                Title = "Save your changes?",
+                Content = $"{ViewModel.FileDisplayName} has changes that are not saved. If you close without saving, they are lost.",
+                PrimaryButtonText = "Save",
+                SecondaryButtonText = "Don't save",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+            };
+            var answer = await dialog.ShowAsync();
+            if (answer == ContentDialogResult.None) return;                       // stay open
+
+            if (answer == ContentDialogResult.Primary)
+            {
+                try { ViewModel.Save(ViewModel.FilePath!); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    ViewModel.Status = $"Could not save: {ex.Message}";           // the file is still open, nothing is lost
+                    return;
+                }
+            }
+            _closeConfirmed = true;
+            Close();
+        }
+        finally { _askingToClose = false; }
+    }
+
+    void OnRemoveExportLocation(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ExportLocation location) ViewModel.RemoveExportLocation(location);
+    }
+
+    async void OnExport(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.StartExport() is not { } export) return;
+
+        var search = new TextBox { PlaceholderText = "Search folders", Text = export.Filter };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(search, "Search folders");
+        var list = new StackPanel { Spacing = 0 };
+        var scroll = new ScrollViewer { Content = list, MaxHeight = 300, BorderThickness = new Thickness(1), BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"], Padding = new Thickness(8, 4, 8, 4) };
+        var count = new TextBlock { Opacity = 0.8 };
+        var all = new Button { Content = "Tick all shown" };
+        var none = new Button { Content = "Clear all shown" };
+        var backup = new CheckBox { Content = "Keep a copy (.bak) of files that are replaced", IsChecked = export.BackupReplaced };
+        var bar = new ProgressBar { Minimum = 0, Maximum = 1, Visibility = Visibility.Collapsed };
+        var report = new TextBlock { TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(report, "Export result");
+
+        void Rebuild()
+        {
+            list.Children.Clear();
+            foreach (var item in export.Shown)
+            {
+                var box = new CheckBox { Content = item.Exists ? item.Name : $"{item.Name}  ({item.Note})", IsChecked = item.IsSelected, MinHeight = 28 };
+                if (!item.Exists) box.Opacity = 0.6;
+                box.Click += (_, _) => item.IsSelected = box.IsChecked == true;
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, item.Name);
+                list.Children.Add(box);
+            }
+        }
+
+        var content = new StackPanel { Spacing = 10, MinWidth = 520 };
+        content.Children.Add(new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Opacity = 0.8,
+            Text = $"Put {export.FileName} into every folder you tick, so every bus that uses it has the latest version. The ticked folders are saved in the file, like HOF Suite does, so next time they are ticked already.",
+        });
+        content.Children.Add(search);
+        content.Children.Add(scroll);
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(all);
+        row.Children.Add(none);
+        row.Children.Add(count);
+        content.Children.Add(row);
+        content.Children.Add(backup);
+        content.Children.Add(bar);
+        content.Children.Add(report);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.ActualTheme,
+            Title = "Export to several folders",
+            Content = content,
+            PrimaryButtonText = "Export",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        void Refresh()
+        {
+            count.Text = export.SelectionText;
+            bar.Visibility = export.IsRunning ? Visibility.Visible : Visibility.Collapsed;
+            bar.Value = export.Progress;
+            report.Text = export.Report;
+            dialog.IsPrimaryButtonEnabled = export.CanExport || export.IsDone;
+            dialog.PrimaryButtonText = export.IsDone ? "Close" : "Export";
+            dialog.CloseButtonText = export.IsDone ? "" : "Cancel";
+            search.IsEnabled = all.IsEnabled = none.IsEnabled = backup.IsEnabled = !export.IsRunning && !export.IsDone;
+        }
+        search.TextChanged += (_, _) => export.Filter = search.Text;
+        all.Click += (_, _) => { export.SelectAllShown(true); Rebuild(); };
+        none.Click += (_, _) => { export.SelectAllShown(false); Rebuild(); };
+        backup.Click += (_, _) => export.BackupReplaced = backup.IsChecked == true;
+        export.Shown.CollectionChanged += (_, _) => Rebuild();
+        export.PropertyChanged += (_, _) => Refresh();
+        dialog.PrimaryButtonClick += async (_, args) =>
+        {
+            if (export.IsDone) return;          // the button now reads Close
+            args.Cancel = true;                 // keep the dialog open to show progress and the result
+            var deferral = args.GetDeferral();
+            try { await ViewModel.ExportAsync(export); }
+            finally { deferral.Complete(); }
+        };
+        Rebuild();
+        Refresh();
+
+        await dialog.ShowAsync();
+    }
+
+    // A strings file of the user's own, usually without a preset.json: pick it, then say what is in it.
+    async void OnImportPreset(object sender, RoutedEventArgs e)
+    {
+        var picker = new Pickers.FileOpenPicker(AppWindow.Id);
+        picker.FileTypeFilter.Add(".txt");
+        picker.FileTypeFilter.Add(".cfg");
+        picker.FileTypeFilter.Add("*");
+        if (await picker.PickSingleFileAsync() is not { } file) return;
+        if (ViewModel.StartPresetImport(file.Path) is not { } import) return;
+
+        var name = new TextBox { Header = "Name of the preset", Text = import.Name };
+        var author = new TextBox { Header = "Who made the names (optional)", Text = import.Author };
+        var description = new TextBox { Header = "What it is for (optional)", Text = import.Description, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 60 };
+        var layout = new ComboBox { Header = "How are the names written in your file?", HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = import.LayoutIndex };
+        foreach (string choice in PresetImportViewModel.LayoutChoices) layout.Items.Add(choice);
+        var destinations = new CheckBox { Content = "Destinations", IsChecked = import.ForDestinations };
+        var busStops = new CheckBox { Content = "Bus stops", IsChecked = import.ForBusStops };
+        var forPanel = new StackPanel { Spacing = 4 };
+        forPanel.Children.Add(new TextBlock { Text = "What are the names for?" });
+        var forRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20 };
+        forRow.Children.Add(destinations);
+        forRow.Children.Add(busStops);
+        forPanel.Children.Add(forRow);
+        var first = new NumberBox { Header = "Slot of the first line (OMSI counts from 0)", Value = import.FirstSlot, Minimum = 0, Maximum = 99, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
+        var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
+
+        var content = new StackPanel { Spacing = 12, MinWidth = 520 };
+        content.Children.Add(new TextBlock { Text = $"File: {import.FileName}", Opacity = 0.7 });
+        foreach (UIElement part in new UIElement[] { name, author, description, layout, forPanel, first, summary }) content.Children.Add(part);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.ActualTheme,
+            Title = "Import a strings file",
+            Content = new ScrollViewer { Content = content, MaxHeight = 560 },
+            PrimaryButtonText = "Import",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        void Refresh()
+        {
+            forPanel.Visibility = import.AsksWhatFor ? Visibility.Visible : Visibility.Collapsed;
+            first.Visibility = import.AsksFirstSlot ? Visibility.Visible : Visibility.Collapsed;
+            summary.Text = import.Summary;
+            dialog.IsPrimaryButtonEnabled = import.CanImport;
+        }
+        name.TextChanged += (_, _) => import.Name = name.Text;
+        author.TextChanged += (_, _) => import.Author = author.Text;
+        description.TextChanged += (_, _) => import.Description = description.Text;
+        layout.SelectionChanged += (_, _) => import.LayoutIndex = Math.Max(0, layout.SelectedIndex);
+        destinations.Click += (_, _) => import.ForDestinations = destinations.IsChecked == true;
+        busStops.Click += (_, _) => import.ForBusStops = busStops.IsChecked == true;
+        first.ValueChanged += (_, args) => import.FirstSlot = double.IsNaN(args.NewValue) ? 0 : (int)args.NewValue;
+        import.PropertyChanged += (_, _) => Refresh();
+        Refresh();
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary) ViewModel.FinishPresetImport(import);
+    }
 
     void OnSave(object sender, RoutedEventArgs e)
     {

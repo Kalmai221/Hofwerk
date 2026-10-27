@@ -32,4 +32,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
-      - run: dotnet test tests/Hofwerk.Core.Tests/Hofwerk.Core.Tests.csproj -c Release
+      - name: Unit tests (the summary is on the job page)
+        shell: pwsh
+        run: ./test.ps1 -Configuration Release -Slowest 5

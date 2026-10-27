@@ -25,7 +25,10 @@ public static class AppInfo
 /// <param name="Version">The version being installed when it is not the installer's own (an in-app update applies a newer app with the installed setup program).</param>
 public sealed record InstallRequest(string Directory, bool DesktopShortcut, bool FileAssociation, string? OmsiFolder = null, string? Version = null);
 
-public sealed record InstallProgress(double Fraction, string Message);
+/// <summary>The stages an install goes through, in order. The online installer starts with Download; the offline one has it already.</summary>
+public enum InstallStep { None, Download, Extract, Move, Cleanup, Close }
+
+public sealed record InstallProgress(double Fraction, string Message, InstallStep Step = InstallStep.None);
 
 /// <summary>An expected problem (bad folder, locked file) with a message that can be shown to the user as is.</summary>
 public sealed class InstallerException(string message, Exception? inner = null) : Exception(message, inner);

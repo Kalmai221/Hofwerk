@@ -4,6 +4,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Omsi")]
 public class OmsiLocationTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "hofwerk-omsi-" + Guid.NewGuid().ToString("N"));

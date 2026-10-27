@@ -3,6 +3,7 @@ using Hofwerk.Core.Presets;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "HofFiles")]
 public class StringTemplateTests
 {
     [Fact]
@@ -27,6 +28,7 @@ public class StringTemplateTests
     }
 }
 
+[Trait("Area", "HofFiles")]
 public class PresetLibraryTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofsuite-" + Guid.NewGuid().ToString("N"));

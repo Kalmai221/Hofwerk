@@ -3,6 +3,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "App")]
 public class ThemeTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-theme-" + Guid.NewGuid().ToString("N"));
@@ -51,6 +52,7 @@ public class ThemeTests : IDisposable
     }
 }
 
+[Trait("Area", "App")]
 public class StatusMessageTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-status-" + Guid.NewGuid().ToString("N"));

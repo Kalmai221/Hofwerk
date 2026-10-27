@@ -3,6 +3,7 @@ using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Omsi")]
 public class HomeTests
 {
     [Fact]

@@ -37,7 +37,7 @@ public partial class MainViewModel : ViewModelBase
     public bool HasFile => FilePath is not null;
 
     // Home screen: recently opened files and the .hof files of the detected OMSI install.
-    readonly RecentFiles _recent = new();
+    readonly RecentFiles _recent;
     OmsiBrowser _browser = new([]);
     string _omsiPath = ""; // the folder shown in the library, relative to Vehicles
     public ObservableCollection<HofFileEntry> Recent { get; } = [];
@@ -70,8 +70,10 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(AppSettings settings, string? userPresetsFolder = null)
     {
         _settings = settings;
+        _recent = new RecentFiles(settings.RecentFilesPath);
         _userPresetsFolder = userPresetsFolder ?? PresetLibrary.UserFolder;
         InitEditorLists();
+        InitExportLocations();
         Termini.CollectionChanged += (_, _) => Touch();
         BusStops.CollectionChanged += (_, _) =>
         {
@@ -223,7 +225,9 @@ public partial class MainViewModel : ViewModelBase
 
     void Touch()
     {
-        if (!_loading) IsDirty = true;
+        if (_loading) return;
+        IsDirty = true;
+        OnEdited();
     }
 
     // Any edit marks the document dirty; the inner view models raise PropertyChanged for every keystroke.
@@ -240,7 +244,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(FileStateText));
         }
         if (e.PropertyName is nameof(FilePath) or nameof(IsDirty)) OnPropertyChanged(nameof(WindowTitle));
-        if (e.PropertyName is nameof(FilePath)) OnPropertyChanged(nameof(HasFile));
+        if (e.PropertyName is nameof(FilePath)) { OnPropertyChanged(nameof(HasFile)); OnPropertyChanged(nameof(CanExport)); }
     }
 
     partial void OnTerminusStringCountChanged(int value)
@@ -258,6 +262,17 @@ public partial class MainViewModel : ViewModelBase
     public void Load(string path)
     {
         var doc = HofFile.Load(path);
+        ApplyDocument(doc, refreshProblems: true, selection: null);
+        FilePath = path;
+        ResetHistory();
+        IsDirty = false;
+        Status = $"Loaded {Termini.Count} destinations, {BusStops.Count} bus stops, {Routes.Count} routes"
+                 + (Problems.Count > 0 ? $" – {Problems.Count} problem(s) found" : "");
+    }
+
+    /// <summary>Puts a document on the screen (what Load and Undo/Redo both do). Does not touch the file name, the history or the dirty flag.</summary>
+    void ApplyDocument(HofDocument doc, bool refreshProblems, (int Terminus, int BusStop, int Route)? selection)
+    {
         _loading = true;
         try
         {
@@ -270,27 +285,33 @@ public partial class MainViewModel : ViewModelBase
             BusStops.Clear(); foreach (var b in doc.BusStops) BusStops.Add(Track(new BusStopViewModel(b, Names)));
             Routes.Clear(); foreach (var r in doc.Routes) Routes.Add(Track(new RouteViewModel(r)));
             LoadGlobals(doc.GlobalStrings);
+            LoadExportLocations(doc.SuiteDirectories);
             RebuildServiceTripChoices();
             RebuildDestinationChoices();
             RefreshKnownStops();
             RefreshFolderStatuses(rescan: false);
-            Problems.Clear();
-            foreach (var d in doc.Diagnostics) Problems.Add($"Line {d.Line}: {d.Message}");
-            SelectedTerminus = Termini.FirstOrDefault();
-            SelectedBusStop = BusStops.FirstOrDefault();
-            SelectedRoute = Routes.FirstOrDefault();
-            FilePath = path;
+            if (refreshProblems)
+            {
+                Problems.Clear();
+                foreach (var d in doc.Diagnostics) Problems.Add($"Line {d.Line}: {d.Message}");
+            }
+            // The same entries stay selected (by position) after an undo, so the page does not jump back to the top.
+            SelectedTerminus = Pick(Termini, selection?.Terminus);
+            SelectedBusStop = Pick(BusStops, selection?.BusStop);
+            SelectedRoute = Pick(Routes, selection?.Route);
         }
         finally { _loading = false; }
-        IsDirty = false;
-        Status = $"Loaded {Termini.Count} destinations, {BusStops.Count} bus stops, {Routes.Count} routes"
-                 + (Problems.Count > 0 ? $" – {Problems.Count} problem(s) found" : "");
     }
+
+    static T? Pick<T>(IList<T> list, int? index) where T : class =>
+        list.Count == 0 ? null : list[Math.Clamp(index ?? 0, 0, list.Count - 1)];
 
     public void Save(string path)
     {
+        CommitEdit();
         HofFile.Save(ToDocument(), path);
         FilePath = path;
+        MarkSaved();
         IsDirty = false;
         SetRecent(_recent.Add(path));
         Status = $"Saved {Path.GetFileName(path)}";
@@ -308,7 +329,7 @@ public partial class MainViewModel : ViewModelBase
             HelpComments = _source.HelpComments,
         };
         doc.Preamble.AddRange(_source.Preamble);
-        doc.SuiteDirectories.AddRange(_source.SuiteDirectories);
+        doc.SuiteDirectories.AddRange(ExportLocationNames());
         doc.GlobalStrings.AddRange(GlobalLines());
         doc.Termini.AddRange(Termini.Select(t => t.ToModel()));
         doc.BusStops.AddRange(BusStops.Select(b => b.ToModel()));

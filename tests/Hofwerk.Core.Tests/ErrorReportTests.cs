@@ -3,6 +3,7 @@ using Hofwerk.Core.Model;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Errors")]
 public class ErrorReportTests
 {
     static Exception Thrown(string message = "Something went wrong")

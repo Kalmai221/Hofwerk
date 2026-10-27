@@ -48,6 +48,8 @@ public partial class MainViewModel
     [ObservableProperty] public partial string UpdateStatus { get; set; } = "";
     [ObservableProperty] public partial bool IsUpdateBusy { get; set; }
     [ObservableProperty] public partial double UpdateProgress { get; set; }
+    /// <summary>True while the amount of work is not known (looking for an update, putting the new files in place): the bar moves back and forth.</summary>
+    [ObservableProperty] public partial bool UpdateIndeterminate { get; set; }
 
     public bool UpdateAvailable => _update is not null;
     public bool CanCheckForUpdates => !IsUpdateBusy;
@@ -113,6 +115,7 @@ public partial class MainViewModel
     async Task CheckForUpdatesAsync(bool quiet)
     {
         IsUpdateBusy = true;
+        UpdateIndeterminate = true;
         if (!quiet) UpdateStatus = "Checking…";
         try
         {
@@ -128,6 +131,7 @@ public partial class MainViewModel
         finally
         {
             IsUpdateBusy = false;
+            UpdateIndeterminate = false;
             RaiseWhatsNewChanged();
             OnPropertyChanged(nameof(UpdateAvailable));
             OnPropertyChanged(nameof(UpdateHeadline));
@@ -160,6 +164,7 @@ public partial class MainViewModel
                 UpdateStatus = $"Downloading… {p:P0}";
             });
             var download = await _updater.DownloadUpdateAsync(_update, _downloadFolder, _canApplyPack(), progress);
+            UpdateIndeterminate = true;
             UpdateStatus = "Installing…";
             if (download.IsPack)
             {
@@ -167,19 +172,27 @@ public partial class MainViewModel
                 await Task.Run(() => _applyPack(download.Path, _update.Version.Text));
                 try { File.Delete(download.Path); } catch (IOException) { }
                 UpdateStatus = "Restarting…";
-                _restart(FilePath);
+                try { _restart(FilePath); }
+                catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or InvalidOperationException)
+                {
+                    // The files are already the new version, but it did not start: stay open (nothing old is deleted until a new copy runs).
+                    UpdateStatus = $"Hofwerk {_update.Version} is installed, but it could not be started again ({ex.Message}). Close this window and open Hofwerk.";
+                    return;
+                }
             }
             else _launchInstaller(download.Path);
             ExitRequested?.Invoke();
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException
-                                       or System.ComponentModel.Win32Exception or Hofwerk.Installer.Engine.InstallerException)
+        catch (Exception ex) when (ex is not OutOfMemoryException)
         {
+            // Whatever goes wrong while updating must not close the app; the files are rolled back by the update itself.
+            Hofwerk.Core.Errors.CrashLog.Write("The update failed", ex);
             UpdateStatus = $"The update failed: {ex.Message}";
         }
         finally
         {
             IsUpdateBusy = false;
+            UpdateIndeterminate = false;
         }
     }
 

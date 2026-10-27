@@ -14,6 +14,7 @@ public sealed class NewFileWindow : Window
 {
     readonly NewFileViewModel _model;
     readonly StackPanel _mapPanel = new() { Spacing = 10, IsVisible = false };
+    readonly ProgressBar _reading = new() { IsIndeterminate = true, IsVisible = false };   // while the map is being read
     readonly TextBlock _summary = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap, Opacity = 0.75 };
     // The maps as pictures with their names, like OMSI's own map list (and HOF Suite's): click one to choose it.
     readonly ListBox _maps = new() { SelectionMode = SelectionMode.Single, MaxHeight = 280 };
@@ -53,6 +54,7 @@ public sealed class NewFileWindow : Window
 
         _mapPanel.Children.Add(_maps);
         _mapPanel.Children.Add(browse);
+        _mapPanel.Children.Add(_reading);
         _mapPanel.Children.Add(_summary);
         _mapPanel.Children.Add(new TextBlock { Text = "Take from the map", Margin = new Thickness(0, 4, 0, 0) });
         var partsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20 };
@@ -146,6 +148,7 @@ public sealed class NewFileWindow : Window
     {
         _mapPanel.IsVisible = _model.FromMap;
         _summary.Text = _model.Summary;
+        _reading.IsVisible = _model.IsReading;
         _continue.IsEnabled = _model.CanContinue;
     }
 }

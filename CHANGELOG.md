@@ -6,7 +6,15 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
-Nothing yet.
+- Updating inside the app is safer. Any error during the update is shown in the Update area instead of closing the app. If the new version cannot be started again, Hofwerk stays open and says so. The old files are removed only by the new copy once it is running (it waits a few seconds for the old one to close).
+- **Undo and redo.** Undo (Ctrl+Z) and Redo (Ctrl+Y or Ctrl+Shift+Z) are in the toolbar and cover everything in the file: destinations, bus stops, routes, the settings page and the export locations. Typing a word is one step, the last 100 steps are kept, and undoing back to what is on disk makes the file count as saved again.
+- **Autosave.** App settings → Saving can save the open file by itself 5 seconds, 30 seconds or 2 minutes after you stop editing. An autosave can be undone like any change.
+- **Unsaved changes are asked about when you close.** Closing Hofwerk with changes that are not saved asks Save, Don't save or Cancel (with autosave on, the changes are just saved).
+- **Export to several folders.** Settings has a new Export locations card: the vehicle folders this file should be copied into. They are saved in the file itself between `[HOF_SUITE_DIRECTORIES]` and `[HOF_SUITE_DIRECTORIES_END]`, the same list HOF Suite writes, so files from HOF Suite show their folders at once. The Export button (or Export now…) saves the file and puts it into every folder, with a progress bar, a result for each folder and a `.bak` copy of any file it replaces.
+- **Import your own strings file.** App settings → String presets → Import a strings file… takes a strings file that has no preset.json, asks what is in it (name, how the names are written, whether they are for destinations or bus stops) and makes a preset of it.
+- More progress bars. Looking for an update, putting an update in place and reading a map in the New file dialog now show a moving bar next to the text, and downloads keep their percentage bar.
+- The installer shows its steps while it works: Download, Extract, Move files, Cleanup, Close. It unpacks into a work folder first and only then moves the files in, so a damaged package no longer touches an existing install.
+- The offline installer no longer looks for a newer version when it opens. Only the online installer does.
 
 ## [1-dev2] - pre-release
 

@@ -4,6 +4,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "App")]
 public class NewFileTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-newfile-" + Guid.NewGuid().ToString("N"));

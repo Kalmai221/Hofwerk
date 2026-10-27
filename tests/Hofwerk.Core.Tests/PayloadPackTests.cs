@@ -3,6 +3,7 @@ using Hofwerk.Installer.Engine;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Installer")]
 public class PayloadPackTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "hofwerk-pack-" + Guid.NewGuid().ToString("N"));

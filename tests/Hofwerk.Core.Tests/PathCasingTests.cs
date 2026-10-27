@@ -2,6 +2,7 @@ using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Omsi")]
 public class PathCasingTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "Hofwerk-Casing-" + Guid.NewGuid().ToString("N"));

@@ -4,6 +4,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "App")]
 public class SettingsViewModelTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-settingsvm-" + Guid.NewGuid().ToString("N"));

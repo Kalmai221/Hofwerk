@@ -3,6 +3,7 @@ using Hofwerk.Installer;
 namespace Hofwerk.Core.Tests;
 
 /// <summary>The logic behind the setup window's "Where is OMSI 2?" step. The window itself is covered by installer/check-setup-ui.ps1.</summary>
+[Trait("Area", "Installer")]
 public class InstallerWindowTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "hofwerk-setupvm-" + Guid.NewGuid().ToString("N"));

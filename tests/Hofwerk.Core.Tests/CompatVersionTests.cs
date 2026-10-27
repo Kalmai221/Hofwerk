@@ -7,6 +7,7 @@ using Hofwerk.Installer.Engine;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Updates")]
 public class CompatVersionTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "hofwerk-compat-" + Guid.NewGuid().ToString("N"));

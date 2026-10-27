@@ -23,6 +23,7 @@ HOF Suite and something is missing here, please open an issue.
 - [x] Custom string names through templates (HOF Suite 1.4); Hofwerk calls them **string presets** and shares them through the
   `Presets/` folder
 - [x] A list of the problems found in a file
+- [x] **Export to several folders at once** (HOF Suite 1.1): the Export locations on the Settings page are kept in the file (`[HOF_SUITE_DIRECTORIES]`, as HOF Suite does) and Export puts the file into every one of them
 - [x] Start a new file from an OMSI **map**: its bus stops, destinations and routes (a first version of HOF Suite's *Import map*)
 - [x] App settings and an About page
 - [x] Updates inside the app, a theme choice (light, dark, system), a Linux version
@@ -31,7 +32,6 @@ HOF Suite and something is missing here, please open an issue.
 
 - [ ] **Import a map into a file you already have**, choosing what to add (today a map can only start a new file)
 - [ ] **Import a trip**: add one timetable trip (a `.ttp` file) to a file as a route (HOF Suite's *Import trip*)
-- [ ] **Export to several folders at once** (HOF Suite 1.1): save the same `.hof` into every bus pack folder that needs it
 - [ ] **Station links** (HOF Suite 1.3): read and keep the `StnLinks.cfg` information of a map
 - [ ] **Translations**: HOF Suite has a German version; Hofwerk is English only so far
 - [ ] **A visual route timeline** (planned from the start)

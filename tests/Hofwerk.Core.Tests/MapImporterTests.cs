@@ -5,6 +5,7 @@ using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Omsi")]
 public class MapImporterTests : IDisposable
 {
     readonly string _omsi = Path.Combine(Path.GetTempPath(), "hofwerk-maps-" + Guid.NewGuid().ToString("N"), "OMSI 2");

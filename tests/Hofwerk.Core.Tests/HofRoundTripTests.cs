@@ -3,6 +3,7 @@ using Hofwerk.Core.Model;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "HofFiles")]
 public class HofRoundTripTests
 {
     const string Sample = """

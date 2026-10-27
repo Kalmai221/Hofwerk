@@ -4,6 +4,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Updates")]
 public class PreReleaseChoiceTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-prerel-" + Guid.NewGuid().ToString("N"));

@@ -49,6 +49,20 @@ the app under **Presets**, and every preset in this folder is built into the app
 4. Open a pull request. Nothing else needs to change: the app picks up every folder in `Presets/`. A check runs on your
    pull request and tells you if the preset does not load, has no author, or has no slots (`RepositoryPresetTests`).
 
+## Import a strings file of your own
+
+Most strings files are not a preset folder with a `preset.json`. In the app, open **App settings → String presets → Add your
+own → Import a strings file…**, pick the file, and Hofwerk asks what is in it:
+
+- the **name** of the preset (the file's name is suggested), and optionally who made it and what it is for;
+- **how the names are written**: an OMSI strings file (the format above), one name per line with the slot number in front
+  (`0 = IBIS 1`, `7: ANNAX (side)`), or one name per line in slot order (the first line is slot 0, or the slot you choose);
+- for the two plain formats, whether the names are for **destinations**, **bus stops** or both.
+
+A guess is made from the file and the dialog shows what it understood ("Found 24 names, for example 0 = IBIS 1") before you
+import. In the plain formats a line starting with `#` is a note, an empty line leaves that slot without a name, and
+`Name|Hint` gives a tooltip. Hofwerk writes the `preset.json` and the strings file into your presets folder for you and switches to the new preset.
+
 ## Use a preset without a pull request
 
 Drop the same folder into your user presets folder (the Presets page has an **Open folder** button).

@@ -28,6 +28,7 @@ public partial class MainWindow : Window
 
         // Window width changes how the pages are laid out; the content area width is what matters, not the window's.
         SizeChanged += (_, _) => ApplyAdaptiveLayout();
+        Closing += OnWindowClosing;
         Opened += async (_, _) =>
         {
             ApplyAdaptiveLayout();
@@ -329,6 +330,64 @@ public partial class MainWindow : Window
     }
 
     void OnRefreshPresets(object? sender, RoutedEventArgs e) => Vm.RefreshPresets();
+
+    // The file goes into every vehicle folder in its own export list (HOF Suite's [HOF_SUITE_DIRECTORIES]).
+    // ---- Closing with unsaved work: ask first (with autosave on, the work is simply saved) -----------------------
+
+    bool _closeConfirmed;
+    bool _askingToClose;
+
+    void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        // Only the person closing the window is asked; an update or a restart shutting the app down is not held up.
+        if (_closeConfirmed || e.CloseReason != WindowCloseReason.WindowClosing || Vm.EverythingSavedForClose()) return;
+
+        e.Cancel = true;
+        if (_askingToClose) return;
+        _askingToClose = true;
+        _ = AskBeforeClosingAsync();
+    }
+
+    async Task AskBeforeClosingAsync()
+    {
+        try
+        {
+            var answer = await new UnsavedChangesWindow(Vm.FileDisplayName).ShowDialog<UnsavedAnswer>(this);
+            if (answer == UnsavedAnswer.Cancel) return;                           // stay open
+
+            if (answer == UnsavedAnswer.Save)
+            {
+                try { Vm.Save(Vm.FilePath!); }
+                catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+                {
+                    Vm.Status = $"Could not save: {ex.Message}";                  // the file is still open, nothing is lost
+                    return;
+                }
+            }
+            _closeConfirmed = true;
+            Close();
+        }
+        finally { _askingToClose = false; }
+    }
+
+    void OnRemoveExportLocation(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is ExportLocation location) Vm.RemoveExportLocation(location);
+    }
+
+    async void OnExport(object? sender, RoutedEventArgs e)
+    {
+        if (Vm.StartExport() is { } export) await new ExportWindow(Vm, export).ShowDialog<bool>(this);
+    }
+
+    // A strings file of the user's own, usually without a preset.json: pick it, then say what is in it.
+    async void OnImportPreset(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Choose a strings file", AllowMultiple = false });
+        if (files.Count != 1 || files[0].TryGetLocalPath() is not { } path) return;
+        if (Vm.StartPresetImport(path) is not { } import) return;
+        if (await new PresetImportWindow(import).ShowDialog<bool>(this)) Vm.FinishPresetImport(import);
+    }
 
     void OpenAndShow(string path)
     {

@@ -257,6 +257,19 @@
                 <TextBlock Text="{Binding Percent}" FontSize="52" FontWeight="Light" Foreground="#3B82F6" />
                 <ProgressBar Minimum="0" Maximum="1" Value="{Binding Fraction}" />
                 <TextBlock Text="{Binding Message}" Classes="muted" TextTrimming="CharacterEllipsis" />
+                <!-- Download, Extract, Move files, Cleanup, Close -->
+                <ItemsControl ItemsSource="{Binding Steps}" IsVisible="{Binding ShowSteps}" Margin="0,6,0,0"
+                              AutomationProperties.Name="Install steps">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="local:SetupStep">
+                            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,3" Opacity="{Binding Dim}">
+                                <TextBlock Text="{Binding Marker}" Width="16" Foreground="#3B82F6" />
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Note}" Classes="muted" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
 
             <!-- Done -->

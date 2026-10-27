@@ -12,14 +12,55 @@ public enum SetupStage { Welcome, Location, Working, Done, Failed }
 /// <summary>The four situations on the "Where is OMSI 2?" page.</summary>
 public enum LocationState { Detected, NotFound, Selected, Invalid }
 
+public enum StepState { Pending, Active, Done }
+
+/// <summary>One line of the list shown while installing: Download, Extract, Move files, Cleanup, Close.</summary>
+public partial class SetupStep(InstallStep step, string name) : ObservableObject
+{
+    public InstallStep Step { get; } = step;
+    public string Name { get; } = name;
+    [ObservableProperty] public partial string Note { get; set; } = "";
+    [ObservableProperty] public partial StepState State { get; set; } = StepState.Pending;
+
+    public string Marker => State switch { StepState.Done => "✓", StepState.Active => "●", _ => "○" };
+    public double Dim => State == StepState.Pending ? 0.5 : 1;
+    public bool IsActive => State == StepState.Active;
+
+    partial void OnStateChanged(StepState value)
+    {
+        OnPropertyChanged(nameof(Marker));
+        OnPropertyChanged(nameof(Dim));
+        OnPropertyChanged(nameof(IsActive));
+    }
+}
+
 public partial class InstallerViewModel : ObservableObject
 {
+    /// <summary>The stages of an install, in the order they happen.</summary>
+    public IReadOnlyList<SetupStep> Steps { get; } =
+    [
+        new(InstallStep.Download, "Download"),
+        new(InstallStep.Extract, "Extract"),
+        new(InstallStep.Move, "Move files"),
+        new(InstallStep.Cleanup, "Cleanup"),
+        new(InstallStep.Close, "Close"),
+    ];
+
+    public bool ShowSteps => IsInstall;
+
+    /// <summary>Everything before <paramref name="current"/> is done, <paramref name="current"/> is running, the rest waits.</summary>
+    void SetStep(InstallStep current)
+    {
+        foreach (var s in Steps)
+            s.State = s.Step < current ? StepState.Done : s.Step == current ? StepState.Active : StepState.Pending;
+    }
+
     readonly PlatformInstaller _platform = PlatformInstaller.Create();
     readonly string _program = Environment.ProcessPath ?? "";
     string? _installedDirectory;
     readonly WebManifest? _web;
 
-    // Looking for a newer installer is skipped by --no-update-check (and HOFWERK_NO_UPDATE_CHECK=1), which the test scripts use.
+    // Looking for a newer installer is skipped by the offline installer, by --no-update-check (and HOFWERK_NO_UPDATE_CHECK=1), which the test scripts use.
     bool _checkForNewer;
     UpdateChecker _updater = new();
     AppVersion _ownVersion = AppVersion.TryParse(AppInfo.Version) ?? AppVersion.Current;
@@ -36,6 +77,8 @@ public partial class InstallerViewModel : ObservableObject
                          && Environment.GetEnvironmentVariable("HOFWERK_NO_UPDATE_CHECK") != "1";
         bool wantsUninstall = args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase);
         bool hasPayload = _program.Length > 0 && PayloadFile.HasPayload(_program);
+        // The offline installer carries the app and never goes online by itself; only the online installer looks for a newer one.
+        if (hasPayload) _checkForNewer = false;
         // The online installer has no app inside it, only where to download it from.
         _web = hasPayload || _program.Length == 0 ? null : WebPayload.TryRead(_program);
         bool canInstall = hasPayload || _web is not null;
@@ -290,6 +333,9 @@ public partial class InstallerViewModel : ObservableObject
             {
                 // Online installer: the first part of the bar is the download, the rest is installing.
                 double share = IsWeb ? 0.45 : 0;
+                foreach (var s in Steps) s.Note = "";
+                Steps[0].Note = IsWeb ? "" : "included in this installer";
+                SetStep(IsWeb ? InstallStep.Download : InstallStep.Extract);
                 var downloading = new Progress<double>(d =>
                 {
                     Fraction = d * share;
@@ -302,6 +348,7 @@ public partial class InstallerViewModel : ObservableObject
                 {
                     Fraction = share + p.Fraction * (1 - share);
                     Message = p.Message;
+                    if (p.Step != InstallStep.None) SetStep(p.Step);
                 });
                 await _platform.InstallAsync(new InstallRequest(Directory, DesktopShortcut, FileAssociation && SupportsFileAssociation, omsiFolder),
                     payload, _program, installing);
@@ -313,7 +360,9 @@ public partial class InstallerViewModel : ObservableObject
             }
 
             Fraction = 1;
+            if (IsInstall) SetStep(InstallStep.Close);
             await Task.Delay(450); // let the bar reach the end before the screen changes
+            if (IsInstall) foreach (var s in Steps) s.State = StepState.Done;
             Stage = SetupStage.Done;
         }
         catch (Exception ex)

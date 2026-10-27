@@ -3,6 +3,7 @@ using Hofwerk.Installer.Engine;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Installer")]
 public class InstallerTests : IDisposable
 {
     readonly string _root = Path.Combine(Path.GetTempPath(), "hofwerk-inst-" + Guid.NewGuid().ToString("N"));
@@ -191,6 +192,38 @@ public class InstallerTests : IDisposable
         Assert.Equal(1.0, steps[^1]);
         Assert.Equal(steps.Order().ToList(), steps); // never goes backwards
         Assert.Contains(steps, s => s is > 0.05 and < 0.9);
+    }
+
+    [Fact]
+    public async Task An_install_goes_through_extract_move_cleanup_and_close_in_that_order_and_leaves_no_work_folder()
+    {
+        var platform = new FakeInstaller();
+        string installer = MakeInstaller(("app.exe", "program"), ("Assets/icon.png", "png"));
+        string dir = Path_("Hofwerk");
+        var seen = new List<InstallStep>();
+
+        using (var payload = PayloadFile.OpenPayload(installer)!)
+            await platform.InstallAsync(new InstallRequest(dir, false, false), payload, installer,
+                new SyncProgress(p => { if (p.Step != InstallStep.None && (seen.Count == 0 || seen[^1] != p.Step)) seen.Add(p.Step); }));
+
+        Assert.Equal([InstallStep.Extract, InstallStep.Move, InstallStep.Cleanup, InstallStep.Close], seen);
+        Assert.Equal("program", File.ReadAllText(Path.Combine(dir, "app.exe")));
+        Assert.False(Directory.Exists(Path.Combine(dir, ".hwsetup")));
+    }
+
+    [Fact]
+    public async Task A_damaged_package_leaves_an_existing_install_untouched()
+    {
+        var platform = new FakeInstaller();
+        string dir = Path_("Hofwerk");
+        await Install(platform, MakeInstaller(("app.exe", "old program")), dir);
+
+        string damaged = MakeInstaller(("app.exe", "new program"), ("../escape.txt", "x"));
+        using (var payload = PayloadFile.OpenPayload(damaged)!)
+            await Assert.ThrowsAsync<InstallerException>(() => platform.InstallAsync(new InstallRequest(dir, false, false), payload, damaged));
+
+        Assert.Equal("old program", File.ReadAllText(Path.Combine(dir, "app.exe")));
+        Assert.False(Directory.Exists(Path.Combine(dir, ".hwsetup")));
     }
 
     /// <summary>Progress&lt;T&gt; posts to another thread; tests want the values as they happen.</summary>

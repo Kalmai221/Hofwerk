@@ -208,17 +208,27 @@ public sealed class UpdateChecker
     }
 
     /// <summary>Starts the (new) program again, optionally with the file that was open, so the update ends where the user left off.</summary>
+    /// <exception cref="IOException">The program could not be started (the caller then keeps this copy open).</exception>
     public static void Restart(string? openFile)
     {
-        string? program = Environment.ProcessPath;
-        if (program is null) return;
+        string program = Environment.ProcessPath ?? throw new IOException("The path of the running program is not known.");
         var start = new System.Diagnostics.ProcessStartInfo(program) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(program)! };
         if (!string.IsNullOrEmpty(openFile)) start.ArgumentList.Add(openFile);
-        System.Diagnostics.Process.Start(start)?.Dispose();
+        using var started = System.Diagnostics.Process.Start(start) ?? throw new IOException("Hofwerk could not be started again.");
     }
 
     /// <summary>Deletes leftovers of an earlier in-place update (old files Windows still held while the app ran).</summary>
-    public static void CleanUpAfterUpdate(string installFolder) => Hofwerk.Installer.Engine.InPlaceUpdate.CleanLeftovers(installFolder);
+    public static void CleanUpAfterUpdate(string installFolder)
+    {
+        // This runs in the copy that was started after an update, so it is the proof that the new version works. The old copy may still
+        // be closing (Windows holds its files until it has), so try again for a few seconds.
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            Hofwerk.Installer.Engine.InPlaceUpdate.CleanLeftovers(installFolder);
+            if (!Hofwerk.Installer.Engine.InPlaceUpdate.HasLeftovers(installFolder)) return;
+            Thread.Sleep(1000);
+        }
+    }
 
     /// <summary>Downloads the installer into <paramref name="folder"/> and returns the program to start.</summary>
     public async Task<string> DownloadAsync(UpdateInfo update, string folder, IProgress<double>? progress = null, CancellationToken ct = default)

@@ -5,6 +5,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "HofFiles")]
 public class FilteredCollectionTests
 {
     sealed record Item(string Name);
@@ -56,6 +57,7 @@ public class FilteredCollectionTests
     }
 }
 
+[Trait("Area", "HofFiles")]
 public class EditorViewModelTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-editorvm-" + Guid.NewGuid().ToString("N"));

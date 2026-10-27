@@ -3,6 +3,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "App")]
 public class MainViewModelTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofsuite-" + Guid.NewGuid().ToString("N"));

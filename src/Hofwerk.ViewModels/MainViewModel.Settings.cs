@@ -98,6 +98,7 @@ public partial class MainViewModel
     {
         RebuildServiceTripChoices();
         RefreshFolderStatuses(rescan: false);
+        RefreshExportChoices();
     }
 
     /// <summary>Creates the row's folder inside <paramref name="parent"/> (chosen by the user) and checks it again.</summary>

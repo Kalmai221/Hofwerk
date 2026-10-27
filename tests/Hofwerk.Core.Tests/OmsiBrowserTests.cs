@@ -2,6 +2,7 @@ using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Omsi")]
 public class OmsiBrowserTests
 {
     // Paths as the locator reports them: the folder under Vehicles goes in Subtitle (with the OS separator).

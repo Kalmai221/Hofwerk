@@ -5,6 +5,7 @@ using Hofwerk.ViewModels;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Updates")]
 public class ChangeNotesTests
 {
     [Fact]
@@ -69,6 +70,7 @@ public class ChangeNotesTests
     }
 }
 
+[Trait("Area", "Updates")]
 public class ChangelogTests
 {
     const string Sample = """
@@ -123,6 +125,7 @@ public class ChangelogTests
     }
 }
 
+[Trait("Area", "Updates")]
 public class WhatsNewViewModelTests : IDisposable
 {
     readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-whatsnew-" + Guid.NewGuid().ToString("N"));

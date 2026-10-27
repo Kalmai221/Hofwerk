@@ -65,13 +65,17 @@ public abstract class PlatformInstaller
         CheckTargetFolder(dir);
         ValidateDirectory(dir);
 
-        void Report(double fraction, string message) => progress?.Report(new InstallProgress(fraction, message));
+        void Report(double fraction, string message, InstallStep step) => progress?.Report(new InstallProgress(fraction, message, step));
 
+        // Extract: everything is unpacked into a work folder inside the install folder first, so a damaged package or a full disk
+        // leaves an existing install untouched. Move files: the old version is removed and the new files are moved into place.
+        string stage = Path.Combine(dir, StagingName);
         try
         {
-            Report(0.02, "Getting ready");
+            Report(0.02, "Extracting", InstallStep.Extract);
             Directory.CreateDirectory(dir);
-            RemoveOldVersion(dir);
+            if (Directory.Exists(stage)) Directory.Delete(stage, recursive: true);
+            Directory.CreateDirectory(stage);
 
             var written = new List<string>();
             long totalBytes = 1, doneBytes = 0;
@@ -83,8 +87,8 @@ public abstract class PlatformInstaller
                     ct.ThrowIfCancellationRequested();
 
                     string relative = entry.Path.Replace('\\', '/');
-                    string destination = Path.GetFullPath(Path.Combine(dir, relative));
-                    string check = Path.GetRelativePath(dir, destination);
+                    string destination = Path.GetFullPath(Path.Combine(stage, relative));
+                    string check = Path.GetRelativePath(stage, destination);
                     if (check.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(check))
                         throw new InstallerException($"The installer package is damaged ({entry.Path} points outside the install folder).");
 
@@ -94,10 +98,21 @@ public abstract class PlatformInstaller
 
                     written.Add(relative);
                     doneBytes += entry.Length;
-                    Report(0.05 + 0.80 * doneBytes / totalBytes, $"Copying {Path.GetFileName(destination)}");
+                    Report(0.05 + 0.50 * doneBytes / totalBytes, $"Extracting {Path.GetFileName(destination)}", InstallStep.Extract);
                 });
 
-            Report(0.88, "Adding the uninstaller");
+            Report(0.56, "Moving files", InstallStep.Move);
+            RemoveOldVersion(dir);
+            for (int i = 0; i < written.Count; i++)
+            {
+                ct.ThrowIfCancellationRequested();
+                string destination = Path.GetFullPath(Path.Combine(dir, written[i]));
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.Move(Path.Combine(stage, written[i]), destination, overwrite: true);
+                Report(0.56 + 0.30 * (i + 1) / written.Count, $"Moving {Path.GetFileName(destination)}", InstallStep.Move);
+            }
+
+            Report(0.88, "Adding the uninstaller", InstallStep.Move);
             string uninstaller = Path.Combine(dir, UninstallerName);
             PayloadFile.CopyProgramOnly(installerPath, uninstaller);
             MakeExecutable(uninstaller);
@@ -106,7 +121,7 @@ public abstract class PlatformInstaller
 
             File.WriteAllLines(Path.Combine(dir, ManifestName), written);
 
-            Report(0.93, "Setting up shortcuts");
+            Report(0.92, "Setting up shortcuts", InstallStep.Move);
             long size = written.Sum(f => new FileInfo(Path.Combine(dir, f)).Length);
             Register(request, dir, size);
 
@@ -114,12 +129,28 @@ public abstract class PlatformInstaller
             if (!string.IsNullOrWhiteSpace(request.OmsiFolder))
                 UserSettings.SaveOmsiFolder(Path.GetFullPath(request.OmsiFolder), SettingsPath);
 
-            Report(1.0, "Done");
+            Report(0.96, "Cleaning up", InstallStep.Cleanup);
+            DeleteStage(stage);
+            InPlaceUpdate.CleanLeftovers(dir);
+
+            Report(1.0, "Done", InstallStep.Close);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             throw new InstallerException($"Installing failed: {ex.Message}", ex);
         }
+        finally
+        {
+            DeleteStage(stage);   // also when something went wrong: no half-unpacked files stay behind
+        }
+    }
+
+    const string StagingName = ".hwsetup";
+
+    static void DeleteStage(string stage)
+    {
+        try { if (Directory.Exists(stage)) Directory.Delete(stage, recursive: true); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
     }
 
     void Uninstall(string directory, bool removeUserData, IProgress<InstallProgress>? progress, CancellationToken ct)

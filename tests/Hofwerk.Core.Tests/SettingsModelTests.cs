@@ -3,6 +3,7 @@ using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.Core.Tests;
 
+[Trait("Area", "Omsi")]
 public class GlobalSettingsTests
 {
     [Fact]
@@ -73,6 +74,7 @@ public class GlobalSettingsTests
     }
 }
 
+[Trait("Area", "Omsi")]
 public class VehicleFolderIndexTests : IDisposable
 {
     readonly string _omsi = Path.Combine(Path.GetTempPath(), "hofwerk-vfi-" + Guid.NewGuid().ToString("N"));

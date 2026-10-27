@@ -73,6 +73,81 @@ public partial class MainViewModel
     public IReadOnlyList<Hofwerk.Core.Omsi.OmsiMap> FindMaps() =>
         OmsiFolder is null ? [] : Hofwerk.Core.Omsi.MapImporter.FindMaps(OmsiFolder);
 
+    /// <summary>Reads a strings file the user picked and returns the questions to ask about it; null (with the reason in the status bar) when it cannot be read.</summary>
+    public PresetImportViewModel? StartPresetImport(string file)
+    {
+        try
+        {
+            if (new System.IO.FileInfo(file).Length > 2_000_000) { Status = "That file is too big to be a strings file."; return null; }
+            return new PresetImportViewModel(Hofwerk.Core.Presets.PresetImporter.ReadText(System.IO.File.ReadAllBytes(file)), file);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Status = $"Could not read the file: {ex.Message}";
+            return null;
+        }
+    }
+
+    /// <summary>Saves the imported preset in the user's presets folder and switches to it. False, with the reason in the status bar, when it fails.</summary>
+    public bool FinishPresetImport(PresetImportViewModel import)
+    {
+        try
+        {
+            var preset = import.Import(_userPresetsFolder);
+            RefreshPresets();
+            if (Presets.FirstOrDefault(p => p.Preset.Id == preset.Id) is { } added) UsePreset(added);
+            Status = $"Imported the preset {preset.Name} and switched to it";
+            return true;
+        }
+        catch (Hofwerk.Core.Presets.PresetImportException ex)
+        {
+            Status = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>True when there is an open file and an OMSI install with a Vehicles folder to export into.</summary>
+    public bool CanExport => FilePath is not null && VehiclesFolder is { } v && System.IO.Directory.Exists(v);
+
+    /// <summary>The export dialog, with the folders the file already lists (its HOF Suite export list) ticked. Null, with the reason in the status bar, when there is nothing to export into.</summary>
+    public ExportViewModel? StartExport()
+    {
+        if (FilePath is null) { Status = "Open a .hof file first."; return null; }
+        if (VehiclesFolder is not { } vehicles || !System.IO.Directory.Exists(vehicles))
+        {
+            Status = "Hofwerk does not know where your OMSI Vehicles folder is. Set the OMSI folder in App settings.";
+            return null;
+        }
+        return new ExportViewModel(FilePath, vehicles, ExportLocationNames());
+    }
+
+    /// <summary>
+    /// Keeps the ticked folders in the file (as HOF Suite does), saves the file, then puts it into each of them. The result is in the
+    /// dialog (<see cref="ExportViewModel.Report"/>) and in the status bar. False when the file could not be saved.
+    /// </summary>
+    public async Task<bool> ExportAsync(ExportViewModel export)
+    {
+        if (FilePath is null) return false;
+        try
+        {
+            // What is ticked becomes the file's export list (shown on the Settings page), then the file is saved with it.
+            LoadExportLocations(export.SelectedNames);
+            Save(FilePath);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Status = $"Could not save the file, so nothing was exported: {ex.Message}";
+            export.Report = Status;
+            return false;
+        }
+
+        var results = await export.RunAsync();
+        int written = results.Count(r => r.Outcome == Hofwerk.Core.Omsi.ExportOutcome.Written);
+        int notDone = results.Count(r => r.Outcome is Hofwerk.Core.Omsi.ExportOutcome.Failed or Hofwerk.Core.Omsi.ExportOutcome.Skipped);
+        Status = $"Exported {System.IO.Path.GetFileName(FilePath)}: {written} folder{(written == 1 ? "" : "s")} updated" + (notDone > 0 ? $", {notDone} not done" : "");
+        return true;
+    }
+
     /// <summary>The dialog for New: start empty or from a map.</summary>
     public NewFileViewModel StartNewFile() => new(FindMaps());
 

@@ -273,7 +273,7 @@ public class HistoryTests : IDisposable
 
         Assert.True(WaitFor(() => File.ReadAllText(vm.FilePath!, HofEncodings.Windows1252).Contains("Autosaved name")));
         Assert.True(WaitFor(() => !vm.IsDirty));
-        Assert.Contains("Autosaved", vm.Status);
+        Assert.True(WaitFor(() => vm.Status.Contains("Autosaved")));    // the message is set just after the file is written
         vm.Undo();                                  // an autosave can still be taken back
         Assert.Equal("Cotterell", vm.Name);
     }

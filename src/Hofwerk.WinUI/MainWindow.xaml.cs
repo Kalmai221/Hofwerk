@@ -57,6 +57,7 @@ public sealed partial class MainWindow : Window
         // After an update download the installer is running; close so it can replace the files.
         ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => { _closeConfirmed = true; Application.Current.Exit(); });
         AppWindow.Closing += OnWindowClosing;
+        Root.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnRootPointerPressed), true);
         Root.Loaded += async (_, _) =>
         {
             ApplyCaptionButtonColors();
@@ -513,6 +514,92 @@ public sealed partial class MainWindow : Window
     void OnRefreshPresets(object sender, RoutedEventArgs e) => ViewModel.RefreshPresets();
 
     // ---- Export: the file goes into every vehicle folder in its own list (HOF Suite's [HOF_SUITE_DIRECTORIES]) -------------
+
+    // ---- Diagnostics window ----------------------------------------------------------------------------------------
+
+    readonly Hofwerk.Core.RepeatedClicks _exportClicks = new();
+    bool _diagnosticsOpen;
+
+    void OnRootPointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(ExportButton);
+        bool onDisabledExport = !ExportButton.IsEnabled && ExportButton.ActualWidth > 0 && point.Properties.IsLeftButtonPressed
+            && point.Position.X >= 0 && point.Position.Y >= 0 && point.Position.X <= ExportButton.ActualWidth && point.Position.Y <= ExportButton.ActualHeight;
+        if (!onDisabledExport) { _exportClicks.Reset(); return; }
+        if (_exportClicks.Tap(DateTime.UtcNow) && !_diagnosticsOpen) _ = ShowDiagnosticsAsync();
+    }
+
+    async Task ShowDiagnosticsAsync()
+    {
+        _diagnosticsOpen = true;
+        try
+        {
+            var box = new TextBox
+            {
+                AcceptsReturn = true,                       // before Text: a single-line box cuts the text at the first line break
+                Text = ViewModel.DiagnosticsReport("WinUI"),
+                IsReadOnly = true,
+                TextWrapping = TextWrapping.NoWrap,
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Cascadia Mono, Consolas"),
+                FontSize = 12,
+                Height = 340,
+                MinWidth = 640,
+            };
+            ScrollViewer.SetHorizontalScrollBarVisibility(box, ScrollBarVisibility.Auto);
+            ScrollViewer.SetVerticalScrollBarVisibility(box, ScrollBarVisibility.Auto);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, "Diagnostics report");
+
+            var copy = new Button { Content = "Copy" };
+            var folder = new Button { Content = "Open settings folder" };
+            var crash = new Button { Content = "Open crash log" };
+            var clear = new Button { Content = "Clear recent files" };
+            var simulate = new Button { Content = "Simulate an error" };
+            var buttons = new WrapPanel { HorizontalSpacing = 8, VerticalSpacing = 8 };
+            foreach (var button in new[] { copy, folder, crash, clear, simulate }) buttons.Children.Add(button);
+
+            var content = new StackPanel { Spacing = 12 };
+            content.Children.Add(new TextBlock { Text = "What Hofwerk knows about itself. Your user name is taken out of the paths, so this can be pasted into a bug report.", Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
+            content.Children.Add(box);
+            content.Children.Add(buttons);
+
+            var dialog = new ContentDialog
+            {
+                XamlRoot = Root.XamlRoot,
+                RequestedTheme = Root.ActualTheme,
+                Title = "Diagnostics",
+                Content = content,
+                CloseButtonText = "Close",
+                DefaultButton = ContentDialogButton.Close,
+            };
+
+            bool simulateAfterwards = false;
+            copy.Click += (_, _) =>
+            {
+                var data = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                data.SetText(box.Text);
+                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(data);
+                copy.Content = "Copied";
+            };
+            folder.Click += (_, _) => OpenWithShell(ViewModel.SettingsFolder);
+            crash.Click += (_, _) =>
+            {
+                if (File.Exists(ViewModel.CrashLogFile)) OpenWithShell(ViewModel.CrashLogFile);
+                else crash.Content = "No crash log";
+            };
+            clear.Click += (_, _) => { ViewModel.ClearRecentFiles(); clear.Content = "Cleared"; };
+            simulate.Click += (_, _) => { simulateAfterwards = true; dialog.Hide(); };   // only one dialog at a time: the error dialog comes after this one
+
+            await dialog.ShowAsync();
+            if (simulateAfterwards) SimulateError();
+        }
+        finally { _diagnosticsOpen = false; }
+    }
+
+    static void OpenWithShell(string path)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true })?.Dispose(); }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
+    }
 
     public static IReadOnlyList<string> AutoSaveChoices => MainViewModel.AutoSaveChoices;
 

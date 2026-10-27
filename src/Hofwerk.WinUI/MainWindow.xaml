@@ -32,8 +32,10 @@
                 <AppBarButton.KeyboardAccelerators><KeyboardAccelerator Key="N" Modifiers="Control" /></AppBarButton.KeyboardAccelerators>
             </AppBarButton>
             <AppBarButton Icon="OpenFile" Label="Open" Click="OnOpen" />
+            <AppBarSeparator />
             <AppBarButton Icon="Save" Label="Save" Click="OnSave" IsEnabled="{x:Bind local:MainWindow.HasFile(ViewModel.FilePath), Mode=OneWay}" />
             <AppBarButton Icon="SaveLocal" Label="Save as" Click="OnSaveAs" IsEnabled="{x:Bind local:MainWindow.HasFile(ViewModel.FilePath), Mode=OneWay}" />
+            <AppBarSeparator />
             <AppBarButton Icon="Undo" Label="Undo" Command="{x:Bind ViewModel.UndoCommand}" AutomationProperties.Name="Undo">
                 <AppBarButton.KeyboardAccelerators><KeyboardAccelerator Key="Z" Modifiers="Control" /></AppBarButton.KeyboardAccelerators>
             </AppBarButton>
@@ -43,7 +45,8 @@
                     <KeyboardAccelerator Key="Z" Modifiers="Control,Shift" />
                 </AppBarButton.KeyboardAccelerators>
             </AppBarButton>
-            <AppBarButton Icon="Share" Label="Export" Click="OnExport" IsEnabled="{x:Bind ViewModel.CanExport, Mode=OneWay}"
+            <AppBarSeparator />
+            <AppBarButton x:Name="ExportButton" Icon="Share" Label="Export" Click="OnExport" IsEnabled="{x:Bind ViewModel.CanExport, Mode=OneWay}"
                           AutomationProperties.Name="Export to several folders" />
         </CommandBar>
 

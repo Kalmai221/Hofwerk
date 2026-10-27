@@ -42,6 +42,10 @@ public sealed class AppSettings
     /// </summary>
     public bool? AllowPreReleases { get; set; }
 
+    /// <summary>Where these settings are kept.</summary>
+    [JsonIgnore]
+    public string FilePath => _path;
+
     /// <summary>The recent files list lives next to the settings file, so settings kept somewhere else (a test) keep their own list too.</summary>
     [JsonIgnore]
     public string RecentFilesPath => Path.Combine(Path.GetDirectoryName(_path)!, "recent.json");

@@ -29,6 +29,7 @@ public partial class MainWindow : Window
         // Window width changes how the pages are laid out; the content area width is what matters, not the window's.
         SizeChanged += (_, _) => ApplyAdaptiveLayout();
         Closing += OnWindowClosing;
+        AddHandler(PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         Opened += async (_, _) =>
         {
             ApplyAdaptiveLayout();
@@ -137,6 +138,14 @@ public partial class MainWindow : Window
         bool tight = width < 1300;
 
         RootGrid.ColumnDefinitions[0].Width = new GridLength(narrow ? 200 : 232);
+
+        // The buttons sit to the right of the page title; when there is not room for both they move under the title.
+        bool stackedHeader = width - (narrow ? 200 : 232) < 940;
+        Grid.SetRow(HeaderButtons, stackedHeader ? 1 : 0);
+        Grid.SetColumn(HeaderButtons, stackedHeader ? 0 : 1);
+        Grid.SetColumnSpan(HeaderButtons, stackedHeader ? 2 : 1);
+        HeaderButtons.HorizontalAlignment = stackedHeader ? Avalonia.Layout.HorizontalAlignment.Left : Avalonia.Layout.HorizontalAlignment.Right;
+        HeaderButtons.Margin = stackedHeader ? new Avalonia.Thickness(0, 12, 0, 0) : new Avalonia.Thickness(0);
 
         foreach (var page in new[] { DestinationsPanel, BusStopsPanel, RoutesPanel })
         {
@@ -332,6 +341,32 @@ public partial class MainWindow : Window
     void OnRefreshPresets(object? sender, RoutedEventArgs e) => Vm.RefreshPresets();
 
     // The file goes into every vehicle folder in its own export list (HOF Suite's [HOF_SUITE_DIRECTORIES]).
+    // ---- Diagnostics window ----------------------------------------------------------------------------------------
+
+    readonly Hofwerk.Core.RepeatedClicks _exportClicks = new();
+    bool _diagnosticsOpen;
+
+    void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var point = e.GetCurrentPoint(ExportButton);
+        bool onDisabledExport = !ExportButton.IsEnabled && ExportButton.IsEffectivelyVisible && point.Properties.IsLeftButtonPressed
+            && new Avalonia.Rect(ExportButton.Bounds.Size).Contains(point.Position);
+        if (!onDisabledExport) { _exportClicks.Reset(); return; }
+        if (_exportClicks.Tap(DateTime.UtcNow) && !_diagnosticsOpen) _ = ShowDiagnosticsAsync();
+    }
+
+    async Task ShowDiagnosticsAsync()
+    {
+        _diagnosticsOpen = true;
+        try
+        {
+            bool simulate = await new DiagnosticsWindow(Vm).ShowDialog<bool>(this);
+            if (simulate)
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => throw new InvalidOperationException("Simulated error (from the diagnostics window)"));
+        }
+        finally { _diagnosticsOpen = false; }
+    }
+
     // ---- Closing with unsaved work: ask first (with autosave on, the work is simply saved) -----------------------
 
     bool _closeConfirmed;

@@ -30,7 +30,15 @@ public sealed class RecentFiles(string? storePath = null)
         list.RemoveAll(p => string.Equals(p, file, StringComparison.OrdinalIgnoreCase));
         list.Insert(0, file);
         if (list.Count > Max) list.RemoveRange(Max, list.Count - Max);
+        Write(list);
+        return list;
+    }
 
+    /// <summary>Forgets every file in the list.</summary>
+    public void Clear() => Write([]);
+
+    void Write(List<string> list)
+    {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
@@ -40,6 +48,5 @@ public sealed class RecentFiles(string? storePath = null)
         {
             // Losing the recent list is not worth interrupting the user for.
         }
-        return list;
     }
 }

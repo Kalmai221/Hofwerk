@@ -1,3 +1,5 @@
+<p align="center"><img src="branding/hofwerk-logo.svg" alt="Hofwerk" width="112"></p>
+
 # Hofwerk
 
 A modern editor for the **`.hof` files of OMSI 2**: the destination displays, bus stops and routes that let one bus

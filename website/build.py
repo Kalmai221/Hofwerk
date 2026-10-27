@@ -249,6 +249,7 @@ def main():
     shutil.copytree(os.path.join(SRC, 'assets'), os.path.join(out, 'assets'))
     shutil.copyfile(os.path.join(ROOT, 'src', 'Hofwerk.WinUI', 'Assets', 'Hofwerk.png'), os.path.join(out, 'assets', 'hofwerk.png'))
     shutil.copyfile(os.path.join(ROOT, 'src', 'Hofwerk.WinUI', 'Assets', 'Hofwerk.ico'), os.path.join(out, 'favicon.ico'))
+    shutil.copyfile(os.path.join(ROOT, 'branding', 'hofwerk-logo.svg'), os.path.join(out, 'assets', 'logo.svg'))
     shutil.copyfile(os.path.join(ROOT, 'docs', 'windows-and-linux.png'), os.path.join(out, 'assets', 'windows-and-linux.png'))
     write(os.path.join(out, '.nojekyll'), '')
     write(os.path.join(out, 'robots.txt'), 'User-agent: *\nAllow: /\n')

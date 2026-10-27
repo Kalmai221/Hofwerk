@@ -3,8 +3,16 @@ using Hofwerk.Core.Model;
 
 namespace Hofwerk.Core.Omsi;
 
-/// <summary>An OMSI map: a folder inside the game's Maps folder that has timetable data (TTData).</summary>
-public sealed record OmsiMap(string Name, string Folder);
+/// <summary>
+/// An OMSI map: a folder inside the game's Maps folder that has timetable data (TTData). <see cref="Name"/> is the folder's name;
+/// <see cref="DisplayName"/> is the name the map gives itself in its global.cfg ("Cotterell v1.1"), and <see cref="PicturePath"/> is its
+/// picture (picture.jpg), which OMSI shows in its own map list.
+/// </summary>
+public sealed record OmsiMap(string Name, string Folder, string? DisplayName = null, string? PicturePath = null)
+{
+    /// <summary>What to show the user: the map's own name, or the folder's when it has none.</summary>
+    public string Title => string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName;
+}
 
 /// <summary>One trip of a map's timetable (a .ttp file): where it goes, its line, and the bus stops it serves in order.</summary>
 public sealed record MapTrip(string Name, string Destination, string Line, IReadOnlyList<string> Stops);
@@ -45,9 +53,59 @@ public static class MapImporter
 
         return Directory.EnumerateDirectories(maps)
             .Where(folder => Sub(folder, "TTData") is not null)
-            .Select(folder => new OmsiMap(Path.GetFileName(folder), folder))
-            .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(Describe)
+            .OrderBy(m => m.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    /// <summary>A map folder with its own name and picture, read from the folder itself.</summary>
+    public static OmsiMap Describe(string mapFolder)
+    {
+        mapFolder = mapFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return new OmsiMap(Path.GetFileName(mapFolder), mapFolder, ReadDisplayName(mapFolder), FindPicture(mapFolder));
+    }
+
+    /// <summary>The map's picture: picture.jpg (or .png, .bmp), in any letter case, or null.</summary>
+    static string? FindPicture(string folder)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(folder, "picture.*", IgnoreCase)
+                .FirstOrDefault(f => Path.GetExtension(f).ToLowerInvariant() is ".jpg" or ".jpeg" or ".png" or ".bmp");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    /// <summary>
+    /// The name under [name] in the map's global.cfg. OMSI writes that file as UTF-16, but older maps use plain text, so the encoding is
+    /// recognised from the start of the file.
+    /// </summary>
+    static string? ReadDisplayName(string folder)
+    {
+        try
+        {
+            string? file = Directory.EnumerateFiles(folder, "global.cfg", IgnoreCase).FirstOrDefault();
+            if (file is null) return null;
+
+            using var stream = File.OpenRead(file);
+            byte[] bytes = new byte[(int)Math.Min(stream.Length, 64 * 1024)];
+            int read = stream.Read(bytes, 0, bytes.Length);
+
+            string[] lines = Decode(bytes.AsSpan(0, read)).Split('\n');
+            for (int i = 0; i + 1 < lines.Length; i++)
+                if (lines[i].Trim() == "[name]") return lines[i + 1].Trim().Trim('\uFEFF') is { Length: > 0 } name ? name : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        return null;
+    }
+
+    static string Decode(ReadOnlySpan<byte> b)
+    {
+        if (b.Length >= 2 && b[0] == 0xFF && b[1] == 0xFE) return System.Text.Encoding.Unicode.GetString(b[2..]);
+        if (b.Length >= 2 && b[0] == 0xFE && b[1] == 0xFF) return System.Text.Encoding.BigEndianUnicode.GetString(b[2..]);
+        if (b.Length >= 3 && b[0] == 0xEF && b[1] == 0xBB && b[2] == 0xBF) return System.Text.Encoding.UTF8.GetString(b[3..]);
+        if (b.Length >= 4 && b[1] == 0 && b[3] == 0) return System.Text.Encoding.Unicode.GetString(b);    // UTF-16 without a marker
+        return HofEncodings.Windows1252.GetString(b);
     }
 
     /// <summary>Reads the timetable files of one map. A map without any gives an empty result; unreadable files are skipped.</summary>

@@ -7,6 +7,18 @@ sealed class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Build step: Setup --pack <folder> <packed app output>  packs a folder the way the installers carry the app, to a file of its own.
+        // (The compatibility version is released like that, and downloaded by the app when someone needs it.)
+        if (args.Length == 3 && args[0] == "--pack")
+        {
+            var level = Environment.GetEnvironmentVariable("HOFWERK_FAST_PACK") == "1"
+                ? System.IO.Compression.CompressionLevel.Fastest
+                : System.IO.Compression.CompressionLevel.SmallestSize;
+            using var file = File.Create(args[2]);
+            Engine.PayloadPack.Write(Engine.PayloadPack.FromFolder(args[1]), file, level);
+            return 0;
+        }
+
         // Build step: Setup --web <packed app> <download url> <version> <output>  writes the online installer: this program
         // with only the download address, size and SHA-256 of the packed app attached.
         if (args.Length == 5 && args[0] == "--web")

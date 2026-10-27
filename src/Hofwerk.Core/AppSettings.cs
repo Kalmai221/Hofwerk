@@ -21,6 +21,12 @@ public sealed class AppSettings
     /// <summary>"System" (follow Windows or the desktop), "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
 
+    /// <summary>
+    /// Windows only: start the compatibility version (Hofwerk drawn with Avalonia) instead of the standard one (WinUI), for computers
+    /// where the standard one does not work. Chosen from the error dialog, and undone from the compatibility version's App settings.
+    /// </summary>
+    public bool PreferCompatibilityVersion { get; set; }
+
     /// <summary>Look for a newer version when the app starts.</summary>
     public bool CheckForUpdates { get; set; } = true;
 

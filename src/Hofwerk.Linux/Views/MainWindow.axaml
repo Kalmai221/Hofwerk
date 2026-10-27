@@ -532,6 +532,19 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Windows: this is the compatibility version -->
+                        <Border x:Name="CompatCard" Classes="card" IsVisible="False">
+                            <StackPanel Spacing="10">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Windows version" FontWeight="SemiBold" FontSize="16" />
+                                    <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap"
+                                               Text="You are using the compatibility version of Hofwerk. It looks and works the same but is drawn another way. If the standard Windows version works on this computer, you can go back to it." />
+                                </StackPanel>
+                                <Button Content="Use the standard Windows version" Click="OnUseStandardVersion" HorizontalAlignment="Left"
+                                        AutomationProperties.Name="Use the standard Windows version" />
+                            </StackPanel>
+                        </Border>
+
                         <!-- About -->
                         <Border Classes="card">
                             <StackPanel Spacing="6">

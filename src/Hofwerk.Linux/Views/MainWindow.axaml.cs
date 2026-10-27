@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        CompatCard.IsVisible = OperatingSystem.IsWindows() && Hofwerk.Core.Errors.WindowsUi.Current.IsCompat;
         Nav.SelectedItem = Nav.Items.OfType<ListBoxItem>().First(i => i.Tag as string == "home");
 
         DragDrop.SetAllowDrop(this, true);
@@ -30,6 +31,11 @@ public partial class MainWindow : Window
         Opened += async (_, _) =>
         {
             ApplyAdaptiveLayout();
+
+            // Start Hofwerk with HOFWERK_SIMULATE_ERROR=1 to see the error window without a real bug.
+            if (Environment.GetEnvironmentVariable("HOFWERK_SIMULATE_ERROR") == "1")
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => throw new InvalidOperationException("Simulated error (HOFWERK_SIMULATE_ERROR is set)"));
+
             await Vm.CheckForUpdatesOnStartAsync();
         };
     }
@@ -106,6 +112,14 @@ public partial class MainWindow : Window
     {
         var template = (Avalonia.Controls.Templates.IDataTemplate)this.FindResource("ChangeGroupTemplate")!;
         _ = new WhatsNewWindow(title, subtitle, groups, template, pageUrl, pageButton).ShowDialog(this);
+    }
+
+    // Windows only: from the compatibility version back to the standard one, for good.
+    void OnUseStandardVersion(object? sender, RoutedEventArgs e)
+    {
+        string? file = Vm.FilePath is { } path && !Vm.IsDirty && System.IO.File.Exists(path) ? path : null;
+        if (Hofwerk.Core.Errors.WindowsUi.Current.SwitchToStandard(Hofwerk.Core.AppSettings.Load(), file)) ErrorHandler.Exit();
+        else Vm.Status = "The standard version could not be started.";
     }
 
     void OnOpenGitHub(object? sender, RoutedEventArgs e) =>

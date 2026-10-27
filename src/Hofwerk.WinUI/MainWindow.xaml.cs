@@ -18,9 +18,31 @@ public sealed partial class MainWindow : Window
 {
     public MainViewModel ViewModel { get; } = new();
 
+    // Throws from an async void method, the way a real error in a button handler or a background task reaches the app. (An exception thrown
+    // straight inside the window's dispatcher is a hard crash in WinUI that no handler can catch, so that is not what is tested.)
+    static async void SimulateError()
+    {
+        await Task.Delay(400);
+        throw new InvalidOperationException("Simulated error (HOFWERK_SIMULATE_ERROR is set)");
+    }
+
+    // What the error dialog needs from the window.
+    internal XamlRoot? DialogRoot => Root.XamlRoot;
+    internal ElementTheme ActualThemeForDialogs => Root.ActualTheme;
+    internal string? CurrentFileIfSaved => ViewModel.FilePath is { } path && !ViewModel.IsDirty && File.Exists(path) ? path : null;
+
+    /// <summary>Runs <paramref name="action"/> on the window's thread (now, if this is it). False when the window is closing.</summary>
+    internal bool TryRunOnUiThread(Action action)
+    {
+        if (DispatcherQueue is not { } queue) return false;
+        if (queue.HasThreadAccess) { action(); return true; }
+        return queue.TryEnqueue(() => action());
+    }
+
     public MainWindow(string? openPath = null)
     {
         InitializeComponent();
+        ErrorHandler.Attach(this);
         SystemBackdrop = new MicaBackdrop();
         Title = ViewModel.WindowTitle;
 
@@ -45,6 +67,9 @@ public sealed partial class MainWindow : Window
                 openPath = null;
                 OpenAndShow(path);
             }
+
+            // A way to see the error dialog without a real bug (used by the tests): start Hofwerk with HOFWERK_SIMULATE_ERROR=1.
+            if (Environment.GetEnvironmentVariable("HOFWERK_SIMULATE_ERROR") == "1") SimulateError();
 
             await ViewModel.CheckForUpdatesOnStartAsync();
         };
@@ -283,6 +308,33 @@ public sealed partial class MainWindow : Window
         if (file is not null && ViewModel.CreateNew(file.Path, plan.Map, plan.Options)) SelectSection("settings");
     }
 
+    // One map in the grid: its picture (picture.jpg) above its name. A map without a picture gets a plain tile.
+    static GridViewItem MapTile(OmsiMap map)
+    {
+        var picture = new Border
+        {
+            Width = 200,
+            Height = 125,
+            CornerRadius = new CornerRadius(6),
+            Background = new SolidColorBrush(Color.FromArgb(40, 128, 128, 128)),
+        };
+        try
+        {
+            picture.Child = map.PicturePath is { } path
+                ? new Image { Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri(path)) { DecodePixelWidth = 400 }, Stretch = Stretch.UniformToFill }
+                : new FontIcon { Glyph = "\uE707", FontSize = 36, Opacity = 0.5 };
+        }
+        catch (UriFormatException) { picture.Child = new FontIcon { Glyph = "\uE707", FontSize = 36, Opacity = 0.5 }; }
+
+        var tile = new StackPanel { Spacing = 6, Width = 200 };
+        tile.Children.Add(picture);
+        tile.Children.Add(new TextBlock { Text = map.Title, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center });
+
+        var item = new GridViewItem { Content = tile, Tag = map };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, map.Title);
+        return item;
+    }
+
     async Task<bool> ShowNewFileDialogAsync(NewFileViewModel model)
     {
         var kind = new RadioButtons { SelectedIndex = 0 };
@@ -290,8 +342,15 @@ public sealed partial class MainWindow : Window
         kind.Items.Add("Bus stops, destinations and routes from an OMSI map");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(kind, "Start with");
 
-        var maps = new ComboBox { ItemsSource = model.Maps, DisplayMemberPath = "Name", PlaceholderText = "Choose a map", HorizontalAlignment = HorizontalAlignment.Stretch };
+        // The maps as pictures with their names, like OMSI's own map list (and HOF Suite's): click one to choose it.
+        var maps = new GridView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 280 };
+        ScrollViewer.SetVerticalScrollBarVisibility(maps, ScrollBarVisibility.Auto);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(maps, "Map");
+        foreach (var map in model.Maps) maps.Items.Add(MapTile(map));
+        model.Maps.CollectionChanged += (_, e) =>
+        {
+            if (e.NewItems is { } added) foreach (OmsiMap map in added) maps.Items.Add(MapTile(map));
+        };
         var browse = new Button { Content = "Choose another map folder…" };
         var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.75 };
         var busStops = new CheckBox { Content = "Bus stops", IsChecked = true };
@@ -302,14 +361,16 @@ public sealed partial class MainWindow : Window
         mapPanel.Children.Add(maps);
         mapPanel.Children.Add(browse);
         mapPanel.Children.Add(summary);
-        var parts = new StackPanel { Spacing = 0 };
-        parts.Children.Add(new TextBlock { Text = "Take from the map", Margin = new Thickness(0, 4, 0, 4) });
-        parts.Children.Add(busStops);
-        parts.Children.Add(destinations);
-        parts.Children.Add(routes);
+        var parts = new StackPanel { Spacing = 4 };
+        parts.Children.Add(new TextBlock { Text = "Take from the map", Margin = new Thickness(0, 4, 0, 0) });
+        var partsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20 };
+        partsRow.Children.Add(busStops);
+        partsRow.Children.Add(destinations);
+        partsRow.Children.Add(routes);
+        parts.Children.Add(partsRow);
         mapPanel.Children.Add(parts);
 
-        var content = new StackPanel { Spacing = 14, MinWidth = 460 };
+        var content = new StackPanel { Spacing = 14, MinWidth = 700 };
         content.Children.Add(kind);
         content.Children.Add(mapPanel);
 
@@ -323,6 +384,7 @@ public sealed partial class MainWindow : Window
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Primary,
         };
+        dialog.Resources["ContentDialogMaxWidth"] = 800.0;
 
         void Refresh()
         {
@@ -331,7 +393,7 @@ public sealed partial class MainWindow : Window
             dialog.IsPrimaryButtonEnabled = model.CanContinue;
         }
         kind.SelectionChanged += (_, _) => model.FromMap = kind.SelectedIndex == 1;
-        maps.SelectionChanged += (_, _) => model.SelectedMap = maps.SelectedItem as OmsiMap;
+        maps.SelectionChanged += (_, _) => model.SelectedMap = (maps.SelectedItem as GridViewItem)?.Tag as OmsiMap;
         busStops.Click += (_, _) => model.ImportBusStops = busStops.IsChecked == true;
         destinations.Click += (_, _) => model.ImportDestinations = destinations.IsChecked == true;
         routes.Click += (_, _) => model.ImportRoutes = routes.IsChecked == true;
@@ -342,7 +404,7 @@ public sealed partial class MainWindow : Window
             {
                 model.AddMapFolder(folder.Path);
                 kind.SelectedIndex = 1;
-                maps.SelectedItem = model.SelectedMap;
+                maps.SelectedItem = maps.Items.OfType<GridViewItem>().FirstOrDefault(i => ReferenceEquals(i.Tag, model.SelectedMap));
             }
         };
         model.PropertyChanged += (_, _) => Refresh();

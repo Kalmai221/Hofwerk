@@ -194,4 +194,115 @@ public class MapImporterTests : IDisposable
         Assert.Contains("AI_U28", map.Trips.Select(t => t.Name));
         Assert.Equal(11, map.Trips.Single(t => t.Name == "AI_U28").Stops.Count);
     }
+
+    // ---- the map's own name and picture, as OMSI's map list shows them ----------------------------------------------
+
+    void WriteGlobalCfg(string map, byte[] bytes)
+    {
+        Directory.CreateDirectory(MapFolder(map));
+        File.WriteAllBytes(Path.Combine(MapFolder(map), "global.cfg"), bytes);
+    }
+
+    static byte[] Utf16(string text) => [.. System.Text.Encoding.Unicode.GetPreamble(), .. System.Text.Encoding.Unicode.GetBytes(text)];
+
+    [Fact]
+    public void The_map_s_own_name_is_read_from_its_global_cfg_as_OMSI_writes_it()
+    {
+        WriteTt("Cotterell", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("Cotterell", Utf16("File created with OMSI-Editor\r\n\r\n[name]\r\nCotterell v1.1\r\n\r\n[friendlyname]\r\nCotterell v1.1\r\n"));
+
+        var map = MapImporter.FindMaps(_omsi).Single();
+
+        Assert.Equal("Cotterell", map.Name);                  // the folder
+        Assert.Equal("Cotterell v1.1", map.DisplayName);      // what the map calls itself
+        Assert.Equal("Cotterell v1.1", map.Title);
+    }
+
+    [Fact]
+    public void Older_plain_text_and_other_encodings_of_global_cfg_are_read_too_and_umlauts_survive()
+    {
+        WriteTt("Plain", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("Plain", HofEncodings.Windows1252.GetBytes("[name]\r\nKöln Süd v2\r\n"));
+        WriteTt("Utf8", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("Utf8", [.. new byte[] { 0xEF, 0xBB, 0xBF }, .. System.Text.Encoding.UTF8.GetBytes("[name]\nBerlin-Spandau\n")]);
+        WriteTt("NoMarker", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("NoMarker", System.Text.Encoding.Unicode.GetBytes("[name]\r\nGrundorf\r\n"));     // UTF-16 without the marker bytes
+
+        var titles = MapImporter.FindMaps(_omsi).ToDictionary(m => m.Name, m => m.Title);
+
+        Assert.Equal("Köln Süd v2", titles["Plain"]);
+        Assert.Equal("Berlin-Spandau", titles["Utf8"]);
+        Assert.Equal("Grundorf", titles["NoMarker"]);
+    }
+
+    [Fact]
+    public void A_map_with_no_readable_name_is_shown_by_its_folder_name()
+    {
+        WriteTt("NoCfg", "a.ttp", Trip("a", "X", "1"));
+        WriteTt("Empty", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("Empty", Utf16("[name]\r\n\r\n[friendlyname]\r\nSomething\r\n"));
+        WriteTt("Junk", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("Junk", [0, 1, 2, 3, 255, 254]);
+
+        var maps = MapImporter.FindMaps(_omsi).ToDictionary(m => m.Name);
+
+        Assert.Equal("NoCfg", maps["NoCfg"].Title);
+        Assert.Equal("Empty", maps["Empty"].Title);
+        Assert.Equal("Junk", maps["Junk"].Title);
+    }
+
+    [Fact]
+    public void The_picture_is_found_in_any_letter_case_and_a_map_without_one_has_none()
+    {
+        WriteTt("WithPicture", "a.ttp", Trip("a", "X", "1"));
+        File.WriteAllBytes(Path.Combine(MapFolder("WithPicture"), "Picture.JPG"), [1, 2, 3]);
+        WriteTt("Png", "a.ttp", Trip("a", "X", "1"));
+        File.WriteAllBytes(Path.Combine(MapFolder("Png"), "picture.png"), [1]);
+        WriteTt("Without", "a.ttp", Trip("a", "X", "1"));
+        File.WriteAllBytes(Path.Combine(MapFolder("Without"), "pictures.txt"), [1]);              // not a picture
+
+        var maps = MapImporter.FindMaps(_omsi).ToDictionary(m => m.Name);
+
+        Assert.EndsWith("Picture.JPG", maps["WithPicture"].PicturePath, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("picture.png", maps["Png"].PicturePath);
+        Assert.Null(maps["Without"].PicturePath);
+    }
+
+    [Fact]
+    public void Maps_are_listed_by_the_name_they_show()
+    {
+        WriteTt("zzz-folder", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("zzz-folder", Utf16("[name]\r\nAardvark Valley\r\n"));
+        WriteTt("Middle", "a.ttp", Trip("a", "X", "1"));
+
+        Assert.Equal(["Aardvark Valley", "Middle"], MapImporter.FindMaps(_omsi).Select(m => m.Title));
+    }
+
+    [Fact]
+    public void A_folder_picked_by_hand_is_described_like_one_found_in_Maps()
+    {
+        WriteTt("Hand", "a.ttp", Trip("a", "X", "1"));
+        WriteGlobalCfg("Hand", Utf16("[name]\r\nPicked By Hand\r\n"));
+        File.WriteAllBytes(Path.Combine(MapFolder("Hand"), "picture.jpg"), [1, 2]);
+
+        var map = MapImporter.Describe(MapFolder("Hand") + Path.DirectorySeparatorChar);
+
+        Assert.Equal("Hand", map.Name);
+        Assert.Equal("Picked By Hand", map.Title);
+        Assert.NotNull(map.PicturePath);
+    }
+
+    [Fact]
+    public void The_maps_that_come_with_OMSI_show_the_names_OMSI_shows()
+    {
+        // Runs only on a machine that has OMSI 2 with the Cotterell map.
+        string? omsi = OmsiLocator.FindInstallFolders().FirstOrDefault(f => Directory.Exists(Path.Combine(f, "Maps", "Cotterell")));
+        if (omsi is null) return;
+
+        var cotterell = MapImporter.FindMaps(omsi).Single(m => m.Name == "Cotterell");
+
+        Assert.Equal("Cotterell v1.1", cotterell.Title);       // the same name HOF Suite shows under its picture
+        Assert.NotNull(cotterell.PicturePath);
+        Assert.True(File.Exists(cotterell.PicturePath));
+    }
 }

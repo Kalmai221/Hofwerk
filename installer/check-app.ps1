@@ -104,7 +104,8 @@ function Select-Item($root, [string]$name) {
 }
 
 $crashLog = Join-Path $env:LOCALAPPDATA 'Hofwerk\crash.log'
-Remove-Item $crashLog -ErrorAction SilentlyContinue
+# Whatever is in the crash log already (a real crash of someone's installed Hofwerk) is left alone; only new entries count.
+$crashBefore = if (Test-Path $crashLog) { Get-Content $crashLog -Raw } else { '' }
 $p = $null
 try {
     Write-Host "Checking $Exe"
@@ -255,7 +256,8 @@ try {
 
     $p.Refresh()
     Check 'app still running at the end' (-not $p.HasExited)
-    Check 'no crash was logged' (-not (Test-Path $crashLog))
+    $crashAfter = if (Test-Path $crashLog) { Get-Content $crashLog -Raw } else { '' }
+    Check 'no crash was logged' ($crashAfter -eq $crashBefore)
 }
 catch {
     Write-Host "  FAIL  $($_.Exception.Message)"
@@ -263,7 +265,8 @@ catch {
 }
 finally {
     if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force }
-    if (Test-Path $crashLog) { Write-Host "crash.log:`n$(Get-Content $crashLog -Raw)" }
+    $crashNow = if (Test-Path $crashLog) { Get-Content $crashLog -Raw } else { '' }
+    if ($crashNow -ne $crashBefore) { Write-Host "new in crash.log:`n$($crashNow.Substring([Math]::Min($crashBefore.Length, $crashNow.Length)))" }
     Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 }
 

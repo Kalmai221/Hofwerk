@@ -14,7 +14,11 @@ public static class InPlaceUpdate
     /// <summary>True when <paramref name="directory"/> is a Hofwerk install (it has the install manifest) that can be updated this way.</summary>
     public static bool CanUpdate(string directory) => PlatformInstaller.IsInstalled(directory);
 
-    public static void Apply(PlatformInstaller platform, string packFile, string directory, string version, IProgress<double>? progress = null)
+    /// <returns>
+    /// Null when everything went well. Otherwise the error that stopped the Start menu and Installed apps entries from being refreshed:
+    /// the new files are in place and the update is complete, but the caller should write it to the log.
+    /// </returns>
+    public static Exception? Apply(PlatformInstaller platform, string packFile, string directory, string version, IProgress<double>? progress = null)
     {
         string dir = Path.GetFullPath(directory);
         if (!PlatformInstaller.IsInstalled(dir))
@@ -107,15 +111,68 @@ public static class InPlaceUpdate
         var manifest = staged.Select(s => s.Relative).Append(platform.UninstallerName).Concat(stillThere).Distinct().ToList();
         File.WriteAllLines(manifestPath, manifest);
 
-        // The version shown in Installed apps (best effort: the files are already in place).
+        // The version shown in Installed apps and the Start menu shortcut. This is best effort: the files are already in place, so
+        // whatever goes wrong here (a locked shortcut, a switched-off Windows component) is reported but does not undo the update.
+        Exception? registrationError = null;
         try
         {
             long size = staged.Sum(s => new FileInfo(s.Destination).Length);
             platform.RefreshRegistration(dir, version, size);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            registrationError = ex;
+        }
 
         progress?.Report(1.0);
+        return registrationError;
+    }
+
+    /// <summary>
+    /// Unpacks a packed app into a sub-folder of the installed copy (the compatibility version goes to "compat"). The files are added to
+    /// the install manifest, so the uninstaller removes them, and a later update of the main app removes them too (it is a new
+    /// pack without them), which is right because a leftover compatibility version would be of the old release.
+    /// </summary>
+    public static void ExtractFolder(string packFile, string installFolder, string subfolder)
+    {
+        string dir = Path.GetFullPath(installFolder);
+        if (!PlatformInstaller.IsInstalled(dir))
+            throw new InstallerException("Hofwerk is not installed in this folder, so nothing can be added to it.");
+
+        string target = Path.Combine(dir, subfolder);
+        try { if (Directory.Exists(target)) Directory.Delete(target, recursive: true); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InstallerException($"The old compatibility version could not be removed (is it still running?): {ex.Message}", ex);
+        }
+
+        var written = new List<string>();
+        try
+        {
+            using var pack = File.OpenRead(packFile);
+            PayloadPack.Read(pack, _ => { }, (entry, content) =>
+            {
+                string relative = entry.Path.Replace('\\', '/');
+                string destination = Path.GetFullPath(Path.Combine(target, relative));
+                string check = Path.GetRelativePath(target, destination);
+                if (check.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(check))
+                    throw new InstallerException($"The download is damaged ({entry.Path} points outside its folder).");
+
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                using (var file = File.Create(destination)) content.CopyTo(file);
+                written.Add(subfolder + "/" + relative);
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            try { if (Directory.Exists(target)) Directory.Delete(target, recursive: true); } catch (IOException) { }
+            throw new InstallerException($"The compatibility version could not be installed: {ex.Message}", ex);
+        }
+
+        string manifest = Path.Combine(dir, PlatformInstaller.ManifestName);
+        var lines = File.ReadAllLines(manifest).Where(l => l.Length > 0 && !l.StartsWith(subfolder + "/", StringComparison.OrdinalIgnoreCase)).ToList();
+        lines.AddRange(written);
+        File.WriteAllLines(manifest, lines);
     }
 
     /// <summary>Deletes files an earlier update could not remove because the old version was still running.</summary>

@@ -82,6 +82,14 @@ jobs:
         shell: powershell
         run: ./installer/test-web-installer.ps1 -WebSetup (Get-ChildItem dist/Hofwerk-WebSetup-*.exe | Select-Object -First 1).FullName -Pack (Get-ChildItem dist/*.hwpack | Select-Object -First 1).FullName -AppFolder publish/win-x64/app
 
+      - name: Test the error dialog (restart, try a different version, report a bug)
+        shell: powershell
+        run: ./installer/test-error-dialog.ps1 -Setup (Get-ChildItem dist/Hofwerk-Setup-*.exe | Select-Object -First 1).FullName
+
+      - name: Test switching between the two Windows versions (standard and compatibility)
+        shell: powershell
+        run: ./installer/test-compat.ps1 -Setup (Get-ChildItem dist/Hofwerk-Setup-*.exe | Select-Object -First 1).FullName -CompatFolder publish/win-x64/compat
+
       - uses: actions/upload-artifact@v6
         with:
           name: installer-windows

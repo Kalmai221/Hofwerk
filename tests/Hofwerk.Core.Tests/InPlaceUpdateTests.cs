@@ -175,4 +175,36 @@ public class InPlaceUpdateTests : IDisposable
         Assert.Equal("old a", File.ReadAllText(Path.Combine(Dir, "a.txt")));
         Assert.Empty(Directory.GetFiles(Dir, "*.hwnew"));
     }
+
+    sealed class FailingRegistrationPlatform : PlatformInstaller
+    {
+        public override string DefaultDirectory => "unused";
+        public override string ProgramName => "Hofwerk.exe";
+        public override string UninstallerName => "Uninstall.exe";
+        protected override void Register(InstallRequest request, string directory, long sizeInBytes) =>
+            throw new NotSupportedException("Built-in COM has been disabled via a feature switch.");   // what the trimmed app threw
+        protected override void Unregister(string directory) { }
+        public override void Launch(string directory) { }
+    }
+
+    [Fact]
+    public void An_error_while_refreshing_the_Start_menu_and_Installed_apps_does_not_undo_or_break_the_update()
+    {
+        WriteInstalled(new() { ["Hofwerk.exe"] = Bytes("old"), ["Uninstall.exe"] = Bytes("setup") });
+        string pack = MakePack(new() { ["Hofwerk.exe"] = Bytes("new") });
+
+        var warning = InPlaceUpdate.Apply(new FailingRegistrationPlatform(), pack, Dir, "2.0.0");   // used to throw out of the app
+
+        Assert.IsType<NotSupportedException>(warning);                                 // handed back, so the app can log it
+        Assert.Equal("new", File.ReadAllText(Path.Combine(Dir, "Hofwerk.exe")));      // the update is complete
+        Assert.Equal(["Hofwerk.exe", "Uninstall.exe"], File.ReadAllLines(Path.Combine(Dir, PlatformInstaller.ManifestName)));
+    }
+
+    [Fact]
+    public void A_registration_that_works_gives_back_no_warning()
+    {
+        WriteInstalled(new() { ["Hofwerk.exe"] = Bytes("old"), ["Uninstall.exe"] = Bytes("setup") });
+
+        Assert.Null(InPlaceUpdate.Apply(new FakePlatform(), MakePack(new() { ["Hofwerk.exe"] = Bytes("new") }), Dir, "2.0.0"));
+    }
 }

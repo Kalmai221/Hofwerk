@@ -8,6 +8,7 @@
 #   Hofwerk-Setup-<version>-<rid>      offline: the app is inside the file
 #   Hofwerk-WebSetup-<version>-<rid>   online: small, downloads Hofwerk-App-<version>-<rid>.hwpack from the release
 #   Hofwerk-App-<version>-<rid>.hwpack(.sha256)   the packed app; the in-app updater downloads just this
+#   Hofwerk-Compat-<version>-win-x64.hwpack(.sha256)   Windows only: the compatibility version, downloaded when someone needs it
 # Works in Windows PowerShell 5.1 and PowerShell 7.
 param(
     # The setup program has to run on the machine that builds it (it packs the app into itself), so only x64 for now.
@@ -49,6 +50,19 @@ if ($targetWindows -and -not $SkipSmokeTest) {
     if ($LASTEXITCODE -ne 0) { throw 'The published app failed its checks.' }
 }
 
+if ($targetWindows) {
+    # The compatibility version: the same Hofwerk drawn with Avalonia (the Linux version's toolkit), for computers where the standard
+    # WinUI one does not work. It is not inside the installers; the app downloads it the first time someone needs it.
+    Write-Host '==> Publishing the compatibility version (Avalonia)'
+    $compat = Join-Path $work 'compat'
+    Invoke-Dotnet publish (Join-Path $root 'src/Hofwerk.Linux/Hofwerk.Linux.csproj') -c Release -r $Rid --self-contained true "-p:Version=$Version" "-p:DebugType=None" -o $compat
+    if (-not $SkipSmokeTest) {
+        Write-Host '==> Checking the compatibility version'
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'check-app.ps1') -Exe (Join-Path $compat 'hofwerk.exe')
+        if ($LASTEXITCODE -ne 0) { throw 'The compatibility version failed its checks.' }
+    }
+}
+
 Write-Host '==> Publishing the setup program'
 Invoke-Dotnet publish (Join-Path $root 'src/Hofwerk.Installer/Hofwerk.Installer.csproj') -c Release -r $Rid --self-contained true `
     "-p:PublishSingleFile=true" "-p:IncludeNativeLibrariesForSelfExtract=true" "-p:EnableCompressionInSingleFile=true" `
@@ -65,6 +79,15 @@ if ($p.ExitCode -ne 0) { throw "Packing the app failed with exit code $($p.ExitC
 # The in-app updater downloads only the packed app and checks it against this checksum.
 $hash = (Get-FileHash $packed -Algorithm SHA256).Hash.ToLowerInvariant()
 [IO.File]::WriteAllText("$packed.sha256", "$hash  $(Split-Path $packed -Leaf)`n")
+
+if ($targetWindows) {
+    $compatPack = Join-Path $dist "Hofwerk-Compat-$Version-$Rid.hwpack"
+    $p = Start-Process -FilePath $setup -ArgumentList '--pack', "`"$compat`"", "`"$compatPack`"" -Wait -PassThru
+    if ($p.ExitCode -ne 0) { throw "Packing the compatibility version failed with exit code $($p.ExitCode)" }
+    $compatHash = (Get-FileHash $compatPack -Algorithm SHA256).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText("$compatPack.sha256", "$compatHash  $(Split-Path $compatPack -Leaf)`n")
+    Write-Host ("==> The compatibility version is {0:N1} MB packed" -f ((Get-Item $compatPack).Length / 1MB))
+}
 
 Write-Host '==> Making the online installer (no app inside, it downloads the packed app)'
 $web = Join-Path $dist "Hofwerk-WebSetup-$Version-$Rid$ext"

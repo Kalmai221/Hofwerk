@@ -59,6 +59,19 @@ try {
     $title = Launch-App "$dir\Hofwerk.exe" $sample 'sample.hof*'
     Check "opens a .hof from the command line (title '$title')" ($title -like 'sample.hof*')
 
+    # The in-app update ends by refreshing the Start menu shortcut and Installed apps inside the (trimmed) app itself. That needs
+    # Windows' COM, which trimming can switch off: a crash found only by someone updating for real. So it is run here, in the real app.
+    Write-Host '2b. The installed app can refresh its own registration (the last step of an in-app update)'
+    $selfOut = Join-Path $work 'selftest.txt'
+    $env:HOFWERK_SELFTEST = 'registration'
+    $env:HOFWERK_SELFTEST_OUT = $selfOut
+    $selfProc = Start-Process "$dir\Hofwerk.exe" -PassThru
+    [void]$selfProc.WaitForExit(30000)
+    Remove-Item Env:\HOFWERK_SELFTEST, Env:\HOFWERK_SELFTEST_OUT -ErrorAction SilentlyContinue
+    $selfResult = if (Test-Path $selfOut) { (Get-Content $selfOut -Raw).Trim() } else { 'no answer' }
+    Check "the app refreshes its Start menu entry and Installed apps ($selfResult)" ($selfResult -eq 'ok')
+    Check 'Installed apps shows the version it was told' ((Get-ItemProperty $uninstallKey -ErrorAction SilentlyContinue).DisplayVersion -eq 'selftest')
+
     Write-Host '3. Update over the existing install'
     Set-Content "$dir\not-from-the-installer.txt" 'keep me'
     Check 'update exits with 0' ((Run $Setup @('--silent', '--dir', "`"$dir`"")) -eq 0)

@@ -67,7 +67,7 @@ public sealed partial class NewFileViewModel : ObservableObject
         var existing = Maps.FirstOrDefault(m => string.Equals(m.Folder, folder, StringComparison.OrdinalIgnoreCase));
         if (existing is null)
         {
-            existing = new OmsiMap(System.IO.Path.GetFileName(folder), folder);
+            existing = MapImporter.Describe(folder);
             Maps.Add(existing);
             OnPropertyChanged(nameof(HasMaps));
         }

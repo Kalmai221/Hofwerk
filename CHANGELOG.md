@@ -8,6 +8,29 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 Nothing yet.
 
+## [1-dev2] - pre-release
+
+### Added
+- **Error handling.** When Hofwerk runs into a problem it did not expect, it no longer just closes. A window explains what went wrong
+  and offers three things: **Restart Hofwerk**, **Try a different version** (Windows only, see below), and **Report a bug**. Report a bug
+  opens a new GitHub issue in your browser with the error, your Hofwerk version and your system already filled in. Your name is taken
+  out of any file path first, you can read exactly what would be sent, and nothing is sent until you press Submit on GitHub.
+  Every error is also written to `crash.log`.
+- **A second version for Windows.** Hofwerk can also run as a version drawn with Avalonia (the toolkit of the Linux version), for
+  computers where the standard WinUI one does not work. "Try a different version" downloads it the first time (about 15 MB), and from
+  then on Hofwerk starts that one. App settings of the compatibility version has a button to go back to the standard version, and
+  starting Hofwerk with `--standard` always gives the standard one.
+
+- **Maps with pictures.** The New file dialog shows the maps as a grid of pictures with their names, like OMSI's own map list and HOF
+  Suite: each map's `picture.jpg` and the name from its `global.cfg` ("Cotterell v1.1"). A map picked from another folder shows up the
+  same way.
+
+### Fixed
+- Updating inside the app could crash at the very end: after the new files were in place, refreshing the Start menu entry used a Windows
+  component that the trimmed app had switched off. The update was complete, but Hofwerk closed with an error instead of restarting.
+  That step can no longer undo or interrupt an update, the component is switched on again, and the installer test now runs this step
+  in the real app.
+
 ## [1-dev1] - pre-release
 
 The first pre-release on the way to V1, the release with the same features as HOF Suite (see the [roadmap](ROADMAP.md)).
@@ -77,7 +100,8 @@ First pre-release.
 - **OMSI 2 detection** through Steam and the Windows registry, and a "Where is OMSI 2?" step in the installer.
 - **Installers**: a single `.exe` for Windows and a `tar.gz` for Linux, with an uninstaller. Releases are built by the GitHub workflow.
 
-[Unreleased]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev1...HEAD
+[Unreleased]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev2...HEAD
+[1-dev2]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev1...V1-dev2
 [1-dev1]: https://github.com/Kalmai221/Hofwerk/compare/V0.1-dev2...V1-dev1
 [0.1-dev2]: https://github.com/Kalmai221/Hofwerk/compare/V0.1-dev1...V0.1-dev2
 [0.1-dev1]: https://github.com/Kalmai221/Hofwerk/releases/tag/V0.1-dev1

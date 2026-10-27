@@ -1,20 +1,20 @@
-namespace Hofwerk.WinUI;
+namespace Hofwerk.Core.Errors;
 
 /// <summary>
-/// Writes unexpected errors to %LOCALAPPDATA%\Hofwerk\crash.log, so a crash can be reported with details
-/// instead of "it just closed".
+/// Writes unexpected errors to %LOCALAPPDATA%\Hofwerk\crash.log (~/.local/share on Linux), so a crash can be reported with details instead
+/// of "it just closed". The newest entry is at the end of the file.
 /// </summary>
-static class CrashLog
+public static class CrashLog
 {
     public static string Path_ { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hofwerk", "crash.log");
 
-    public static void Write(string where, Exception ex)
+    public static void Write(string where, Exception exception)
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path_)!);
-            File.AppendAllText(Path_, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {where}\n{ex}\n\n");
+            File.AppendAllText(Path_, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {where}\n{exception}\n\n");
         }
         catch (Exception logEx) when (logEx is IOException or UnauthorizedAccessException)
         {

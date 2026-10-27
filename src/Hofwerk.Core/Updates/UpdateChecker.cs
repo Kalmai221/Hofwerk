@@ -63,6 +63,11 @@ public sealed class UpdateChecker
     /// </summary>
     public async Task<UpdateInfo?> CheckAsync(AppVersion current, bool includePreReleases, CancellationToken ct = default)
     {
+        return Pick(await FetchReleasesAsync(current, ct).ConfigureAwait(false), current, includePreReleases);
+    }
+
+    async Task<List<GitHubRelease>> FetchReleasesAsync(AppVersion current, CancellationToken ct)
+    {
         using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{_repository}/releases?per_page=30");
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("Hofwerk", current.Text));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
@@ -70,7 +75,19 @@ public sealed class UpdateChecker
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-        return Pick(JsonSerializer.Deserialize(json, UpdateJson.Default.ListGitHubRelease) ?? [], current, includePreReleases);
+        return JsonSerializer.Deserialize(json, UpdateJson.Default.ListGitHubRelease) ?? [];
+    }
+
+    /// <summary>
+    /// The compatibility version (the same Hofwerk drawn with Avalonia instead of WinUI) of exactly this version, as a packed app on
+    /// its release, or null when that release has none (an older version, or a development build).
+    /// </summary>
+    public async Task<PackAsset?> FindCompatAsync(AppVersion version, CancellationToken ct = default)
+    {
+        foreach (var release in await FetchReleasesAsync(version, ct).ConfigureAwait(false))
+            if (!release.Draft && AppVersion.TryParse(release.TagName) is { } v && v.Equals(version))
+                return FindPack(release, "Hofwerk-Compat-");
+        return null;
     }
 
     internal UpdateInfo? Pick(List<GitHubRelease> releases, AppVersion current, bool includePreReleases)
@@ -103,9 +120,9 @@ public sealed class UpdateChecker
         && (asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || asset.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase));
 
     // Hofwerk-App-<version>-<rid>.hwpack, with Hofwerk-App-<version>-<rid>.hwpack.sha256 beside it.
-    PackAsset? FindPack(GitHubRelease release)
+    PackAsset? FindPack(GitHubRelease release, string prefix = "Hofwerk-App-")
     {
-        var pack = release.Assets.FirstOrDefault(a => a.Name.StartsWith("Hofwerk-App-", StringComparison.OrdinalIgnoreCase)
+        var pack = release.Assets.FirstOrDefault(a => a.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
                                                       && a.Name.EndsWith($"-{_runtimeId}.hwpack", StringComparison.OrdinalIgnoreCase));
         var sum = pack is null ? null : release.Assets.FirstOrDefault(a => a.Name.Equals(pack.Name + ".sha256", StringComparison.OrdinalIgnoreCase));
         if (pack is null || sum is null || pack.Size <= 0 || !IsTrustedUrl(pack.BrowserDownloadUrl) || !IsTrustedUrl(sum.BrowserDownloadUrl)) return null;
@@ -128,9 +145,16 @@ public sealed class UpdateChecker
         if (update.Pack is not { } pack || !canApplyInPlace)
             return new UpdateDownload(await DownloadAsync(update, folder, progress, ct).ConfigureAwait(false), IsPack: false);
 
+        return new UpdateDownload(await DownloadPackAsync(pack, folder, progress, ct).ConfigureAwait(false), IsPack: true);
+    }
+
+
+    /// <summary>Downloads a packed app (an update, or the compatibility version) and checks it against its published SHA-256.</summary>
+    public async Task<string> DownloadPackAsync(PackAsset pack, string folder, IProgress<double>? progress = null, CancellationToken ct = default)
+    {
         Directory.CreateDirectory(folder);
         string expected = (await GetTextAsync(pack.ChecksumUrl, ct).ConfigureAwait(false)).Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-        if (expected.Length != 64) throw new IOException("The update's checksum file is not valid, so it was not installed.");
+        if (expected.Length != 64) throw new IOException("The checksum file is not valid, so the download was not used.");
 
         string file = Path.Combine(folder, Path.GetFileName(pack.Name));
         using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
@@ -156,9 +180,9 @@ public sealed class UpdateChecker
         if (!string.Equals(Convert.ToHexString(sha.GetHashAndReset()), expected, StringComparison.OrdinalIgnoreCase))
         {
             File.Delete(file);
-            throw new IOException("The downloaded update did not match its checksum, so it was not installed. Try again.");
+            throw new IOException("The download did not match its checksum, so it was not used. Try again.");
         }
-        return new UpdateDownload(file, IsPack: true);
+        return file;
     }
 
     async Task<string> GetTextAsync(string url, CancellationToken ct)
@@ -176,8 +200,12 @@ public sealed class UpdateChecker
     /// Replaces the installed files with the downloaded packed app. This app keeps running while that happens (its old files are
     /// renamed aside); it should restart itself afterwards with <see cref="Restart"/>.
     /// </summary>
-    public static void ApplyPackInPlace(string packFile, string version, string installFolder, IProgress<double>? progress = null) =>
-        Hofwerk.Installer.Engine.InPlaceUpdate.Apply(Hofwerk.Installer.Engine.PlatformInstaller.Create(), packFile, installFolder, version, progress);
+    public static void ApplyPackInPlace(string packFile, string version, string installFolder, IProgress<double>? progress = null)
+    {
+        var warning = Hofwerk.Installer.Engine.InPlaceUpdate.Apply(Hofwerk.Installer.Engine.PlatformInstaller.Create(), packFile, installFolder, version, progress);
+        if (warning is not null)
+            Hofwerk.Core.Errors.CrashLog.Write("Update installed, but the Start menu and Installed apps entries could not be refreshed", warning);
+    }
 
     /// <summary>Starts the (new) program again, optionally with the file that was open, so the update ends where the user left off.</summary>
     public static void Restart(string? openFile)

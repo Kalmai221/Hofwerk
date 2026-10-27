@@ -15,6 +15,8 @@
     <SelfContained>true</SelfContained>
     <!-- Publish only the parts of the .NET framework the app uses; this roughly halves the app. Only framework code is trimmed. -->
     <PublishTrimmed>true</PublishTrimmed>
+    <!-- Trimming switches built-in COM off. An in-app update refreshes the Start menu shortcut through COM (WScript.Shell), so it is kept on. -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <TrimMode>partial</TrimMode>
     <TrimmerSingleWarn>true</TrimmerSingleWarn>
     <!-- Generates, at build time, the WinRT marshalling code for the collections the app passes to WinUI; the trimmer cannot see it otherwise. -->

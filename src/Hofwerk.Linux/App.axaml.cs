@@ -15,6 +15,22 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Errors nobody expected: written to crash.log, then a window offers to restart, try the standard version, or report the bug.
+        Avalonia.Threading.Dispatcher.UIThread.UnhandledException += (_, e) =>
+        {
+            e.Handled = true;
+            ErrorHandler.Handle(e.Exception, "Unhandled exception");
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            if (e.ExceptionObject is Exception ex) ErrorHandler.HandleFatal(ex, "Unhandled exception (the program is closing)");
+        };
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            e.SetObserved();
+            ErrorHandler.Handle(e.Exception, "Background task");
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var vm = new MainViewModel();

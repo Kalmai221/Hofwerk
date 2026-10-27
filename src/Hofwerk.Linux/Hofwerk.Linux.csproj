@@ -9,6 +9,37 @@
     <AssemblyName>hofwerk</AssemblyName>
   </PropertyGroup>
 
+  <!--
+    The Windows compatibility version (this app, published for win-x64) is downloaded by the standard Windows version when someone needs
+    it, so it is kept small the same way the installer is: trimmed, with compiled bindings (no reflection), without debug files.
+  -->
+  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win-'))">
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <TrimmerSingleWarn>true</TrimmerSingleWarn>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+  </PropertyGroup>
+
+  <!-- Runtime parts and symbol files that only matter for debugging, crash dumps, HTTP/3 or alternative garbage collectors. -->
+  <Target Name="HofwerkSlimPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_HofwerkUnused Include="@(ResolvedFileToPublish)"
+                      Condition="'%(Filename)%(Extension)' == 'mscordbi.dll'
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))
+                              Or '%(Filename)%(Extension)' == 'clrgc.dll'
+                              Or '%(Filename)%(Extension)' == 'clrgcexp.dll'
+                              Or '%(Filename)%(Extension)' == 'msquic.dll'
+                              Or '%(Filename)%(Extension)' == 'createdump.exe'
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))
+                              Or '%(Extension)' == '.pdb'" />
+      <ResolvedFileToPublish Remove="@(_HofwerkUnused)" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <!-- The installer copies this into the user's icon theme for the applications menu. -->

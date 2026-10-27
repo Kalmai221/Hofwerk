@@ -8,7 +8,7 @@ namespace Hofwerk.WinUI;
 /// Lays its children out left to right and starts a new line when the next one does not fit. On a wide window two switches sit side
 /// by side; on a narrow one they stack, without any code deciding which.
 /// </summary>
-public sealed class WrapPanel : Panel
+public sealed partial class WrapPanel : Panel
 {
     public double HorizontalSpacing { get; set; }
     public double VerticalSpacing { get; set; }

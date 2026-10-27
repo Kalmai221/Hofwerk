@@ -38,8 +38,8 @@ Their `.hof` files are the same files, and they deserve a native editor.
 - **Undo and redo** for everything in the file, optional **autosave**, and a question before closing with unsaved changes.
 - Home screen with your recent files and every `.hof` of your Steam OMSI install (Windows, Linux, Flatpak and extra
   library drives).
-- **New file from an OMSI map:** pick a map (shown by its picture and name, as in OMSI) and Hofwerk fills in its bus stops,
-  destinations and routes.
+- **Import from an OMSI map:** pick a map (shown by its picture and name, as in OMSI) and Hofwerk fills in its bus stops,
+  destinations and routes, for a new file or added to the file you have open. A single timetable file (`.ttp`) can be added as one route.
 - **String presets:** names for the string slots ("IBIS 1", "ANNAX (side)" …) so you do not have to remember what
   "String 7" means. Import a strings file of your own (Hofwerk asks what is in it), or see [`Presets/`](Presets/README.md)
   to add one through a pull request.
@@ -63,7 +63,7 @@ layout (see the [roadmap](ROADMAP.md)), so a detail may be missing.
 | Keeps the file's encoding, lists problems in a file | Yes | Yes |
 | Names for the string slots | Templates | String presets, built in and shared in `Presets/`, and import of your own strings file |
 | New file from an OMSI map | Yes (*Import map*) | Yes, with the map's picture and name. Only for a new file so far |
-| Import a map into an existing file, import a single trip | Yes | Not yet |
+| Import a map into an existing file, import a single trip | Yes | Yes, nothing is added twice and Undo takes it back |
 | Export one file to several bus folders (the list is kept in the file) | Yes | Yes, with a backup of replaced files |
 | Station links (`StnLinks.cfg`) | Yes | Not yet |
 | Translations | English and German | English only so far |

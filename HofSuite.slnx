@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HofSuite.Linux/HofSuite.Linux.csproj" />
+    <Project Path="src/HofSuite.Core/HofSuite.Core.csproj" />
+    <Project Path="src/HofSuite.ViewModels/HofSuite.ViewModels.csproj" />
+    <Project Path="src/HofSuite.WinUI/HofSuite.WinUI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HofSuite.Core.Tests/HofSuite.Core.Tests.csproj" />
+  </Folder>
+</Solution>

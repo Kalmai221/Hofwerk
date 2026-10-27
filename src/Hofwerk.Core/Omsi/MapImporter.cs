@@ -36,6 +36,34 @@ public sealed class MapData
 /// <summary>What to take from the map when making a new .hof file.</summary>
 public sealed record MapImportOptions(bool BusStops = true, bool Destinations = true, bool Routes = true);
 
+/// <summary>What importing did to a file (or would do): what was added, and what was already there and so was left alone.</summary>
+public sealed record MergeResult(int NewBusStops, int KnownBusStops, int NewDestinations, int KnownDestinations, int NewRoutes, int KnownRoutes)
+{
+    public int Added => NewBusStops + NewDestinations + NewRoutes;
+    public int AlreadyThere => KnownBusStops + KnownDestinations + KnownRoutes;
+
+    static string Count(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
+
+    /// <summary>"12 bus stops, 2 destinations and 8 routes will be added; 3 bus stops and 1 route are already in the file."</summary>
+    public string Describe(bool past = false)
+    {
+        var added = new List<string>();
+        if (NewBusStops > 0) added.Add(Count(NewBusStops, "bus stop", "bus stops"));
+        if (NewDestinations > 0) added.Add(Count(NewDestinations, "destination", "destinations"));
+        if (NewRoutes > 0) added.Add(Count(NewRoutes, "route", "routes"));
+        var known = new List<string>();
+        if (KnownBusStops > 0) known.Add(Count(KnownBusStops, "bus stop", "bus stops"));
+        if (KnownDestinations > 0) known.Add(Count(KnownDestinations, "destination", "destinations"));
+        if (KnownRoutes > 0) known.Add(Count(KnownRoutes, "route", "routes"));
+
+        string text = added.Count == 0 ? "Nothing new to add" : Join(added) + (past ? " added" : " will be added");
+        if (known.Count > 0) text += $"; {Join(known)} {(AlreadyThere == 1 ? "is" : "are")} already in the file";
+        return text + ".";
+    }
+
+    static string Join(List<string> parts) => parts.Count == 1 ? parts[0] : string.Join(", ", parts[..^1]) + " and " + parts[^1];
+}
+
 /// <summary>
 /// Reads the timetable files of an OMSI map and turns them into the parts of a .hof file. A map (Maps\Name\TTData) holds
 /// <c>.ttp</c> trip files (each has a destination text, a line and a list of stations) and <c>Busstops.cfg</c>. The station names
@@ -142,16 +170,26 @@ public static class MapImporter
     /// route's code is its line number times 100 plus a running number (line 28: 2801, 2802), like the .hof files people make by
     /// hand. All of these are only suggestions, and every one of them can be changed in the editor.
     /// </summary>
-    public static void Fill(HofDocument doc, MapData map, MapImportOptions options)
+    public static MergeResult Fill(HofDocument doc, MapData map, MapImportOptions options)
     {
         var destinationIdents = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var usedDestinationCodes = new HashSet<string>(doc.Termini.Select(t => t.Ident));
+        int newStops = 0, knownStops = 0, newDestinations = 0, knownDestinations = 0, newRoutes = 0, knownRoutes = 0;
+
+        // A file that already has a destination with this text keeps it: its code is used and nothing is added twice.
+        foreach (var existing in doc.Termini.Where(t => !t.IsAllExit && t.Station.Trim().Length > 0))
+            destinationIdents.TryAdd(existing.Station.Trim(), existing.Ident);
 
         if (options.Destinations || options.Routes)
         {
             int next = 1001;
             foreach (string text in map.Destinations)
             {
+                if (destinationIdents.ContainsKey(text.Trim()))
+                {
+                    if (options.Destinations) knownDestinations++;
+                    continue;
+                }
                 while (usedDestinationCodes.Contains(next.ToString())) next++;
                 string ident = next.ToString();
                 usedDestinationCodes.Add(ident);
@@ -161,6 +199,7 @@ public static class MapImporter
                 var strings = Enumerable.Repeat("", doc.TerminusStringCount).ToList();
                 if (strings.Count > 0) strings[0] = text;
                 doc.Termini.Add(new Terminus { Ident = ident, Station = text, Strings = strings });
+                newDestinations++;
             }
         }
 
@@ -168,17 +207,26 @@ public static class MapImporter
         {
             var known = new HashSet<string>(doc.BusStops.Select(b => b.Name), StringComparer.OrdinalIgnoreCase);
             foreach (string stop in map.BusStops)
+            {
                 if (known.Add(stop))
+                {
                     doc.BusStops.Add(new BusStop { Name = stop, Strings = Enumerable.Repeat("", doc.BusStopStringCount).ToList() });
+                    newStops++;
+                }
+                else knownStops++;
+            }
         }
 
         if (options.Routes)
         {
             var usedCodes = new HashSet<string>(doc.Routes.Select(r => r.Ident));
+            var knownNames = new HashSet<string>(doc.Routes.Select(r => r.Name), StringComparer.OrdinalIgnoreCase);
             var perLine = new Dictionary<int, int>();
 
             foreach (var trip in map.Trips)
             {
+                // A trip is told apart by its name (the name of its timetable file): importing it again does not add it again.
+                if (!knownNames.Add(trip.Name)) { knownRoutes++; continue; }
                 string line = LineNumber(trip.Line);
                 int baseCode = line.Length > 0 ? int.Parse(line.Length > 2 ? line[..2] : line) * 100 : 5000;
                 int sequence = perLine.GetValueOrDefault(baseCode);
@@ -194,8 +242,33 @@ public static class MapImporter
                     TerminusIdent = destinationIdents.GetValueOrDefault(trip.Destination, "1000"),
                     Stops = trip.Stops.Select(s => new RouteStop { Name = s }).ToList(),
                 });
+                newRoutes++;
             }
         }
+
+        return new MergeResult(newStops, knownStops, newDestinations, knownDestinations, newRoutes, knownRoutes);
+    }
+
+    /// <summary>What <see cref="Fill"/> would do to <paramref name="doc"/>, worked out on a copy, so the file is not touched.</summary>
+    public static MergeResult Preview(HofDocument doc, MapData map, MapImportOptions options) =>
+        Fill(HofParser.Parse(HofWriter.ToLines(doc)), map, options);
+
+    /// <summary>
+    /// One timetable file (<c>.ttp</c>) as a map with a single trip: its stops, its destination and the trip itself, so it can be
+    /// added to a file like a whole map can. Null when the file is not a timetable.
+    /// </summary>
+    public static MapData? ReadTripFile(string file)
+    {
+        if (ReadTrip(file) is not { } trip) return null;
+        var stops = new Names();
+        foreach (string stop in trip.Stops) stops.Add(stop);
+        return new MapData
+        {
+            Name = trip.Name,
+            BusStops = stops.List,
+            Destinations = trip.Destination.Trim().Length > 0 ? [trip.Destination.Trim()] : [],
+            Trips = [trip],
+        };
     }
 
     // ---- reading ---------------------------------------------------------------------------------------------

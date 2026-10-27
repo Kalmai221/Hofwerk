@@ -111,7 +111,7 @@ public sealed class NewFileWindow : Window
     }
 
     // One map in the grid: its picture (picture.jpg) above its name. A map without a picture gets a plain tile.
-    static Control MapTile(Hofwerk.Core.Omsi.OmsiMap? map)
+    internal static Control MapTile(Hofwerk.Core.Omsi.OmsiMap? map)
     {
         var picture = new Border
         {

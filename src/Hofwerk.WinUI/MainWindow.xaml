@@ -46,6 +46,8 @@
                 </AppBarButton.KeyboardAccelerators>
             </AppBarButton>
             <AppBarSeparator />
+            <AppBarButton Icon="Import" Label="Import" Click="OnImport" IsEnabled="{x:Bind ViewModel.CanImport, Mode=OneWay}"
+                          AutomationProperties.Name="Import a map or trip" />
             <AppBarButton x:Name="ExportButton" Icon="Share" Label="Export" Click="OnExport" IsEnabled="{x:Bind ViewModel.CanExport, Mode=OneWay}"
                           AutomationProperties.Name="Export to several folders" />
         </CommandBar>

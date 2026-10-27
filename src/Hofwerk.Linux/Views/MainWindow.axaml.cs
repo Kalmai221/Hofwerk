@@ -340,6 +340,14 @@ public partial class MainWindow : Window
 
     void OnRefreshPresets(object? sender, RoutedEventArgs e) => Vm.RefreshPresets();
 
+    // Adds a map, or one timetable file, to the open file.
+    async void OnImport(object? sender, RoutedEventArgs e)
+    {
+        if (Vm.StartImport() is not { } import) return;
+        string? maps = Vm.OmsiFolder is { } omsi ? System.IO.Path.Combine(omsi, "Maps") : null;
+        if (await new ImportWindow(import, maps).ShowDialog<bool>(this)) Vm.ApplyImport(import);
+    }
+
     // The file goes into every vehicle folder in its own export list (HOF Suite's [HOF_SUITE_DIRECTORIES]).
     // ---- Diagnostics window ----------------------------------------------------------------------------------------
 

@@ -319,6 +319,7 @@
                         <Path Data="{StaticResource IconRedo}" Stroke="{Binding $parent[Button].Foreground}" />
                     </Button>
                     <Border Classes="divider" />
+                    <Button Content="Import…" Click="OnImport" IsEnabled="{Binding CanImport}" AutomationProperties.Name="Import a map or trip" />
                     <Button x:Name="ExportButton" Content="Export…" Click="OnExport" IsEnabled="{Binding CanExport}" AutomationProperties.Name="Export to several folders" />
                 </StackPanel>
             </Grid>

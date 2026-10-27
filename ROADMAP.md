@@ -25,13 +25,13 @@ HOF Suite and something is missing here, please open an issue.
 - [x] A list of the problems found in a file
 - [x] **Export to several folders at once** (HOF Suite 1.1): the Export locations on the Settings page are kept in the file
   (`[HOF_SUITE_DIRECTORIES]`, as HOF Suite does) and Export puts the file into every one of them, with a backup of what it replaces
+- [x] **Import a map into a file you already have**, choosing what to add. What is already in the file is left alone (the preview says what would be added), and Undo takes the whole import back
+- [x] **Import a trip**: add one timetable file (`.ttp`) to a file as a route (HOF Suite's *Import trip*)
 - [x] Start a new file from an OMSI **map**: its bus stops, destinations and routes, with the map's picture and name (a first version
   of HOF Suite's *Import map*)
 
 ### Still to do for V1
 
-- [ ] **Import a map into a file you already have**, choosing what to add (today a map can only start a new file)
-- [ ] **Import a trip**: add one timetable trip (a `.ttp` file) to a file as a route (HOF Suite's *Import trip*)
 - [ ] **Station links** (HOF Suite 1.3): read and keep the `StnLinks.cfg` information of a map
 - [ ] **Translations**: HOF Suite has a German version; Hofwerk is English only so far
 - [ ] **A visual route timeline** (planned from the start)

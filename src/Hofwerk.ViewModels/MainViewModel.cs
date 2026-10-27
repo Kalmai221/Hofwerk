@@ -244,7 +244,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(FileStateText));
         }
         if (e.PropertyName is nameof(FilePath) or nameof(IsDirty)) OnPropertyChanged(nameof(WindowTitle));
-        if (e.PropertyName is nameof(FilePath)) { OnPropertyChanged(nameof(HasFile)); OnPropertyChanged(nameof(CanExport)); }
+        if (e.PropertyName is nameof(FilePath)) { OnPropertyChanged(nameof(HasFile)); OnPropertyChanged(nameof(CanExport)); OnPropertyChanged(nameof(CanImport)); }
     }
 
     partial void OnTerminusStringCountChanged(int value)

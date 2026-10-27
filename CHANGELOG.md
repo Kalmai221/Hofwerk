@@ -6,6 +6,7 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
+- **Import into the file you have open.** The new Import button adds the bus stops, destinations and routes of an OMSI map, or one timetable file (`.ttp`) as a single route, to what the file already has. You choose what to take, and before anything changes it says what would be added and what is already in the file. A destination the file already has is reused, a bus stop or route that is already there is not added twice, and new codes never clash with old ones. The whole import is one step for Undo.
 - **A website.** Downloads, what is new, the comparison with HOF Suite, the roadmap and the string presets guide are on the Hofwerk website, and the installers are copied onto it, so nobody has to go to the code host. Files made with Hofwerk, "Installed apps" and the "What's new" window now link to the website. Only "Report a bug" and the update check still use GitHub.
 - **A tidier toolbar.** The buttons are grouped (New and Open, Save and Save as, Undo and Redo, Export) with thin lines between the groups. Undo and Redo are small icon buttons with a tip. On a narrow Linux window the buttons move under the page title instead of squeezing it.
 - **A new logo.** The front of a bus with its destination sign, in the app, the installers, the Windows and Linux icons and on the website. The smallest icon sizes have their own simpler drawing so they stay clear.

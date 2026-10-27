@@ -656,6 +656,96 @@ public sealed partial class MainWindow : Window
         if ((sender as FrameworkElement)?.DataContext is ExportLocation location) ViewModel.RemoveExportLocation(location);
     }
 
+    // ---- Import: add a map, or one timetable file, to the open file ---------------------------------------------------------
+
+    async void OnImport(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.StartImport() is not { } model) return;
+
+        var kind = new RadioButtons { SelectedIndex = 0 };
+        kind.Items.Add("From an OMSI map");
+        kind.Items.Add("One timetable file (.ttp)");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(kind, "Import from");
+
+        var maps = new GridView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 280 };
+        ScrollViewer.SetVerticalScrollBarVisibility(maps, ScrollBarVisibility.Auto);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(maps, "Map");
+        foreach (var map in model.Maps) maps.Items.Add(MapTile(map));
+        var browse = new Button { Content = "Choose another map folder…" };
+        var reading = new ProgressBar { IsIndeterminate = true, Visibility = Visibility.Collapsed };
+        var mapPanel = new StackPanel { Spacing = 10 };
+        mapPanel.Children.Add(maps);
+        mapPanel.Children.Add(browse);
+
+        var chooseTrip = new Button { Content = "Choose a timetable file…" };
+        var tripName = new TextBlock { Opacity = 0.8, TextWrapping = TextWrapping.Wrap };
+        var tripPanel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+        tripPanel.Children.Add(chooseTrip);
+        tripPanel.Children.Add(tripName);
+
+        var busStops = new CheckBox { Content = "Bus stops", IsChecked = true };
+        var destinations = new CheckBox { Content = "Destinations", IsChecked = true };
+        var routes = new CheckBox { Content = "Routes, with their stops", IsChecked = true };
+        var partsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20 };
+        partsRow.Children.Add(busStops);
+        partsRow.Children.Add(destinations);
+        partsRow.Children.Add(routes);
+        var summary = new TextBlock { TextWrapping = TextWrapping.Wrap };
+
+        var content = new StackPanel { Spacing = 12, MinWidth = 700 };
+        content.Children.Add(new TextBlock { Text = "What is added goes in next to what the file already has. Nothing is added twice.", Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
+        foreach (UIElement part in new UIElement[] { kind, mapPanel, tripPanel, reading, new TextBlock { Text = "Take" }, partsRow, summary }) content.Children.Add(part);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.ActualTheme,
+            Title = "Import into this file",
+            Content = new ScrollViewer { Content = content, MaxHeight = 620 },
+            PrimaryButtonText = "Import",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 800.0;
+
+        void Refresh()
+        {
+            mapPanel.Visibility = model.FromTrip ? Visibility.Collapsed : Visibility.Visible;
+            tripPanel.Visibility = model.FromTrip ? Visibility.Visible : Visibility.Collapsed;
+            reading.Visibility = model.IsReading ? Visibility.Visible : Visibility.Collapsed;
+            tripName.Text = model.TripFile is { Length: > 0 } file ? Path.GetFileName(file) : "";
+            summary.Text = model.Summary;
+            dialog.IsPrimaryButtonEnabled = model.CanImport;
+        }
+        kind.SelectionChanged += (_, _) => model.FromTrip = kind.SelectedIndex == 1;
+        maps.SelectionChanged += (_, _) => model.SelectedMap = (maps.SelectedItem as GridViewItem)?.Tag as OmsiMap;
+        busStops.Click += (_, _) => model.ImportBusStops = busStops.IsChecked == true;
+        destinations.Click += (_, _) => model.ImportDestinations = destinations.IsChecked == true;
+        routes.Click += (_, _) => model.ImportRoutes = routes.IsChecked == true;
+        browse.Click += async (_, _) =>
+        {
+            var picker = new Pickers.FolderPicker(AppWindow.Id) { SuggestedFolder = ViewModel.OmsiFolder is { } omsi ? Path.Combine(omsi, "Maps") : null };
+            if (await picker.PickSingleFolderAsync() is { } folder)
+            {
+                model.AddMapFolder(folder.Path);
+                kind.SelectedIndex = 0;
+                if (!maps.Items.OfType<GridViewItem>().Any(i => ReferenceEquals(i.Tag, model.SelectedMap))) maps.Items.Add(MapTile(model.SelectedMap!));
+                maps.SelectedItem = maps.Items.OfType<GridViewItem>().FirstOrDefault(i => ReferenceEquals(i.Tag, model.SelectedMap));
+            }
+        };
+        chooseTrip.Click += async (_, _) =>
+        {
+            var picker = new Pickers.FileOpenPicker(AppWindow.Id) { SuggestedFolder = ViewModel.OmsiFolder is { } omsi ? Path.Combine(omsi, "Maps") : null };
+            picker.FileTypeFilter.Add(".ttp");
+            picker.FileTypeFilter.Add("*");
+            if (await picker.PickSingleFileAsync() is { } file) model.SetTripFile(file.Path);
+        };
+        model.PropertyChanged += (_, _) => Refresh();
+        Refresh();
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary) ViewModel.ApplyImport(model);
+    }
+
     async void OnExport(object sender, RoutedEventArgs e)
     {
         if (ViewModel.StartExport() is not { } export) return;

@@ -31,9 +31,10 @@ static class Silent
         try
         {
             bool hasPayload = PayloadFile.HasPayload(exe);
-            if (Has("--uninstall") || !hasPayload)
+            bool canInstall = hasPayload || WebPayload.TryRead(exe) is not null; // the online installer downloads the app
+            if (Has("--uninstall") || !canInstall)
             {
-                string dir = Value("--dir") ?? (hasPayload ? platform.FindInstalledDirectory() : Path.GetDirectoryName(exe)) ?? platform.DefaultDirectory;
+                string dir = Value("--dir") ?? (canInstall ? platform.FindInstalledDirectory() : Path.GetDirectoryName(exe)) ?? platform.DefaultDirectory;
                 platform.UninstallAsync(dir, Has("--remove-user-data"), progress).GetAwaiter().GetResult();
                 Console.WriteLine("Hofwerk was removed.");
                 return 0;
@@ -42,7 +43,8 @@ static class Silent
             string target = Value("--dir") ?? platform.FindInstalledDirectory() ?? platform.DefaultDirectory;
             var request = new InstallRequest(target, Has("--desktop-shortcut"), Has("--file-association") && platform.SupportsFileAssociation,
                 OmsiFolder: Value("--omsi-folder"));
-            using var payload = PayloadFile.OpenPayload(exe)!;
+            var download = new Progress<double>(d => Console.WriteLine($"[{d * 100,3:0}%] Downloading Hofwerk"));
+            using var payload = WebPayload.OpenInstallPayloadAsync(exe, download).GetAwaiter().GetResult()!;
             platform.InstallAsync(request, payload, exe, progress).GetAwaiter().GetResult();
             Console.WriteLine($"Hofwerk {AppInfo.Version} was installed to {Path.GetFullPath(target)}");
             return 0;

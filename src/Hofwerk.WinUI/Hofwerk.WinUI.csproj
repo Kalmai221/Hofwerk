@@ -30,9 +30,9 @@
   <!-- WinRT finds its marshalling helpers by reflection, so the WinRT assemblies must be kept whole. -->
   <ItemGroup>
     <TrimmerRootAssembly Include="WinRT.Runtime" />
-    <TrimmerRootAssembly Include="Microsoft.Windows.SDK.NET" />
-    <TrimmerRootAssembly Include="Microsoft.WinUI" />
-    <TrimmerRootAssembly Include="Microsoft.InteractiveExperiences.Projection" />
+    <TrimmableAssembly Include="Microsoft.Windows.SDK.NET" />
+    <TrimmableAssembly Include="Microsoft.WinUI" />
+    <TrimmableAssembly Include="Microsoft.InteractiveExperiences.Projection" />
   </ItemGroup>
 
   <!--
@@ -55,10 +55,24 @@
                               Or '%(Filename)%(Extension)' == 'clrgcexp.dll'
                               Or '%(Filename)%(Extension)' == 'msquic.dll'
                               Or '%(Filename)%(Extension)' == 'createdump.exe'
+                              Or '%(Filename)%(Extension)' == 'Microsoft.Web.WebView2.Core.dll'
+                              Or '%(Filename)%(Extension)' == 'WebView2Loader.dll'
+                              Or '%(Filename)%(Extension)' == 'PushNotificationsLongRunningTask.ProxyStub.dll'
+                              Or '%(Filename)%(Extension)' == 'RestartAgent.exe'
                               Or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))
                               Or '%(Extension)' == '.pdb'" />
       <ResolvedFileToPublish Remove="@(_HofwerkUnused)" />
     </ItemGroup>
+  </Target>
+
+  <!-- The Windows App SDK ships Windows system text in about 60 languages (xx-YY folders); Windows falls back to the English built into each DLL. -->
+  <Target Name="HofwerkEnglishOnly" AfterTargets="Publish">
+    <ItemGroup>
+      <_HofwerkLanguageFile Include="$(PublishDir)*-*\*.mui" Exclude="$(PublishDir)en-US\*.mui" />
+      <_HofwerkLanguageDir Include="@(_HofwerkLanguageFile->'%(RootDir)%(Directory)')" />
+    </ItemGroup>
+    <Delete Files="@(_HofwerkLanguageFile)" />
+    <RemoveDir Directories="@(_HofwerkLanguageDir->Distinct())" />
   </Target>
 
   <ItemGroup>

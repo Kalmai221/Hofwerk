@@ -37,6 +37,23 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
+  <!-- Runtime parts that only matter for debugging, crash dumps, HTTP/3 or alternative garbage collectors. -->
+  <Target Name="HofwerkSlimPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_HofwerkUnused Include="@(ResolvedFileToPublish)"
+                      Condition="'%(Filename)%(Extension)' == 'mscordbi.dll'
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('mscordaccore'))
+                              Or '%(Filename)%(Extension)' == 'clrgc.dll'
+                              Or '%(Filename)%(Extension)' == 'clrgcexp.dll'
+                              Or '%(Filename)%(Extension)' == 'msquic.dll'
+                              Or '%(Filename)%(Extension)' == 'createdump.exe'
+                              Or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native'))
+                              Or '%(Filename)%(Extension)' == 'av_libglesv2.dll'
+                              Or '%(Extension)' == '.pdb'" />
+      <ResolvedFileToPublish Remove="@(_HofwerkUnused)" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\Hofwerk.Installer.Engine\Hofwerk.Installer.Engine.csproj" />
     <!-- Finds where OMSI is installed, for the "Where is OMSI 2?" step. -->

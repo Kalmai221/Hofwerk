@@ -127,6 +127,8 @@
                             </Grid>
                             <TextBlock Classes="muted" FontSize="12" Text="Installed just for you. No administrator rights needed." />
                         </StackPanel>
+                        <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap" Text="{Binding WebNote}" IsVisible="{Binding IsWeb}"
+                                   AutomationProperties.Name="Online installer note" />
                         <CheckBox Content="Add a desktop shortcut" IsChecked="{Binding DesktopShortcut}" />
                         <CheckBox Content="Offer Hofwerk in “Open with” for .hof files" IsChecked="{Binding FileAssociation}"
                                   IsVisible="{Binding SupportsFileAssociation}" />

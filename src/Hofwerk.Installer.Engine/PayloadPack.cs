@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Compression;
 using System.Text;
 
@@ -11,6 +12,8 @@ public sealed record PackSource(string Path, long Length, Func<Stream> Open);
 /// <summary>
 /// The app as one solid Brotli stream: a header listing every file, then all file contents back to back.
 /// Compressing everything together beats zip (which compresses each file on its own) by a good margin for DLL-heavy apps.
+/// Files are grouped by type so similar ones sit next to each other, and the compressor looks back 16 MB (the largest window
+/// every Brotli decoder supports) so it can reuse data across the big DLLs. Unpacking needs nothing special.
 /// </summary>
 public static class PayloadPack
 {
@@ -22,7 +25,8 @@ public static class PayloadPack
     {
         string root = Path.GetFullPath(folder);
         return Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-            .Order(StringComparer.Ordinal)
+            .OrderBy(f => Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)
+            .ThenBy(f => f, StringComparer.Ordinal)
             .Select(file => new PackSource(
                 Path.GetRelativePath(root, file).Replace('\\', '/'),
                 new FileInfo(file).Length,
@@ -32,7 +36,7 @@ public static class PayloadPack
 
     public static void Write(IReadOnlyList<PackSource> files, Stream output, CompressionLevel level = CompressionLevel.SmallestSize)
     {
-        using var brotli = new BrotliStream(output, level, leaveOpen: true);
+        using var brotli = new BrotliWindowStream(output, level == CompressionLevel.SmallestSize ? 11 : 1, level == CompressionLevel.SmallestSize ? 24 : 22);
         using (var header = new BinaryWriter(brotli, Encoding.UTF8, leaveOpen: true))
         {
             header.Write(Magic);
@@ -88,6 +92,60 @@ public static class PayloadPack
             onFile(entry, content);
             content.Drain(); // whatever the callback did not read still has to be skipped to reach the next file
         }
+    }
+
+    /// <summary>Writes Brotli with a chosen quality and window size (<see cref="BrotliStream"/> always uses a 4 MB window).</summary>
+    public sealed class BrotliWindowStream(Stream output, int quality, int window) : Stream
+    {
+        BrotliEncoder _encoder = new(quality, window);
+        readonly byte[] _buffer = new byte[64 * 1024];
+        bool _finished;
+
+        public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+
+        public override void Write(ReadOnlySpan<byte> data)
+        {
+            while (data.Length > 0)
+            {
+                var status = _encoder.Compress(data, _buffer, out int consumed, out int written, isFinalBlock: false);
+                if (status == OperationStatus.InvalidData) throw new IOException("Compressing the app failed.");
+                if (written > 0) output.Write(_buffer, 0, written);
+                data = data[consumed..];
+            }
+        }
+
+        void Finish()
+        {
+            if (_finished) return;
+            _finished = true;
+            OperationStatus status;
+            do
+            {
+                status = _encoder.Compress([], _buffer, out _, out int written, isFinalBlock: true);
+                if (status == OperationStatus.InvalidData) throw new IOException("Compressing the app failed.");
+                if (written > 0) output.Write(_buffer, 0, written);
+            } while (status != OperationStatus.Done);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Finish();
+                _encoder.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
     }
 
     static long CopyExactly(Stream from, Stream to, long length)

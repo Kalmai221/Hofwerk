@@ -17,6 +17,7 @@ public partial class InstallerViewModel : ObservableObject
     readonly PlatformInstaller _platform = PlatformInstaller.Create();
     readonly string _program = Environment.ProcessPath ?? "";
     string? _installedDirectory;
+    readonly WebManifest? _web;
 
     // Looking for a newer installer is skipped by --no-update-check (and HOFWERK_NO_UPDATE_CHECK=1), which the test scripts use.
     bool _checkForNewer;
@@ -35,8 +36,11 @@ public partial class InstallerViewModel : ObservableObject
                          && Environment.GetEnvironmentVariable("HOFWERK_NO_UPDATE_CHECK") != "1";
         bool wantsUninstall = args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase);
         bool hasPayload = _program.Length > 0 && PayloadFile.HasPayload(_program);
+        // The online installer has no app inside it, only where to download it from.
+        _web = hasPayload || _program.Length == 0 ? null : WebPayload.TryRead(_program);
+        bool canInstall = hasPayload || _web is not null;
 
-        if (hasPayload && !wantsUninstall)
+        if (canInstall && !wantsUninstall)
         {
             Mode = SetupMode.Install;
             Directory = _platform.FindInstalledDirectory() ?? _platform.DefaultDirectory;
@@ -50,7 +54,7 @@ public partial class InstallerViewModel : ObservableObject
                 Mode = SetupMode.Uninstall;
                 Directory = here;
             }
-            else if (hasPayload && _platform.FindInstalledDirectory() is { } found)
+            else if (canInstall && _platform.FindInstalledDirectory() is { } found)
             {
                 Mode = SetupMode.Uninstall;
                 Directory = found;
@@ -133,6 +137,10 @@ public partial class InstallerViewModel : ObservableObject
 
     public string Version => AppInfo.Version;
     public bool SupportsFileAssociation => _platform.SupportsFileAssociation;
+
+    /// <summary>The online installer: the app is downloaded while installing instead of being inside this file.</summary>
+    public bool IsWeb => _web is not null;
+    public string WebNote => _web is null ? "" : $"This small installer downloads Hofwerk ({_web.Size / 1_048_576.0:0.#} MB) from GitHub while installing. It needs an internet connection.";
 
     [ObservableProperty] public partial SetupStage Stage { get; set; } = SetupStage.Welcome;
     [ObservableProperty] public partial string Directory { get; set; } = "";
@@ -280,9 +288,23 @@ public partial class InstallerViewModel : ObservableObject
         {
             if (IsInstall)
             {
-                using var payload = PayloadFile.OpenPayload(_program) ?? throw new InstallerException("This installer has no app attached.");
+                // Online installer: the first part of the bar is the download, the rest is installing.
+                double share = IsWeb ? 0.45 : 0;
+                var downloading = new Progress<double>(d =>
+                {
+                    Fraction = d * share;
+                    Message = $"Downloading Hofwerk… {d:P0}";
+                });
+                if (IsWeb) Message = "Downloading Hofwerk…";
+                using var payload = await WebPayload.OpenInstallPayloadAsync(_program, downloading)
+                                    ?? throw new InstallerException("This installer has no app attached.");
+                var installing = new Progress<InstallProgress>(p =>
+                {
+                    Fraction = share + p.Fraction * (1 - share);
+                    Message = p.Message;
+                });
                 await _platform.InstallAsync(new InstallRequest(Directory, DesktopShortcut, FileAssociation && SupportsFileAssociation, omsiFolder),
-                    payload, _program, progress);
+                    payload, _program, installing);
                 _installedDirectory = SafeFullPath(Directory);
             }
             else

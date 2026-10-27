@@ -42,15 +42,19 @@ jobs:
         run: |
           $v = '${{ github.ref_name }}' -replace '^[vV]', ''
           if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
-          ./installer/build-installer.ps1 -Rid win-x64 -Version $v
+          ./installer/build-installer.ps1 -Rid win-x64 -Version $v -Tag '${{ github.ref_name }}'
 
       # The finished installer is tested the way a user meets it. These use Windows PowerShell 5.1, as they were written for.
       - name: Test the installer (silent install, launch, update, uninstall)
         shell: powershell
-        run: ./installer/test-installer.ps1 -Setup (Get-ChildItem dist/*.exe | Select-Object -First 1).FullName
+        run: ./installer/test-installer.ps1 -Setup (Get-ChildItem dist/Hofwerk-Setup-*.exe | Select-Object -First 1).FullName
       - name: Test the installer window (every step, answering the OMSI question both ways)
         shell: powershell
-        run: ./installer/check-setup-ui.ps1 -Setup (Get-ChildItem dist/*.exe | Select-Object -First 1).FullName
+        run: ./installer/check-setup-ui.ps1 -Setup (Get-ChildItem dist/Hofwerk-Setup-*.exe | Select-Object -First 1).FullName
+
+      - name: Test the online installer (downloads the app, same checks)
+        shell: powershell
+        run: ./installer/test-web-installer.ps1 -WebSetup (Get-ChildItem dist/Hofwerk-WebSetup-*.exe | Select-Object -First 1).FullName -Pack (Get-ChildItem dist/*.hwpack | Select-Object -First 1).FullName -AppFolder publish/win-x64/app
 
       - uses: actions/upload-artifact@v4
         with:
@@ -70,12 +74,12 @@ jobs:
         run: |
           $v = '${{ github.ref_name }}' -replace '^[vV]', ''
           if ($v -notmatch '^\d') { $v = '0.0.0-dev' }
-          ./installer/build-installer.ps1 -Rid linux-x64 -Version $v
+          ./installer/build-installer.ps1 -Rid linux-x64 -Version $v -Tag '${{ github.ref_name }}'
 
       # Installs and removes it on a real Linux system: files, menu entry, icon, settings, uninstaller.
       - name: Test the installer (silent install, update, uninstall)
         shell: pwsh
-        run: ./installer/test-installer-linux.ps1 -Archive (Get-ChildItem dist/*.tar.gz | Select-Object -First 1).FullName
+        run: ./installer/test-installer-linux.ps1 -Archive (Get-ChildItem dist/Hofwerk-Setup-*.tar.gz | Select-Object -First 1).FullName
 
       - uses: actions/upload-artifact@v4
         with:

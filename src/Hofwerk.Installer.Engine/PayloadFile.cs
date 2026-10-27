@@ -22,7 +22,9 @@ public static class PayloadFile
     public static long ProgramLength(string path)
     {
         using var fs = File.OpenRead(path);
-        return fs.Length - (PayloadLength(fs) is { } len ? len + TrailerSize : 0);
+        if (PayloadLength(fs) is { } len) return fs.Length - (len + TrailerSize);
+        if (WebPayload.ManifestLength(fs) is { } manifest) return fs.Length - WebPayload.TrailerBytes(manifest); // the online installer's manifest is not part of the program
+        return fs.Length;
     }
 
     /// <summary>Opens the attached zip, or returns null when the file has none. Dispose the stream when done.</summary>
@@ -82,7 +84,7 @@ public static class PayloadFile
         return length >= 0 && length <= fs.Length - TrailerSize ? length : null;
     }
 
-    static void CopyPrefix(string path, Stream destination, long length)
+    internal static void CopyPrefix(string path, Stream destination, long length)
     {
         using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         var buffer = new byte[81920];

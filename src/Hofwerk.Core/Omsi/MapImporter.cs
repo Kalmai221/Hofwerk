@@ -145,10 +145,11 @@ public static class MapImporter
         var trips = new List<MapTrip>();
         var stops = new Names();
         var destinations = new Names();
+        var ids = new Lazy<Dictionary<int, string>>(() => ReadStopIds(data));
 
         foreach (string file in Directory.EnumerateFiles(data, "*.ttp", IgnoreCase).OrderBy(f => f, StringComparer.OrdinalIgnoreCase).Take(MaxFiles))
         {
-            if (ReadTrip(file) is not { } trip) continue;
+            if (ReadTrip(file, ids) is not { } trip) continue;
             trips.Add(trip);
             destinations.Add(trip.Destination);
             foreach (string stop in trip.Stops) stops.Add(stop);
@@ -259,7 +260,9 @@ public static class MapImporter
     /// </summary>
     public static MapData? ReadTripFile(string file)
     {
-        if (ReadTrip(file) is not { } trip) return null;
+        string? folder = Path.GetDirectoryName(file);
+        var ids = new Lazy<Dictionary<int, string>>(() => folder is null ? [] : ReadStopIds(folder));
+        if (ReadTrip(file, ids) is not { } trip) return null;
         var stops = new Names();
         foreach (string stop in trip.Stops) stops.Add(stop);
         return new MapData
@@ -273,7 +276,7 @@ public static class MapImporter
 
     // ---- reading ---------------------------------------------------------------------------------------------
 
-    static MapTrip? ReadTrip(string file)
+    static MapTrip? ReadTrip(string file, Lazy<Dictionary<int, string>> ids)
     {
         string[] lines = ReadLines(file);
         int trip = Array.IndexOf(lines, "[trip]");
@@ -286,15 +289,44 @@ public static class MapImporter
         var stops = new List<string>();
         for (int i = 0; i < lines.Length; i++)
         {
-            // [station] / id / distance / NAME / ...
+            // A stop is written one of two ways, and a file can use either (HOF Suite 1.3 added the second, "station links"):
+            //   [station] / id / distance / NAME / ...      the name is in the trip file
+            //   [station_typ2] / NUMBER                      only a number; the name is the [busstop] with that number in Busstops.cfg
             if (lines[i] == "[station]" && i + 3 < lines.Length && lines[i + 3].Trim() is { Length: > 0 } stop) stops.Add(stop);
+            else if (lines[i] == "[station_typ2]" && i + 1 < lines.Length
+                     && int.TryParse(lines[i + 1].Trim(), out int number) && ids.Value.TryGetValue(number, out string? linked))
+                stops.Add(linked);      // a number the map does not know is left out rather than dropping the whole trip
         }
         return new MapTrip(Path.GetFileNameWithoutExtension(file), destination, line, stops);
     }
 
+    /// <summary>
+    /// The stops of a map by number, from the Busstops.cfg beside its timetable files: "[busstop]", the name, one line that is not
+    /// needed, then the number. Station-link trips only carry these numbers.
+    /// </summary>
+    static Dictionary<int, string> ReadStopIds(string ttDataFolder)
+    {
+        var ids = new Dictionary<int, string>();
+        try
+        {
+            foreach (string file in Directory.EnumerateFiles(ttDataFolder, "Busstops.cfg", IgnoreCase))
+            {
+                var lines = ReadLines(file);
+                for (int i = 0; i + 3 < lines.Length; i++)
+                {
+                    if (lines[i] != "[busstop]") continue;
+                    if (int.TryParse(lines[i + 3].Trim(), out int number) && lines[i + 1].Trim() is { Length: > 0 } name) ids.TryAdd(number, name);
+                    i += 3;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        return ids;
+    }
+
     static string[] ReadLines(string file)
     {
-        try { return HofEncodings.Windows1252.GetString(File.ReadAllBytes(file)).Split('\n').Select(l => l.TrimEnd('\r')).ToArray(); }
+        try { return Decode(File.ReadAllBytes(file)).Split('\n').Select(l => l.TrimEnd('\r', '\uFEFF')).ToArray(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return []; }
     }
 

@@ -65,7 +65,7 @@ layout (see the [roadmap](ROADMAP.md)), so a detail may be missing.
 | New file from an OMSI map | Yes (*Import map*) | Yes, with the map's picture and name. Only for a new file so far |
 | Import a map into an existing file, import a single trip | Yes | Yes, nothing is added twice and Undo takes it back |
 | Export one file to several bus folders (the list is kept in the file) | Yes | Yes, with a backup of replaced files |
-| Station links (`StnLinks.cfg`) | Yes | Not yet |
+| Station links (timetable files that write their stops as numbers) | Yes | Yes |
 | Translations | English and German | English only so far |
 | Updates inside the app, "What's new" | Not in its changelog | Yes |
 | Light, dark and system theme | Not in its changelog | Yes |

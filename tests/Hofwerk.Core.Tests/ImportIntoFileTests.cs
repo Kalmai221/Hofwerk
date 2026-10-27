@@ -1,4 +1,4 @@
-using Hofwerk.Core;
+﻿using Hofwerk.Core;
 using Hofwerk.Core.Model;
 using Hofwerk.Core.Omsi;
 using Hofwerk.ViewModels;
@@ -109,7 +109,7 @@ public class ImportIntoFileTests : IDisposable
         Assert.Equal(3, result.NewBusStops);
         Assert.Equal(0, result.NewRoutes);
         Assert.Empty(doc.Routes);
-        Assert.Equal(1, doc.Termini.Count);       // only the not-in-service entry a new file starts with
+        Assert.Single(doc.Termini);       // only the not-in-service entry a new file starts with
     }
 
     [Fact]

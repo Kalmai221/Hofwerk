@@ -87,7 +87,7 @@ public sealed class ErrorReport
     public string IssueUrl()
     {
         string Url(string body) =>
-            $"{HofHeader.Url}/issues/new?labels=bug&title={Uri.EscapeDataString(Title)}&body={Uri.EscapeDataString(body)}";
+            $"{HofHeader.RepositoryUrl}/issues/new?labels=bug&title={Uri.EscapeDataString(Title)}&body={Uri.EscapeDataString(body)}";
 
         int lines = Stack.Replace("\r\n", "\n").Split('\n').Length;
         string url = Url(Build(lines));

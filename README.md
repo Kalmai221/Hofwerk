@@ -77,7 +77,7 @@ Hofwerk becomes **V1** when the "Not yet" rows are done. After that it goes beyo
 
 ## Install
 
-Download the installer for your system from the [Releases](../../releases) page. Each one is a single file. On Windows there are
+Download the installer for your system from the Hofwerk website (the Download page; the same files are on the [Releases](../../releases) page). Each one is a single file. On Windows there are
 two: `Hofwerk-Setup-<version>-win-x64.exe` has the app inside (works offline), and `Hofwerk-WebSetup-<version>-win-x64.exe` is
 small and downloads the app while it installs. Both show their steps: Download, Extract, Move files, Cleanup, Close.
 
@@ -127,12 +127,13 @@ pwsh installer/build-installer.ps1 -Rid win-x64 -Version 0.1.0
 | `installer/` | Scripts that build the one-file installers and test them the way a user meets them (UI Automation). |
 | `Presets/` | String presets built into the app. One folder per preset. |
 | `tests/` | Unit tests, including a round-trip check against real OMSI files when OMSI is installed. Run them with `./test.ps1` ([how](tests/README.md)). |
-| `docs/` | Pictures used in this README. |
+| `docs/` | Pictures used in this README and on the website. |
+| `website/` | The website: downloads, what is new, comparison, roadmap. See [website/README.md](website/README.md). |
 
 ## Releases
 
 Pushing a tag such as `V1-dev3` runs the tests, builds the Windows and Linux installers, tests them, and publishes them as a
-GitHub release (`.github/workflows/release.yml`). The release has the installers, the packed app that in-app updates download
+GitHub release (`.github/workflows/release.yml`). The website (`.github/workflows/website.yml`) then copies the newest installers onto its Download page. The release has the installers, the packed app that in-app updates download
 (`Hofwerk-App-*.hwpack`), the packed second Windows version (`Hofwerk-Compat-*.hwpack`), and notes taken from the matching
 section of [CHANGELOG.md](CHANGELOG.md). Move the notes from `[Unreleased]` to a new version heading before tagging; a check on every pull
 request makes sure each version has notes.

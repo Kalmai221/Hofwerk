@@ -37,7 +37,7 @@ public sealed class ErrorWindow : Window
         send.Click += (_, _) =>
         {
             if (!ErrorActions.OpenInBrowser(report.IssueUrl()))
-                Say("The browser could not be opened. The report is in the box below; you can copy it into an issue at " + Hofwerk.Core.Model.HofHeader.Url + "/issues.");
+                Say("The browser could not be opened. The report is in the box below; you can copy it into an issue at " + Hofwerk.Core.Model.HofHeader.RepositoryUrl + "/issues.");
         };
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };

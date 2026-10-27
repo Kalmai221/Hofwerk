@@ -464,7 +464,7 @@
                                     <Run Text="Hofwerk" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
                                     <Run Text="– a modern editor for OMSI 2 .hof files. With thanks to Lukas G., creator of the original HOF Suite, for the inspiration." />
                                 </TextBlock>
-                                <HyperlinkButton Content="Hofwerk on GitHub" NavigateUri="https://github.com/Kalmai221/Hofwerk" Padding="0" />
+                                <HyperlinkButton Content="Hofwerk website" NavigateUri="https://kalmai221.github.io/Hofwerk/" Padding="0" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

@@ -6,7 +6,7 @@ public static class AppInfo
 {
     public const string Name = "Hofwerk";
     public const string Publisher = "Hofwerk contributors";
-    public const string Url = "https://github.com/Kalmai221/Hofwerk";
+    public const string Url = "https://kalmai221.github.io/Hofwerk/";   // the website, shown as the "about" link in Installed apps
 
     /// <summary>The version the installer was built for (from the release tag), without build metadata.</summary>
     public static string Version

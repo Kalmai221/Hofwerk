@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="color-scheme" content="dark light">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:image" content="assets/windows-and-linux.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+<header class="top">
+  <div class="bar">
+    <a class="brand" href="index.html"><img src="assets/hofwerk.png" alt="" width="32" height="32"><span>Hofwerk</span></a>
+    <nav aria-label="Main">{{nav}}</nav>
+  </div>
+</header>
+<main id="main">
+{{content}}
+</main>
+<footer>
+  <div class="wrap">
+    <p><strong>Hofwerk</strong> is free. It is a new editor inspired by the original
+      <a href="https://gitlab.com/omsi2/hof-suite">HOF Suite</a> by Lukas G., and it reads and writes the same <code>.hof</code> files.</p>
+    <p>OMSI 2 is a product of its respective owners. Hofwerk is not affiliated with them.</p>
+    <p class="links"><a href="compare.html">Hofwerk and HOF Suite</a> · <a href="roadmap.html">Roadmap</a> ·
+      <a href="https://github.com/Kalmai221/Hofwerk/issues/new?labels=bug">Report a bug</a> · &copy; {{year}}</p>
+  </div>
+</footer>
+<script src="assets/site.js" defer></script>
+</body>
+</html>

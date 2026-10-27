@@ -127,6 +127,7 @@ public class ErrorReportTests
     [Fact]
     public void The_marker_in_new_files_is_still_the_credit_text()
     {
-        Assert.Equal("https://github.com/Kalmai221/Hofwerk", HofHeader.Url);
+        Assert.Equal("https://kalmai221.github.io/Hofwerk/", HofHeader.Url);
+        Assert.Equal("https://github.com/Kalmai221/Hofwerk", HofHeader.RepositoryUrl);
     }
 }

@@ -25,3 +25,7 @@ desktop.ini
 # Local tooling
 .claude/
 *.tmp
+
+# Python (the website build)
+__pycache__/
+_site/

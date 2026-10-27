@@ -36,7 +36,7 @@ public partial class MainViewModel
     /// <summary>The page of the newer version's release on GitHub (shown as a button in the notes pop-up).</summary>
     public string? UpdatePageUrl => _update?.PageUrl;
 
-    public const string ChangelogUrl = "https://github.com/Kalmai221/Hofwerk/blob/main/CHANGELOG.md";
+    public const string ChangelogUrl = Hofwerk.Core.Model.HofHeader.Url + "changelog.html";
 
     void RaiseWhatsNewChanged()
     {

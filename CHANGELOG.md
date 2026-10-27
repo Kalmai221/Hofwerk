@@ -6,7 +6,9 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
-Nothing yet.
+- **A website.** Downloads, what is new, the comparison with HOF Suite, the roadmap and the string presets guide are on the Hofwerk website, and the installers are copied onto it, so nobody has to go to the code host. Files made with Hofwerk, "Installed apps" and the "What's new" window now link to the website. Only "Report a bug" and the update check still use GitHub.
+- The published Windows app no longer closes when App settings is opened (a layout class had to be marked partial for trimming).
+- Export finds a folder whatever the letter case, also on Linux.
 
 ## [1-dev3] - pre-release
 

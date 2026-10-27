@@ -9,7 +9,11 @@ public static class HofHeader
     /// <summary>Found in a file's opening text, this marks it as made by Hofwerk (so Hofwerk keeps its notes up to date).</summary>
     public const string Marker = "Made with Hofwerk";
 
-    public const string Url = "https://github.com/Kalmai221/Hofwerk";
+    /// <summary>The website: downloads, what is new, help. This is the link people are given (in every file Hofwerk makes, and in Windows' Installed apps).</summary>
+    public const string Url = "https://kalmai221.github.io/Hofwerk/";
+
+    /// <summary>Where bug reports go (the "Report a bug" button opens a new issue here). Nothing else points people to it.</summary>
+    public const string RepositoryUrl = "https://github.com/Kalmai221/Hofwerk";
 
     const int BoxWidth = 77;
 

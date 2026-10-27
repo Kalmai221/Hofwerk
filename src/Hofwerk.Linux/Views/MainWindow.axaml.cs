@@ -124,7 +124,7 @@ public partial class MainWindow : Window
     }
 
     void OnOpenGitHub(object? sender, RoutedEventArgs e) =>
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/Kalmai221/Hofwerk") { UseShellExecute = true });
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Hofwerk.Core.Model.HofHeader.Url) { UseShellExecute = true });
 
     // Double-clicking a defined bus stop adds it to the selected route.
     void OnPickerDoubleTapped(object? sender, TappedEventArgs e) => Vm.AddPickedStopCommand.Execute(null);

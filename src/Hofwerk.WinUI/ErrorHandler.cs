@@ -141,7 +141,7 @@ static class ErrorHandler
         }
     }
 
-    const string HofHeaderUrl = Hofwerk.Core.Model.HofHeader.Url;
+    const string HofHeaderUrl = Hofwerk.Core.Model.HofHeader.RepositoryUrl;
 
     static void Say(TextBlock status, string text)
     {

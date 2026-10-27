@@ -1,0 +1,26 @@
+<section class="help">
+  <h2>Which one do I pick?</h2>
+  <p><strong>Windows installer</strong> has the whole app inside and works without internet, so it is the safe choice. The <strong>online installer</strong>
+    is a smaller file that downloads the app while it installs. <strong>Linux</strong> is one file for 64-bit desktops.</p>
+
+  <h2>Install on Windows</h2>
+  <ol>
+    <li>Run the file you downloaded. Hofwerk installs just for you, so no administrator rights are needed.</li>
+    <li>Windows may say it protects your PC, because the installer is not code-signed yet. Choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+    <li>Tell it where OMSI 2 is if it does not find it, and choose whether you want a desktop shortcut.</li>
+    <li>Hofwerk starts when it is done. To remove it later, use Windows&rsquo; <em>Installed apps</em>.</li>
+  </ol>
+  <p>You need Windows 10 (version 1809) or newer, 64-bit. If the standard version does not run on your computer, Hofwerk offers a second version when it hits an error.</p>
+
+  <h2>Install on Linux</h2>
+  <pre><code>tar -xzf Hofwerk-Setup-*-linux-x64.tar.gz
+./Hofwerk-Setup-*-linux-x64</code></pre>
+  <p>It installs to <code>~/.local/share/hofwerk</code>, adds Hofwerk to your applications menu and a <code>hofwerk</code> command. The menu entry has an <em>Uninstall Hofwerk</em> action.
+    The Linux version is new and has not been tried on many desktops yet, so please tell me if something does not work.</p>
+
+  <h2>Check your download</h2>
+  <p>Each download shows its SHA-256. On Windows, <code>Get-FileHash file.exe</code> in PowerShell prints the same value; on Linux use <code>sha256sum</code>.</p>
+
+  <h2>Updates</h2>
+  <p>Once Hofwerk is installed it looks for new versions when it starts and updates itself from inside the app, so you only need this page once.</p>
+</section>

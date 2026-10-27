@@ -20,7 +20,7 @@ public class NewFileTests : IDisposable
         string text = HofWriter.ToText(NewDoc());
 
         Assert.Contains("Made with Hofwerk", text);
-        Assert.Contains("https://github.com/Kalmai221/Hofwerk", text);
+        Assert.Contains("https://kalmai221.github.io/Hofwerk/", text);
         Assert.DoesNotContain("Created by Hofwerk", text);   // only the credit box, no long explanation
         Assert.DoesNotContain("You do not have to edit it by hand", text);
         Assert.StartsWith("*****", text);
@@ -140,7 +140,7 @@ public class NewFileTests : IDisposable
         vm.Save(path);
 
         string text = File.ReadAllText(path);
-        Assert.Contains("https://github.com/Kalmai221/Hofwerk", text);
+        Assert.Contains("https://kalmai221.github.io/Hofwerk/", text);
         Assert.Equal(1, Count(text, "* Bus stops:"));
         Assert.Equal(1, Count(text, "* Routes:"));
         Assert.Equal(1, Count(text, "Made with Hofwerk"));

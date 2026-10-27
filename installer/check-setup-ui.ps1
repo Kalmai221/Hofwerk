@@ -10,6 +10,8 @@ param(
     [Parameter(Mandatory = $true)][string]$Setup
 )
 $ErrorActionPreference = 'Stop'
+# The window should not ask GitHub for a newer version while it is being tested.
+$env:HOFWERK_NO_UPDATE_CHECK = '1'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 

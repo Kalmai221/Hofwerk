@@ -136,6 +136,11 @@ try {
         }
     }
 
+    # Home offers a way to look for a newer version.
+    if (Select-Item $root 'Home') {
+        Check 'Home has "Check for updates"' (Wait-Named $root 'Check for updates')
+    }
+
     # Route stops are picked from the defined bus stops, not typed.
     if (Select-Item $root 'Routes') {
         Check 'Routes show the "All stops" and "Route stops" lists' ((Wait-Named $root 'All stops') -and (Wait-Named $root 'Route stops'))

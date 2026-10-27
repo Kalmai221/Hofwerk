@@ -16,9 +16,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$isWindows = $Rid -like 'win-*'
-$appProject = if ($isWindows) { 'src/Hofwerk.WinUI/Hofwerk.WinUI.csproj' } else { 'src/Hofwerk.Linux/Hofwerk.Linux.csproj' }
-$ext = if ($isWindows) { '.exe' } else { '' }
+$targetWindows = $Rid -like 'win-*'
+$appProject = if ($targetWindows) { 'src/Hofwerk.WinUI/Hofwerk.WinUI.csproj' } else { 'src/Hofwerk.Linux/Hofwerk.Linux.csproj' }
+$ext = if ($targetWindows) { '.exe' } else { '' }
 
 $work = Join-Path $root "publish/$Rid"
 $dist = Join-Path $root $Output
@@ -33,7 +33,7 @@ function Invoke-Dotnet {
 Write-Host "==> Publishing the app ($Rid)"
 Invoke-Dotnet publish (Join-Path $root $appProject) -c Release -r $Rid --self-contained true "-p:Version=$Version" -p:DebugType=None -o (Join-Path $work 'app')
 
-if ($isWindows -and -not $SkipSmokeTest) {
+if ($targetWindows -and -not $SkipSmokeTest) {
     # A published WinUI app can start as a process and still be broken (missing XAML resources), so use it for real:
     # open a file, visit every page and save. See installer/check-app.ps1.
     Write-Host '==> Checking the published app'
@@ -53,7 +53,7 @@ $final = Join-Path $dist "Hofwerk-Setup-$Version-$Rid$ext"
 $p = Start-Process -FilePath $setup -ArgumentList '--attach', "`"$(Join-Path $work 'app')`"", "`"$final`"" -Wait -PassThru
 if ($p.ExitCode -ne 0) { throw "Packing the app failed with exit code $($p.ExitCode)" }
 
-if (-not $isWindows) {
+if (-not $targetWindows) {
     & chmod +x $final
     # A tarball keeps the executable bit, which a plain download from a release page would lose.
     & tar -czf "$final.tar.gz" -C $dist (Split-Path $final -Leaf)

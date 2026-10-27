@@ -29,7 +29,9 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Hofwerk.ico"));
         if (AppWindow.Presenter is OverlappedPresenter presenter) { presenter.PreferredMinimumWidth = 760; presenter.PreferredMinimumHeight = 520; }
         Root.ActualThemeChanged += (_, _) => ApplyCaptionButtonColors();
-        Root.Loaded += (_, _) =>
+        // After an update download the installer is running; close so it can replace the files.
+        ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => Application.Current.Exit());
+        Root.Loaded += async (_, _) =>
         {
             ApplyCaptionButtonColors();
 
@@ -40,6 +42,8 @@ public sealed partial class MainWindow : Window
                 openPath = null;
                 OpenAndShow(path);
             }
+
+            await ViewModel.CheckForUpdatesOnStartAsync();
         };
         ViewModel.PropertyChanged += (_, e) =>
         {

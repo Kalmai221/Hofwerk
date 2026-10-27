@@ -27,7 +27,11 @@ public partial class MainWindow : Window
 
         // Window width changes how the pages are laid out; the content area width is what matters, not the window's.
         SizeChanged += (_, _) => ApplyAdaptiveLayout();
-        Opened += (_, _) => ApplyAdaptiveLayout();
+        Opened += async (_, _) =>
+        {
+            ApplyAdaptiveLayout();
+            await Vm.CheckForUpdatesOnStartAsync();
+        };
     }
 
     MainViewModel Vm => (MainViewModel)DataContext!;

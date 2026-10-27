@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Hofwerk.Core.Omsi;
+using Hofwerk.Core.Updates;
 using Hofwerk.Installer.Engine;
 
 namespace Hofwerk.Installer;
@@ -17,8 +18,21 @@ public partial class InstallerViewModel : ObservableObject
     readonly string _program = Environment.ProcessPath ?? "";
     string? _installedDirectory;
 
+    // Looking for a newer installer is skipped by --no-update-check (and HOFWERK_NO_UPDATE_CHECK=1), which the test scripts use.
+    bool _checkForNewer;
+    UpdateChecker _updater = new();
+    AppVersion _ownVersion = AppVersion.TryParse(AppInfo.Version) ?? AppVersion.Current;
+    UpdateInfo? _newer;
+    string _downloadFolder = Path.Combine(Path.GetTempPath(), "Hofwerk-update");
+    Action<string> _launchInstaller = UpdateChecker.Launch;
+
+    /// <summary>Raised after a newer installer was started: this window closes so only one installer is open.</summary>
+    public event Action? ExitRequested;
+
     public InstallerViewModel(string[] args)
     {
+        _checkForNewer = !args.Contains("--no-update-check", StringComparer.OrdinalIgnoreCase)
+                         && Environment.GetEnvironmentVariable("HOFWERK_NO_UPDATE_CHECK") != "1";
         bool wantsUninstall = args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase);
         bool hasPayload = _program.Length > 0 && PayloadFile.HasPayload(_program);
 
@@ -50,6 +64,73 @@ public partial class InstallerViewModel : ObservableObject
     }
 
     public SetupMode Mode { get; }
+
+    // ---- A newer version than this installer ------------------------------------------------------------------
+
+    public bool ShowNewerVersion => _newer is not null && Stage == SetupStage.Welcome;
+    public string NewerHeadline => _newer is null ? "" : $"Hofwerk {_newer.Version} is available";
+    public string NewerDetail => _newer is null ? "" : $"This installer has {Version}. Get the newest installer instead, or continue with this one.";
+    [ObservableProperty] public partial bool IsDownloadingNewer { get; set; }
+    [ObservableProperty] public partial double NewerProgress { get; set; }
+    [ObservableProperty] public partial string NewerStatus { get; set; } = "";
+    public bool CanDownloadNewer => !IsDownloadingNewer;
+
+    partial void OnIsDownloadingNewerChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanDownloadNewer));
+        DownloadNewerCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>For tests: a checker that talks to a fake server, a pretend version of this installer, and no real launch.</summary>
+    public void ConfigureUpdates(UpdateChecker updater, AppVersion own, string downloadFolder, Action<string> launchInstaller)
+    {
+        _updater = updater;
+        _ownVersion = own;
+        _downloadFolder = downloadFolder;
+        _launchInstaller = launchInstaller;
+        _checkForNewer = true;
+    }
+
+    /// <summary>Asks GitHub whether a newer release exists. Quiet when it does not or when there is no network.</summary>
+    public async Task CheckForNewerVersionAsync()
+    {
+        if (!_checkForNewer || Mode == SetupMode.Uninstall) return;
+        try { _newer = await _updater.CheckAsync(_ownVersion, includePreReleases: false); }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or IOException) { _newer = null; }
+
+        OnPropertyChanged(nameof(ShowNewerVersion));
+        OnPropertyChanged(nameof(NewerHeadline));
+        OnPropertyChanged(nameof(NewerDetail));
+    }
+
+    /// <summary>Downloads the newest installer, starts it, and closes this one.</summary>
+    [RelayCommand(CanExecute = nameof(CanDownloadNewer))]
+    async Task DownloadNewer()
+    {
+        if (_newer is null) return;
+        IsDownloadingNewer = true;
+        NewerProgress = 0;
+        NewerStatus = "Downloading…";
+        try
+        {
+            var progress = new Progress<double>(p =>
+            {
+                NewerProgress = p;
+                NewerStatus = $"Downloading… {p:P0}";
+            });
+            string installer = await _updater.DownloadAsync(_newer, _downloadFolder, progress);
+            NewerStatus = "Starting the new installer…";
+            _launchInstaller(installer);
+            ExitRequested?.Invoke();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException
+                                       or System.ComponentModel.Win32Exception)
+        {
+            NewerStatus = $"The download failed: {ex.Message} You can still install this version.";
+        }
+        finally { IsDownloadingNewer = false; }
+    }
+
     public string Version => AppInfo.Version;
     public bool SupportsFileAssociation => _platform.SupportsFileAssociation;
 
@@ -113,7 +194,7 @@ public partial class InstallerViewModel : ObservableObject
         foreach (string name in new[]
                  {
                      nameof(ShowWelcome), nameof(ShowInstallOptions), nameof(ShowUninstallOptions), nameof(ShowWorking),
-                     nameof(ShowDone), nameof(ShowLaunch), nameof(ShowFailed), nameof(DoneDetail), nameof(ShowLocation),
+                     nameof(ShowDone), nameof(ShowLaunch), nameof(ShowFailed), nameof(DoneDetail), nameof(ShowLocation), nameof(ShowNewerVersion),
                  })
             OnPropertyChanged(name);
     }

@@ -6,7 +6,15 @@ namespace Hofwerk.Installer;
 
 public partial class MainWindow : Window
 {
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        Opened += async (_, _) =>
+        {
+            Vm.ExitRequested += () => Avalonia.Threading.Dispatcher.UIThread.Post(Close);
+            await Vm.CheckForNewerVersionAsync();
+        };
+    }
 
     InstallerViewModel Vm => (InstallerViewModel)DataContext!;
 

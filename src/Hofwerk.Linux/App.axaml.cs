@@ -21,6 +21,9 @@ public partial class App : Application
             var window = new MainWindow { DataContext = vm };
             desktop.MainWindow = window;
 
+            // After an update download the installer is running; close so it can replace the files.
+            vm.ExitRequested += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => desktop.Shutdown());
+
             // "Open with Hofwerk" and double-clicking a .hof pass the file as the first argument.
             string? file = desktop.Args?.FirstOrDefault(a => a.EndsWith(".hof", StringComparison.OrdinalIgnoreCase) && File.Exists(a));
             if (file is not null && vm.Open(file))

@@ -145,6 +145,44 @@
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
+
+                                <!-- A newer version, when there is one -->
+                                <Border CornerRadius="10" Padding="14,12" Background="#26FFFFFF"
+                                        Visibility="{x:Bind ViewModel.UpdateAvailable, Mode=OneWay}">
+                                    <StackPanel Spacing="8">
+                                        <StackPanel Spacing="1">
+                                            <TextBlock Text="{x:Bind ViewModel.UpdateHeadline, Mode=OneWay}" FontWeight="SemiBold" Foreground="White"
+                                                       AutomationProperties.Name="Update available" />
+                                            <TextBlock Text="{x:Bind ViewModel.UpdateDetail, Mode=OneWay}" Foreground="#E6FFFFFF" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ProgressBar Minimum="0" Maximum="1" Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}"
+                                                     Visibility="{x:Bind ViewModel.IsUpdateBusy, Mode=OneWay}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Update now" Command="{x:Bind ViewModel.InstallUpdateCommand}"
+                                                    AutomationProperties.Name="Update now" />
+                                            <Button Content="What's new" Command="{x:Bind ViewModel.OpenReleasePageCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Version and the update check -->
+                                <StackPanel Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Foreground="#E6FFFFFF" VerticalAlignment="Center">
+                                            <Run Text="Version" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
+                                        </TextBlock>
+                                        <HyperlinkButton Content="Check for updates" Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
+                                                         Padding="4,0" Foreground="White" AutomationProperties.Name="Check for updates" />
+                                        <TextBlock Text="{x:Bind ViewModel.UpdateStatus, Mode=OneWay}" Foreground="#E6FFFFFF" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <CheckBox Content="Check when Hofwerk starts" IsChecked="{x:Bind ViewModel.CheckForUpdatesOnStart, Mode=TwoWay}"
+                                                  MinWidth="0" Foreground="#E6FFFFFF" />
+                                        <CheckBox Content="Include pre-releases" IsChecked="{x:Bind ViewModel.IncludePreReleases, Mode=TwoWay}"
+                                                  MinWidth="0" Foreground="#E6FFFFFF" />
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
                     </Border>

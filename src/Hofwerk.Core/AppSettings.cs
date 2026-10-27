@@ -18,6 +18,12 @@ public sealed class AppSettings
     /// <summary>The OMSI folder chosen in the installer or on Home. Empty means "find it automatically".</summary>
     public string? OmsiFolder { get; set; }
 
+    /// <summary>Look for a newer version when the app starts.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Also offer pre-releases (tags like V0.2-dev1). On by default only when the running version is one.</summary>
+    public bool IncludePreReleases { get; set; }
+
     public static AppSettings Load(string? path = null)
     {
         path ??= DefaultPath;

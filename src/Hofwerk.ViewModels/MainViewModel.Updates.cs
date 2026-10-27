@@ -37,6 +37,8 @@ public partial class MainViewModel
         _downloadFolder = downloadFolder;
         _launchInstaller = launchInstaller;
         OnPropertyChanged(nameof(CurrentVersion));
+        foreach (string name in new[] { nameof(InstalledNotes), nameof(HasInstalledNotes), nameof(InstalledNotesMissing), nameof(InstalledNotesTitle), nameof(InstalledNotesSubtitle) })
+            OnPropertyChanged(name);
     }
 
     public string CurrentVersion => _currentVersion.Text;
@@ -117,6 +119,7 @@ public partial class MainViewModel
         finally
         {
             IsUpdateBusy = false;
+            RaiseWhatsNewChanged();
             OnPropertyChanged(nameof(UpdateAvailable));
             OnPropertyChanged(nameof(UpdateHeadline));
             OnPropertyChanged(nameof(UpdateDetail));

@@ -96,7 +96,8 @@ public class WebPayloadTests : IDisposable
         ex = await Assert.ThrowsAsync<InstallerException>(() => WebPayload.DownloadAsync(shortManifest));
         Assert.Contains("incomplete", ex.Message);
 
-        Assert.Empty(Directory.GetFiles(Path.GetTempPath(), "Hofwerk-setup-*.hwpack").Where(f => File.GetCreationTimeUtc(f) > DateTime.UtcNow.AddMinutes(-2)));
+        var recent = DateTime.UtcNow.AddMinutes(-2);
+        Assert.DoesNotContain(Directory.GetFiles(Path.GetTempPath(), "Hofwerk-setup-*.hwpack"), f => File.GetCreationTimeUtc(f) > recent);
     }
 
     [Theory]

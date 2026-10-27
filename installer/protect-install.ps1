@@ -27,6 +27,7 @@ function Restore-RealInstall([string]$Dir = $script:HofwerkSaved) {
     if (Test-Path $lnk) { Copy-Item $lnk (Join-Path ([Environment]::GetFolderPath('Programs')) 'Hofwerk.lnk') -Force }
     Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item Env:\HOFWERK_TEST_PROTECTED -ErrorAction SilentlyContinue
+    $global:LASTEXITCODE = 0   # reg.exe exits with 1 when a key is missing; that must not become the script's exit code
 }
 
 function Save-RealInstall {
@@ -40,4 +41,5 @@ function Save-RealInstall {
     $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'Hofwerk.lnk'
     if (Test-Path $lnk) { Copy-Item $lnk (Join-Path $dir 'Hofwerk.lnk') }
     $script:HofwerkSaved = $dir
+    $global:LASTEXITCODE = 0   # reg.exe exits with 1 when there is nothing to export (a machine without Hofwerk)
 }

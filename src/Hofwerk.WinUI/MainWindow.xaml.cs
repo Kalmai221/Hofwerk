@@ -10,6 +10,7 @@ using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using Pickers = Microsoft.Windows.Storage.Pickers;
 
 namespace Hofwerk.WinUI;
 
@@ -226,12 +227,56 @@ public sealed partial class MainWindow : Window
 
     async void OnOpen(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker();
-        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+        var picker = new Pickers.FileOpenPicker(AppWindow.Id) { SuggestedFolder = OmsiStartFolder };
         picker.FileTypeFilter.Add(".hof");
         picker.FileTypeFilter.Add("*");
         var file = await picker.PickSingleFileAsync();
         if (file is not null) OpenAndShow(file.Path);
+    }
+
+    // ---- What's new: a pop-up, so App settings stays short -------------------------------------------------------
+
+    void OnShowInstalledNotes(object sender, RoutedEventArgs e) =>
+        _ = ShowNotesAsync(ViewModel.InstalledNotesTitle, ViewModel.InstalledNotesSubtitle, ViewModel.InstalledNotes, MainViewModel.ChangelogUrl, "Full changelog");
+
+    void OnShowUpdateNotes(object sender, RoutedEventArgs e)
+    {
+        // A release without notes of its own just opens its page.
+        if (ViewModel.ShowUpdateNotes) _ = ShowNotesAsync(ViewModel.UpdateNotesTitle, null, ViewModel.UpdateNotes, ViewModel.UpdatePageUrl, "Open on GitHub");
+        else ViewModel.OpenReleasePageCommand.Execute(null);
+    }
+
+    async Task ShowNotesAsync(string title, string? subtitle, IReadOnlyList<Hofwerk.Core.Updates.ChangeGroup> groups, string? pageUrl, string pageButton)
+    {
+        var content = new StackPanel { Spacing = 10 };
+        if (!string.IsNullOrEmpty(subtitle)) content.Children.Add(new TextBlock { Text = subtitle, Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(new ItemsControl { ItemsSource = groups, ItemTemplate = (DataTemplate)PageHost.Resources["ChangeGroupTemplate"] });
+
+        bool hasPage = Uri.TryCreate(pageUrl, UriKind.Absolute, out var page) && page.Scheme == Uri.UriSchemeHttps;
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.ActualTheme,
+            Title = title,
+            Content = new ScrollViewer { Content = content, MaxHeight = 480, Padding = new Thickness(0, 0, 16, 0) },
+            CloseButtonText = "Close",
+            SecondaryButtonText = hasPage ? pageButton : "",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 680.0;
+        if (await dialog.ShowAsync() == ContentDialogResult.Secondary && hasPage) _ = Windows.System.Launcher.LaunchUriAsync(page);
+    }
+
+    // File dialogs start in OMSI's Vehicles folder when it is known, otherwise where Windows would put them.
+    string? OmsiStartFolder => ViewModel.VehiclesFolder is { } vehicles && Directory.Exists(vehicles) ? vehicles : null;
+
+    // A new, empty depot: pick where to put it, and it opens ready to edit.
+    async void OnNew(object sender, RoutedEventArgs e)
+    {
+        var picker = new Pickers.FileSavePicker(AppWindow.Id) { SuggestedFileName = "New depot", SuggestedFolder = OmsiStartFolder };
+        picker.FileTypeChoices.Add("OMSI HOF file", [".hof"]);
+        var file = await picker.PickSaveFileAsync();
+        if (file is not null && ViewModel.CreateNew(file.Path)) SelectSection("settings");
     }
 
     void OnPickEntry(object sender, ItemClickEventArgs e)
@@ -256,9 +301,9 @@ public sealed partial class MainWindow : Window
     // Lets the user point Hofwerk at their OMSI folder (also what the installer's "Where is OMSI 2?" step sets).
     async void OnChangeOmsi(object sender, RoutedEventArgs e)
     {
-        var picker = new FolderPicker();
-        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
-        picker.FileTypeFilter.Add("*");
+        // Starts where the game probably is: its current folder, or the Steam folder that holds games.
+        string? here = ViewModel.OmsiFolder is { } omsi && Directory.Exists(omsi) ? omsi : null;
+        var picker = new Pickers.FolderPicker(AppWindow.Id) { SuggestedFolder = here };
         var folder = await picker.PickSingleFolderAsync();
         if (folder is not null) ViewModel.TrySetOmsiFolder(folder.Path);
     }
@@ -281,9 +326,7 @@ public sealed partial class MainWindow : Window
     {
         if ((sender as FrameworkElement)?.DataContext is not FolderRow row) return;
 
-        var picker = new FolderPicker();
-        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
-        picker.FileTypeFilter.Add("*");
+        var picker = new Pickers.FolderPicker(AppWindow.Id) { SuggestedFolder = OmsiStartFolder };
         var parent = await picker.PickSingleFolderAsync();
         if (parent is not null) ViewModel.CreateFolder(row, parent.Path);
     }
@@ -338,8 +381,13 @@ public sealed partial class MainWindow : Window
 
     async void OnSaveAs(object sender, RoutedEventArgs e)
     {
-        var picker = new FileSavePicker { SuggestedFileName = Path.GetFileNameWithoutExtension(ViewModel.FilePath) };
-        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+        // Saving a copy lands next to the file that is open.
+        string? beside = ViewModel.FilePath is { } open ? Path.GetDirectoryName(open) : null;
+        var picker = new Pickers.FileSavePicker(AppWindow.Id)
+        {
+            SuggestedFileName = Path.GetFileNameWithoutExtension(ViewModel.FilePath),
+            SuggestedFolder = beside is not null && Directory.Exists(beside) ? beside : OmsiStartFolder,
+        };
         picker.FileTypeChoices.Add("OMSI HOF file", [".hof"]);
         var file = await picker.PickSaveFileAsync();
         if (file is not null) Guarded(() => ViewModel.Save(file.Path), "save");

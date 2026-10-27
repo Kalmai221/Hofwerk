@@ -7,15 +7,29 @@ on:
   pull_request:
 
 jobs:
+  # Keeps the changelog in the shape the release notes and the app's "What's new" read.
+  changelog:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: CHANGELOG.md has a place for unreleased changes and every version has notes
+        shell: pwsh
+        run: |
+          $text = Get-Content CHANGELOG.md -Raw
+          if ($text -notmatch '(?m)^##\s+\[Unreleased\]') { throw 'CHANGELOG.md needs a "## [Unreleased]" section for changes that are not released yet.' }
+          foreach ($m in [regex]::Matches($text, '(?m)^##\s+\[([^\]]+)\]') | Where-Object { $_.Groups[1].Value -ne 'Unreleased' }) {
+            ./installer/changelog-section.ps1 -Version $m.Groups[1].Value -Output "$env:RUNNER_TEMP/notes.md" -Strict
+          }
+
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
       - run: dotnet test tests/Hofwerk.Core.Tests/Hofwerk.Core.Tests.csproj -c Release

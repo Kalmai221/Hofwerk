@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Hofwerk.ViewModels;
@@ -41,6 +43,54 @@ public partial class MainViewModel
         {
             if (value is not null && !value.IsActive) UsePreset(value);
         }
+    }
+
+    // ---- Status messages disappear by themselves ----------------------------------------------------------------
+
+    readonly SynchronizationContext? _uiContext = SynchronizationContext.Current;   // the thread that made the view model: the UI
+    CancellationTokenSource? _statusTimer;
+
+    /// <summary>How long a message stays in the status bar before it clears itself.</summary>
+    public TimeSpan StatusLifetime { get; set; } = TimeSpan.FromSeconds(3);
+
+    partial void OnStatusChanged(string value)
+    {
+        _statusTimer?.Cancel();
+        _statusTimer = null;
+        if (string.IsNullOrEmpty(value)) return;
+
+        var timer = _statusTimer = new CancellationTokenSource();
+        _ = Task.Delay(StatusLifetime, timer.Token).ContinueWith(task =>
+        {
+            if (task.IsCanceled) return;
+            // Only the message that started this timer is cleared; a newer one has its own.
+            void Clear() { if (Status == value) Status = ""; }
+            if (_uiContext is null) Clear(); else _uiContext.Post(_ => Clear(), null);
+        }, TaskScheduler.Default);
+    }
+
+    /// <summary>
+    /// Makes a new .hof file at <paramref name="path"/> (named after the file, with the string slots of the active preset and
+    /// Hofwerk's credit and notes in it) and opens it. Returns false, and says why in the status bar, if it can't be written.
+    /// </summary>
+    public bool CreateNew(string path)
+    {
+        try
+        {
+            var doc = Hofwerk.Core.HofFile.CreateNew(
+                System.IO.Path.GetFileNameWithoutExtension(path),
+                Names.Count(Hofwerk.Core.Model.StringSlotKind.Terminus), Names.Count(Hofwerk.Core.Model.StringSlotKind.BusStop));
+            Hofwerk.Core.HofFile.Save(doc, path);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Status = $"Could not create the file: {ex.Message}";
+            return false;
+        }
+
+        if (!Open(path)) return false;
+        Status = $"Created {System.IO.Path.GetFileName(path)}";
+        return true;
     }
 
     public string OmsiFolderText => OmsiFolder ?? "Not found yet. Hofwerk looks for OMSI 2 in your Steam libraries.";

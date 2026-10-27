@@ -85,6 +85,7 @@ public static class HofParser
 
         while (doc.Preamble.Count > 0 && string.IsNullOrWhiteSpace(doc.Preamble[^1]))
             doc.Preamble.RemoveAt(doc.Preamble.Count - 1);
+        doc.HelpComments = doc.Preamble.Any(l => l.Contains(HofHeader.Marker, StringComparison.OrdinalIgnoreCase));
         return doc;
     }
 

@@ -4,7 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Hofwerk.WinUI"
     xmlns:vm="using:Hofwerk.ViewModels"
-    xmlns:core="using:Hofwerk.Core.Omsi">
+    xmlns:core="using:Hofwerk.Core.Omsi"
+    xmlns:notes="using:Hofwerk.Core.Updates">
 
     <Grid x:Name="Root" Background="Transparent" AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop">
         <Grid.RowDefinitions>
@@ -27,6 +28,9 @@
 
         <!-- Command bar -->
         <CommandBar Grid.Row="1" DefaultLabelPosition="Right" Background="Transparent" IsOpen="False" HorizontalAlignment="Left">
+            <AppBarButton Icon="Add" Label="New" Click="OnNew" AutomationProperties.Name="New file">
+                <AppBarButton.KeyboardAccelerators><KeyboardAccelerator Key="N" Modifiers="Control" /></AppBarButton.KeyboardAccelerators>
+            </AppBarButton>
             <AppBarButton Icon="OpenFile" Label="Open" Click="OnOpen" />
             <AppBarButton Icon="Save" Label="Save" Click="OnSave" IsEnabled="{x:Bind local:MainWindow.HasFile(ViewModel.FilePath), Mode=OneWay}" />
             <AppBarButton Icon="SaveLocal" Label="Save as" Click="OnSaveAs" IsEnabled="{x:Bind local:MainWindow.HasFile(ViewModel.FilePath), Mode=OneWay}" />
@@ -106,6 +110,27 @@
 
             <Grid x:Name="PageHost" Padding="24,8,24,16" SizeChanged="OnPageHostSizeChanged">
                 <Grid.Resources>
+                    <!-- Release notes: a group title and its points (used for the installed version and for an update) -->
+                    <DataTemplate x:Key="ChangeGroupTemplate" x:DataType="notes:ChangeGroup">
+                        <StackPanel Spacing="4" Margin="0,0,0,10">
+                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" Visibility="{x:Bind local:MainWindow.NotEmptyVisible(Title)}" />
+                            <ItemsControl ItemsSource="{x:Bind Items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Grid ColumnSpacing="8" Margin="0,2,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="•" Opacity="0.6" />
+                                            <TextBlock Grid.Column="1" Text="{x:Bind}" TextWrapping="Wrap" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+
                     <!-- Used by the Home, Settings and App settings pages -->
                     <Style x:Key="SectionCard" TargetType="Border">
                         <Setter Property="Padding" Value="20" />
@@ -151,6 +176,12 @@
                                             <TextBlock Text="Open a .hof file…" />
                                         </StackPanel>
                                     </Button>
+                                    <Button Click="OnNew" Padding="18,9" AutomationProperties.Name="New .hof file">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE710;" FontSize="16" />
+                                            <TextBlock Text="New .hof file…" />
+                                        </StackPanel>
+                                    </Button>
                                     <Button Click="OnContinue" Padding="18,9" Visibility="{x:Bind ViewModel.HasRecent, Mode=OneWay}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon Glyph="&#xE768;" FontSize="14" />
@@ -173,7 +204,7 @@
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <Button Content="Update now" Command="{x:Bind ViewModel.InstallUpdateCommand}"
                                                     AutomationProperties.Name="Update now" />
-                                            <Button Content="What's new" Command="{x:Bind ViewModel.OpenReleasePageCommand}" />
+                                            <Button Content="What's new" Click="OnShowUpdateNotes" AutomationProperties.Name="What's new in the update" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -311,6 +342,8 @@
                                         <TextBlock Opacity="0.65" TextWrapping="Wrap">
                                             <Run Text="You have Hofwerk" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
                                         </TextBlock>
+                                        <HyperlinkButton Content="{x:Bind ViewModel.InstalledNotesTitle, Mode=OneWay}" Click="OnShowInstalledNotes" Padding="0"
+                                                         AutomationProperties.Name="What's new" />
                                     </StackPanel>
                                     <Button Grid.Column="1" Content="Check for updates" Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
                                             VerticalAlignment="Top" AutomationProperties.Name="Check for updates" />
@@ -331,7 +364,7 @@
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                             <Button Content="Update now" Command="{x:Bind ViewModel.InstallUpdateCommand}" AutomationProperties.Name="Update now" />
-                                            <Button Content="What's new" Command="{x:Bind ViewModel.OpenReleasePageCommand}" />
+                                            <Button Content="What's new" Click="OnShowUpdateNotes" AutomationProperties.Name="What's new in the update" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>

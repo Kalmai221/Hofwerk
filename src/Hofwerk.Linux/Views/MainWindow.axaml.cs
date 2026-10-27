@@ -90,6 +90,24 @@ public partial class MainWindow : Window
         };
     }
 
+    // ---- What's new: a pop-up, so App settings stays short -------------------------------------------------------
+
+    void OnShowInstalledNotes(object? sender, RoutedEventArgs e) =>
+        ShowNotes(Vm.InstalledNotesTitle, Vm.InstalledNotesSubtitle, Vm.InstalledNotes, MainViewModel.ChangelogUrl, "Full changelog");
+
+    void OnShowUpdateNotes(object? sender, RoutedEventArgs e)
+    {
+        // A release without notes of its own just opens its page.
+        if (Vm.ShowUpdateNotes) ShowNotes(Vm.UpdateNotesTitle, null, Vm.UpdateNotes, Vm.UpdatePageUrl, "Open on GitHub");
+        else Vm.OpenReleasePageCommand.Execute(null);
+    }
+
+    void ShowNotes(string title, string? subtitle, IReadOnlyList<Hofwerk.Core.Updates.ChangeGroup> groups, string? pageUrl, string pageButton)
+    {
+        var template = (Avalonia.Controls.Templates.IDataTemplate)this.FindResource("ChangeGroupTemplate")!;
+        _ = new WhatsNewWindow(title, subtitle, groups, template, pageUrl, pageButton).ShowDialog(this);
+    }
+
     void OnOpenGitHub(object? sender, RoutedEventArgs e) =>
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/Kalmai221/Hofwerk") { UseShellExecute = true });
 
@@ -169,12 +187,34 @@ public partial class MainWindow : Window
         }
     }
 
+    // File dialogs start in OMSI's Vehicles folder when it is known, otherwise where the system would put them.
+    Task<IStorageFolder?> VehiclesStart() => StartAt(Vm.VehiclesFolder);
+
+    async Task<IStorageFolder?> StartAt(string? folder) =>
+        folder is { Length: > 0 } && System.IO.Directory.Exists(folder) ? await StorageProvider.TryGetFolderFromPathAsync(folder) : null;
+
+    // A new, empty depot: pick where to put it, and it opens ready to edit.
+    async void OnNew(object? sender, RoutedEventArgs e)
+    {
+        IStorageFolder? start = await VehiclesStart();
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Create a new HOF file",
+            DefaultExtension = "hof",
+            SuggestedFileName = "New depot",
+            SuggestedStartLocation = start,
+            FileTypeChoices = HofFiles,
+        });
+        if (file?.TryGetLocalPath() is { } path && Vm.CreateNew(path)) ShowSettings();
+    }
+
     async void OnOpen(object? sender, RoutedEventArgs e)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open HOF file",
             AllowMultiple = false,
+            SuggestedStartLocation = await VehiclesStart(),
             FileTypeFilter = HofFiles,
         });
         if (files.Count == 1 && files[0].TryGetLocalPath() is { } path)
@@ -212,6 +252,7 @@ public partial class MainWindow : Window
         {
             Title = "Select your OMSI 2 folder",
             AllowMultiple = false,
+            SuggestedStartLocation = await StartAt(Vm.OmsiFolder),
         });
         if (folders.Count == 1 && folders[0].TryGetLocalPath() is { } path) Vm.TrySetOmsiFolder(path);
     }
@@ -229,6 +270,7 @@ public partial class MainWindow : Window
         {
             Title = $"Where should “{row.Name}” be created?",
             AllowMultiple = false,
+            SuggestedStartLocation = await VehiclesStart(),
         });
         if (folders.Count == 1 && folders[0].TryGetLocalPath() is { } parent) Vm.CreateFolder(row, parent);
     }
@@ -285,6 +327,8 @@ public partial class MainWindow : Window
             Title = "Save HOF file",
             DefaultExtension = "hof",
             SuggestedFileName = System.IO.Path.GetFileName(Vm.FilePath),
+            // Saving a copy lands next to the file that is open.
+            SuggestedStartLocation = await StartAt(Vm.FilePath is { } open ? System.IO.Path.GetDirectoryName(open) : null) ?? await VehiclesStart(),
             FileTypeChoices = HofFiles,
         });
         if (file?.TryGetLocalPath() is { } path)

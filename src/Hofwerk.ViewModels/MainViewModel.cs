@@ -305,6 +305,7 @@ public partial class MainViewModel : ViewModelBase
             TerminusStringCount = Math.Max(0, TerminusStringCount),
             BusStopStringCount = Math.Max(0, BusStopStringCount),
             Encoding = _source.Encoding,
+            HelpComments = _source.HelpComments,
         };
         doc.Preamble.AddRange(_source.Preamble);
         doc.SuiteDirectories.AddRange(_source.SuiteDirectories);

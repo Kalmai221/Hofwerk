@@ -162,20 +162,29 @@ public static class PayloadPack
     }
 
     /// <summary>The next <c>length</c> bytes of another stream, as a stream of their own.</summary>
-    sealed class BoundedStream(Stream inner, long length) : Stream
+    sealed class BoundedStream : Stream
     {
-        long _left = length;
+        readonly Stream _inner;
+        readonly long _length;
+        long _left;
+
+        public BoundedStream(Stream inner, long length)
+        {
+            _inner = inner;
+            _length = length;
+            _left = length;
+        }
 
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
-        public override long Length => length;
-        public override long Position { get => length - _left; set => throw new NotSupportedException(); }
+        public override long Length => _length;
+        public override long Position { get => _length - _left; set => throw new NotSupportedException(); }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
             if (_left <= 0) return 0;
-            int read = inner.Read(buffer, offset, (int)Math.Min(count, _left));
+            int read = _inner.Read(buffer, offset, (int)Math.Min(count, _left));
             if (read == 0) throw new EndOfStreamException("The installer package ended early.");
             _left -= read;
             return read;
@@ -186,7 +195,7 @@ public static class PayloadPack
             var buffer = new byte[64 * 1024];
             while (_left > 0)
             {
-                int read = inner.Read(buffer, 0, (int)Math.Min(buffer.Length, _left));
+                int read = _inner.Read(buffer, 0, (int)Math.Min(buffer.Length, _left));
                 if (read == 0) throw new EndOfStreamException("The installer package ended early.");
                 _left -= read;
             }

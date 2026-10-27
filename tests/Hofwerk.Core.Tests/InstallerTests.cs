@@ -328,7 +328,9 @@ public class InstallerTests : IDisposable
     public void Linux_menu_entry_points_at_the_install_folder_and_offers_uninstall()
     {
         string dir = Path.Combine("home", "me", "hofwerk"); // the real installer only runs this on Linux, where this is a / path
+#pragma warning disable CA1416 // LinuxInstaller is for Linux, but this method only builds text, so it is checked on every system
         string entry = LinuxInstaller.BuildDesktopEntry(dir);
+#pragma warning restore CA1416
 
         Assert.Contains($"Exec=\"{Path.Combine(dir, "hofwerk")}\" %f", entry);
         Assert.Contains("Icon=hofwerk", entry);

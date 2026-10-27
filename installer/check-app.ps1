@@ -135,9 +135,35 @@ try {
         }
     }
 
+    # Home and the toolbar can start a new file.
+    if (Select-Item $root 'Home') {
+        Check 'Home offers "New .hof file"' (Wait-Named $root 'New .hof file')
+    }
+    Check 'the toolbar has "New"' ([bool](Find-Named $root 'New file'))
+
     # App settings: updates, OMSI folder and string preset.
     Check "'App settings' can be opened" (Select-Item $root 'App settings')
     Check 'App settings offer "Check for updates"' (Wait-Named $root 'Check for updates')
+    Check 'App settings show "What''s new"' (Wait-Named $root 'What''s new')
+    # The notes open in a pop-up (a window of its own on Linux) and close again.
+    function Find-InAnyWindow([string]$name) {
+        $wins = $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,
+            (New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $p.Id)))
+        foreach ($w in $wins) { $el = Find-Named $w $name; if ($el) { return $el } }
+        return $null
+    }
+    Check "'What's new' opens a pop-up" (Select-Item $root 'What''s new')
+    $listed = $false
+    for ($i = 0; $i -lt 20 -and -not $listed; $i++) { Start-Sleep -Milliseconds 400; $listed = [bool](Find-InAnyWindow 'Added') }
+    Check 'the pop-up lists what was added' $listed
+    # Escape closes it (the window's own "Close" button of the title bar has the same name, so it is not pressed by name).
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+    $gone = $false
+    for ($i = 0; $i -lt 20 -and -not $gone; $i++) { Start-Sleep -Milliseconds 300; $gone = -not (Find-InAnyWindow 'Added') }
+    Check 'the pop-up closes again' $gone
+    $p.Refresh()
+    Check 'the app is still running after the pop-up' (-not $p.HasExited)
     Check 'App settings offer a theme choice' (Wait-Named $root 'Theme')
     Check 'App settings show the OMSI folder choice' (Wait-Named $root 'Change OMSI folder')
     Check 'App settings show the pre-release choice' (Wait-Named $root 'Include pre-releases')

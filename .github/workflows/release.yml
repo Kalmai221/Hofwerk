@@ -14,15 +14,41 @@ env:
   TEST_PROJECT: tests/Hofwerk.Core.Tests/Hofwerk.Core.Tests.csproj
 
 jobs:
+  # The release text is the part of CHANGELOG.md written for this version, plus a guide to the files. Checked first, so a tag with no
+  # notes fails in seconds and not after the builds. The app shows the same text under "What's new".
+  notes:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            CHANGELOG.md
+            installer/changelog-section.ps1
+            .github/release-footer.md
+          sparse-checkout-cone-mode: false
+      - name: Write the release notes from the changelog
+        shell: pwsh
+        run: |
+          # A tag must have notes written for it (-Strict); a manual run of the workflow only gets a fallback text.
+          $options = @{}
+          if ('${{ github.ref_type }}' -eq 'tag') { $options.Strict = $true }
+          ./installer/changelog-section.ps1 -Version '${{ github.ref_name }}' -Output release-notes.md -Footer .github/release-footer.md @options
+          Get-Content release-notes.md
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-notes
+          path: release-notes.md
+
   test:
+    needs: notes
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
       - run: dotnet test ${{ env.TEST_PROJECT }} -c Release
@@ -33,8 +59,8 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
       - name: Build the installer
@@ -56,17 +82,17 @@ jobs:
         shell: powershell
         run: ./installer/test-web-installer.ps1 -WebSetup (Get-ChildItem dist/Hofwerk-WebSetup-*.exe | Select-Object -First 1).FullName -Pack (Get-ChildItem dist/*.hwpack | Select-Object -First 1).FullName -AppFolder publish/win-x64/app
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: installer-windows
           path: dist/*
 
   linux:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
       - name: Build the installer
@@ -81,7 +107,7 @@ jobs:
         shell: pwsh
         run: ./installer/test-installer-linux.ps1 -Archive (Get-ChildItem dist/Hofwerk-Setup-*.tar.gz | Select-Object -First 1).FullName
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: installer-linux
           path: dist/*
@@ -89,15 +115,20 @@ jobs:
   release:
     needs: [windows, linux]
     if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/V')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
+          pattern: installer-*
           path: dist
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+      - uses: actions/download-artifact@v7
+        with:
+          name: release-notes
+          path: notes
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
-          generate_release_notes: true
+          body_path: notes/release-notes.md
           # v1.2.3 is a normal release; anything with a suffix (V0.1-dev1, v1.0.0.0-rc2, ...) is marked as a pre-release.
           prerelease: ${{ contains(github.ref_name, '-') }}

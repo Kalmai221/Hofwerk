@@ -12,6 +12,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The changelog travels inside the app, so "What's new" works offline. -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" LogicalName="CHANGELOG.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Every folder in the repository's Presets/ directory ships inside the app; see Presets/README.md. -->
     <EmbeddedResource Include="..\..\Presets\**\*.json;..\..\Presets\**\*.txt"
                       LogicalName="Presets/%(RecursiveDir)%(Filename)%(Extension)" />

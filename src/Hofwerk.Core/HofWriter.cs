@@ -18,17 +18,24 @@ public static class HofWriter
             o.Add("");
         }
 
+        // Notes go between entries only, never before the first marker: text up there belongs to the opening text.
+        void Note(string[] lines) { if (doc.HelpComments) o.AddRange(lines); }
+
         o.Add("[name]"); o.Add(doc.Name); o.Add("");
+        Note(HofHeader.Notes.ServiceTrip);
         o.Add("[servicetrip]"); o.Add(doc.ServiceTrip); o.Add("");
+        Note(HofHeader.Notes.StringCounts);
         o.Add("stringcount_terminus"); o.Add(doc.TerminusStringCount.ToString()); o.Add("");
         o.Add("stringcount_busstop"); o.Add(doc.BusStopStringCount.ToString()); o.Add("");
 
         if (doc.GlobalStrings.Count > 0)
         {
+            Note(HofHeader.Notes.GlobalStrings);
             o.Add("[global_strings]"); o.Add(doc.GlobalStrings.Count.ToString());
             o.AddRange(doc.GlobalStrings); o.Add("");
         }
 
+        if (doc.Termini.Count > 0) Note(HofHeader.Notes.Destinations);
         foreach (var t in doc.Termini)
         {
             o.Add(t.IsAllExit ? "[addterminus_allexit]" : "[addterminus]");
@@ -38,6 +45,7 @@ public static class HofWriter
             o.Add("");
         }
 
+        if (doc.BusStops.Count > 0) Note(HofHeader.Notes.BusStops);
         foreach (var b in doc.BusStops)
         {
             o.Add("[addbusstop]"); o.Add(b.Name);
@@ -45,6 +53,7 @@ public static class HofWriter
             o.Add("");
         }
 
+        if (doc.Routes.Count > 0) Note(HofHeader.Notes.Routes);
         foreach (var r in doc.Routes)
         {
             o.Add("[infosystem_trip]"); o.Add(r.Ident); o.Add(r.Name); o.Add(r.TerminusIdent); o.Add(r.Line); o.Add("");
@@ -70,6 +79,32 @@ public static class HofWriter
 
 public static class HofFile
 {
+    /// <summary>
+    /// A new, empty depot: one "not in service" destination, the string slots of the chosen preset, and the credit and
+    /// a credit with a link to Hofwerk at the top of the file.
+    /// </summary>
+    public static HofDocument CreateNew(string name, int terminusStrings, int busStopStrings)
+    {
+        name = string.IsNullOrWhiteSpace(name) ? "New depot" : name.Trim();
+        var doc = new HofDocument
+        {
+            Name = name,
+            ServiceTrip = "Not in service",
+            TerminusStringCount = Math.Max(0, terminusStrings),
+            BusStopStringCount = Math.Max(0, busStopStrings),
+            HelpComments = true,
+        };
+        doc.Preamble.AddRange(HofHeader.Lines());
+
+        // Folder names (announcements, roll sign, side plate) start as the depot name; the IBIS codes as "00".
+        doc.GlobalStrings.AddRange([name, name, name, "00", "00", "00"]);
+
+        var notInService = new Terminus { Ident = "1000", IsAllExit = true, Strings = Enumerable.Repeat("", doc.TerminusStringCount).ToList() };
+        if (notInService.Strings.Count > 0) notInService.Strings[0] = "Not in service";
+        doc.Termini.Add(notInService);
+        return doc;
+    }
+
     static readonly byte[] Utf8Bom = [0xEF, 0xBB, 0xBF];
 
     public static HofDocument Load(string path)

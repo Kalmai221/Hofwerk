@@ -5,6 +5,12 @@ namespace Hofwerk.Core.Model;
 /// <summary>An OMSI .hof file: destinations (termini), bus stops and routes (trips).</summary>
 public sealed class HofDocument
 {
+    /// <summary>
+    /// True for files made by Hofwerk (their opening text carries <see cref="HofHeader.Marker"/>): short plain-words notes are
+    /// written between the groups of entries. OMSI ignores them, and Hofwerk puts them back in each time it saves.
+    /// </summary>
+    public bool HelpComments { get; set; }
+
     /// <summary>Free text found before the first keyword (kept verbatim).</summary>
     public List<string> Preamble { get; } = [];
     public List<string> SuiteDirectories { get; } = [];

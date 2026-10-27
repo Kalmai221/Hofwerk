@@ -41,7 +41,7 @@ public class PresetImporterTests : IDisposable
     [Fact]
     public void The_preset_is_named_after_the_file_by_default()
     {
-        Assert.Equal("My ibis strings", PresetImporter.SuggestName(@"C:\Downloads\my_ibis-strings.txt"));
+        Assert.Equal("My ibis strings", PresetImporter.SuggestName(Path.Combine(Path.GetTempPath(), "Downloads", "my_ibis-strings.txt")));
         Assert.Equal("My strings", PresetImporter.SuggestName(".txt"));
     }
 
@@ -147,7 +147,7 @@ public class PresetImporterTests : IDisposable
     [Fact]
     public void The_questions_start_with_a_guess_and_show_what_was_understood()
     {
-        var vm = new PresetImportViewModel("0 = IBIS 1\n1 = IBIS 2\n", @"C:\x\ibis_names.txt");
+        var vm = new PresetImportViewModel("0 = IBIS 1\n1 = IBIS 2\n", Path.Combine(Path.GetTempPath(), "ibis_names.txt"));
 
         Assert.Equal(StringFileLayout.Numbered, vm.Layout);
         Assert.Equal("Ibis names", vm.Name);

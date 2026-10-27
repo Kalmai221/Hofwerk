@@ -50,11 +50,12 @@ public static class HofExporter
         name = name.Trim();
         if (!VehicleFolderIndex.IsValidFolderName(name) || !Directory.Exists(vehiclesFolder)) return null;
 
-        string direct = Path.Combine(vehiclesFolder, name);
-        if (Directory.Exists(direct)) return direct;
-
+        // Letter case never matters (OMSI is a Windows game; on Linux the file system would otherwise tell "MS_G3Pack" from "ms_g3pack").
         var options = new EnumerationOptions { IgnoreInaccessible = true, MatchCasing = MatchCasing.CaseInsensitive };
-        foreach (string dir in Directory.EnumerateDirectories(vehiclesFolder))
+        var top = Directory.EnumerateDirectories(vehiclesFolder, "*", options).ToList();
+        if (top.FirstOrDefault(d => string.Equals(Path.GetFileName(d), name, StringComparison.OrdinalIgnoreCase)) is { } direct) return direct;
+
+        foreach (string dir in top)
             if (Directory.EnumerateDirectories(dir, name, options).FirstOrDefault() is { } inner) return inner;
         return null;
     }

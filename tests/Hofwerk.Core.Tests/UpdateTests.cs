@@ -319,3 +319,111 @@ public class InstallerUpdateTests : IDisposable
             throw new HttpRequestException("offline");
     }
 }
+
+public class PackUpdateTests : IDisposable
+{
+    readonly string _dir = Path.Combine(Path.GetTempPath(), "hofwerk-packupdate-" + Guid.NewGuid().ToString("N"));
+
+    public PackUpdateTests() => Directory.CreateDirectory(_dir);
+    public void Dispose() => Directory.Delete(_dir, recursive: true);
+
+    sealed class Fake(string json, byte[] pack, string checksumText, List<string> requests) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            string url = request.RequestUri!.ToString();
+            requests.Add(url);
+            HttpContent body = url.StartsWith("https://api.github.com") ? new StringContent(json)
+                : url.EndsWith(".sha256") ? new StringContent(checksumText)
+                : url.EndsWith(".hwpack") ? new ByteArrayContent(pack)
+                : new ByteArrayContent([9, 9, 9]);   // the full installer
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = body });
+        }
+    }
+
+    static string Release(string version, int packSize, bool withPack = true)
+    {
+        string baseUrl = $"https://github.com/x/y/releases/download/v{version}";
+        string installer = $$"""{"name":"Hofwerk-Setup-{{version}}-win-x64.exe","size":3,"browser_download_url":"{{baseUrl}}/Hofwerk-Setup-{{version}}-win-x64.exe"}""";
+        string pack = $$"""{"name":"Hofwerk-App-{{version}}-win-x64.hwpack","size":{{packSize}},"browser_download_url":"{{baseUrl}}/Hofwerk-App-{{version}}-win-x64.hwpack"}""";
+        string sum = $$"""{"name":"Hofwerk-App-{{version}}-win-x64.hwpack.sha256","size":80,"browser_download_url":"{{baseUrl}}/Hofwerk-App-{{version}}-win-x64.hwpack.sha256"}""";
+        string assets = withPack ? $"{installer},{pack},{sum}" : installer;
+        return $$"""[{"tag_name":"v{{version}}","html_url":"https://github.com/x/y","draft":false,"prerelease":false,"assets":[""" + assets + "]}]";
+    }
+
+    static string Sha(byte[] data) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(data)).ToLowerInvariant();
+
+    [Fact]
+    public async Task A_release_with_the_packed_app_is_downloaded_as_just_that_and_checked()
+    {
+        byte[] pack = Enumerable.Range(0, 3000).Select(i => (byte)(i % 200)).ToArray();
+        var requests = new List<string>();
+        var checker = new UpdateChecker(new HttpClient(new Fake(Release("0.2.0", pack.Length), pack, Sha(pack) + "  Hofwerk-App-0.2.0-win-x64.hwpack\n", requests)), runtimeId: "win-x64");
+
+        var update = (await checker.CheckAsync(AppVersion.TryParse("0.1.0")!, false))!;
+        Assert.NotNull(update.Pack);
+        Assert.Equal(pack.Length, update.DownloadSize);   // the smaller download is what is reported
+
+        var download = await checker.DownloadUpdateAsync(update, _dir, canApplyInPlace: true);
+
+        Assert.True(download.IsPack);
+        Assert.Equal(pack, File.ReadAllBytes(download.Path));
+        Assert.DoesNotContain(requests, r => r.Contains("Hofwerk-Setup-"));   // the full installer is not downloaded
+    }
+
+    [Fact]
+    public async Task A_pack_that_does_not_match_its_checksum_is_refused_and_removed()
+    {
+        byte[] pack = [1, 2, 3, 4, 5];
+        var checker = new UpdateChecker(new HttpClient(new Fake(Release("0.2.0", 5), pack, Sha([9, 9]) + "  x\n", [])), runtimeId: "win-x64");
+        var update = (await checker.CheckAsync(AppVersion.TryParse("0.1.0")!, false))!;
+
+        var ex = await Assert.ThrowsAsync<IOException>(() => checker.DownloadUpdateAsync(update, _dir, canApplyInPlace: true));
+
+        Assert.Contains("checksum", ex.Message);
+        Assert.Empty(Directory.GetFiles(_dir, "*.hwpack"));
+    }
+
+    [Fact]
+    public async Task Without_a_pack_or_without_an_installed_setup_the_full_installer_is_used()
+    {
+        var noPack = new UpdateChecker(new HttpClient(new Fake(Release("0.2.0", 5, withPack: false), [], "", [])), runtimeId: "win-x64");
+        var update = (await noPack.CheckAsync(AppVersion.TryParse("0.1.0")!, false))!;
+        Assert.Null(update.Pack);
+        Assert.False((await noPack.DownloadUpdateAsync(update, _dir, canApplyInPlace: true)).IsPack);
+
+        byte[] pack = [1, 2, 3, 4, 5];
+        var withPack = new UpdateChecker(new HttpClient(new Fake(Release("0.2.0", 5), pack, Sha(pack), [])), runtimeId: "win-x64");
+        update = (await withPack.CheckAsync(AppVersion.TryParse("0.1.0")!, false))!;
+        Assert.False((await withPack.DownloadUpdateAsync(update, _dir, canApplyInPlace: false)).IsPack);   // e.g. a portable copy with no setup beside it
+    }
+
+    [Fact]
+    public async Task The_view_model_applies_the_pack_itself_then_restarts_with_the_open_file_and_closes()
+    {
+        byte[] pack = Enumerable.Range(0, 500).Select(i => (byte)i).ToArray();
+        var checker = new UpdateChecker(new HttpClient(new Fake(Release("0.2.0", pack.Length), pack, Sha(pack), [])), runtimeId: "win-x64");
+        var settings = AppSettings.Load(Path.Combine(_dir, "settings.json"));
+        var vm = new MainViewModel(settings, Path.Combine(_dir, "presets"));
+        string? appliedVersion = null;
+        byte[]? appliedBytes = null;
+        string? restartedWith = "not called";
+        var launchedInstaller = new List<string>();
+        vm.ConfigureUpdates(checker, AppVersion.TryParse("0.1.0")!, Path.Combine(_dir, "dl"), launchedInstaller.Add,
+            applyPack: (file, version) => { appliedBytes = File.ReadAllBytes(file); appliedVersion = version; },
+            restart: file => restartedWith = file);
+        bool closed = false;
+        vm.ExitRequested += () => closed = true;
+
+        await vm.CheckForUpdatesCommand.ExecuteAsync(null);
+        Assert.Contains("download", vm.UpdateDetail);
+        await vm.InstallUpdateCommand.ExecuteAsync(null);
+
+        Assert.Equal("0.2.0", appliedVersion);
+        Assert.Equal(pack, appliedBytes);
+        Assert.Null(restartedWith);                 // no file was open
+        Assert.Empty(launchedInstaller);            // no separate installer is involved
+        Assert.Empty(Directory.GetFiles(Path.Combine(_dir, "dl")));   // the downloaded file is cleaned up
+        Assert.True(closed);
+    }
+}

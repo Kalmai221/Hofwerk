@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Unpacks an update into the install folder from inside the app (the installer and the app share this code). -->
+    <ProjectReference Include="..\Hofwerk.Installer.Engine\Hofwerk.Installer.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Every folder in the repository's Presets/ directory ships inside the app; see Presets/README.md. -->
     <EmbeddedResource Include="..\..\Presets\**\*.json;..\..\Presets\**\*.txt"
                       LogicalName="Presets/%(RecursiveDir)%(Filename)%(Extension)" />

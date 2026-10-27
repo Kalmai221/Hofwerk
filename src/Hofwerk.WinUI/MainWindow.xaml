@@ -37,10 +37,13 @@
             <NavigationView.MenuItems>
                 <NavigationViewItemHeader Content="START" />
                 <NavigationViewItem Content="Home" Tag="home" Icon="Home" />
-                <NavigationViewItem Content="String Presets" Tag="presets" Icon="Library" />
 
+                <!-- A line between the start pages and the editor pages, also visible when the sidebar is collapsed -->
+                <NavigationViewItemSeparator />
                 <NavigationViewItemHeader Content="EDITOR" />
-                <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
+                <NavigationViewItem Content="Settings" Tag="settings" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Destinations" Tag="destinations" Icon="Switch" IsEnabled="{x:Bind ViewModel.HasFile, Mode=OneWay}">
                     <NavigationViewItem.InfoBadge>
                         <InfoBadge Value="{x:Bind ViewModel.Termini.Count, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasFile, Mode=OneWay}" />
@@ -63,6 +66,16 @@
                     </NavigationViewItem.InfoBadge>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
+
+            <!-- Settings of Hofwerk itself, at the bottom of the sidebar -->
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItemSeparator />
+                <NavigationViewItem Content="App settings" Tag="appsettings" Icon="Setting" AutomationProperties.Name="App settings">
+                    <NavigationViewItem.InfoBadge>
+                        <InfoBadge Style="{ThemeResource AttentionDotInfoBadgeStyle}" Visibility="{x:Bind ViewModel.UpdateAvailable, Mode=OneWay}" />
+                    </NavigationViewItem.InfoBadge>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
 
             <!-- The file being edited, always in view -->
             <NavigationView.PaneFooter>
@@ -93,7 +106,7 @@
 
             <Grid x:Name="PageHost" Padding="24,8,24,16" SizeChanged="OnPageHostSizeChanged">
                 <Grid.Resources>
-                    <!-- Used by the Home, Settings and String Presets pages -->
+                    <!-- Used by the Home, Settings and App settings pages -->
                     <Style x:Key="SectionCard" TargetType="Border">
                         <Setter Property="Padding" Value="20" />
                         <Setter Property="CornerRadius" Value="12" />
@@ -128,7 +141,7 @@
                             <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
                                 <StackPanel Spacing="2">
                                     <TextBlock Text="Welcome to Hofwerk" Style="{ThemeResource TitleTextBlockStyle}" Foreground="White" />
-                                    <TextBlock Text="Edit destinations, bus stops and routes for OMSI. You can also drop a .hof file onto this window."
+                                    <TextBlock Text="Edit destinations, bus stops and routes for OMSI. Drop a .hof file onto this window to open it."
                                                TextWrapping="Wrap" Foreground="#E6FFFFFF" />
                                 </StackPanel>
                                 <StackPanel x:Name="HeroButtons" Orientation="Horizontal" Spacing="10">
@@ -164,25 +177,6 @@
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
-
-                                <!-- Version and the update check -->
-                                <StackPanel Spacing="4">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <TextBlock Foreground="#E6FFFFFF" VerticalAlignment="Center">
-                                            <Run Text="Version" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
-                                        </TextBlock>
-                                        <HyperlinkButton Content="Check for updates" Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
-                                                         Padding="4,0" Foreground="White" AutomationProperties.Name="Check for updates" />
-                                        <TextBlock Text="{x:Bind ViewModel.UpdateStatus, Mode=OneWay}" Foreground="#E6FFFFFF" VerticalAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="16">
-                                        <CheckBox Content="Check when Hofwerk starts" IsChecked="{x:Bind ViewModel.CheckForUpdatesOnStart, Mode=TwoWay}"
-                                                  MinWidth="0" Foreground="#E6FFFFFF" />
-                                        <CheckBox Content="Include pre-releases" IsChecked="{x:Bind ViewModel.IncludePreReleases, Mode=TwoWay}"
-                                                  MinWidth="0" Foreground="#E6FFFFFF" />
-                                    </StackPanel>
-                                </StackPanel>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -287,61 +281,125 @@
                     </Border>
                 </Grid>
 
-                <!-- Preset library -->
-                <ScrollViewer x:Name="PresetsPanel" Visibility="Collapsed">
-                    <StackPanel Spacing="12" MaxWidth="820" HorizontalAlignment="Left">
-                        <TextBlock Text="String Presets" Style="{ThemeResource TitleTextBlockStyle}" />
-                        <TextBlock TextWrapping="Wrap" Opacity="0.75"
-                                   Text="A preset names the string slots of destinations and bus stops, so “String 7” becomes something you can recognise. Pick the one that matches your bus." />
+                <!-- App settings: Hofwerk itself, not the open file -->
+                <ScrollViewer x:Name="AppSettingsPanel" Visibility="Collapsed">
+                    <StackPanel Spacing="16" MaxWidth="820" HorizontalAlignment="Left" Padding="0,0,16,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="App settings" Style="{ThemeResource TitleTextBlockStyle}" AutomationProperties.Name="App settings title" />
+                            <TextBlock Text="Preferences for Hofwerk itself." Opacity="0.7" />
+                        </StackPanel>
 
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.Presets}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:PresetViewModel">
-                                    <Border Padding="20" Margin="0,0,0,12" CornerRadius="12" BorderThickness="1"
-                                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                                        <Grid ColumnSpacing="16">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Spacing="4">
-                                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                                    <TextBlock Text="{x:Bind Name}" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                                                    <TextBlock Text="{x:Bind Credit}" Opacity="0.7" VerticalAlignment="Bottom" Margin="0,0,0,2" />
-                                                </StackPanel>
-                                                <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap" />
-                                                <TextBlock Opacity="0.6" FontSize="12">
-                                                    <Run Text="{x:Bind Source}" /><Run Text=" · " /><Run Text="{x:Bind SlotSummary}" />
-                                                </TextBlock>
-                                                <HyperlinkButton Content="Source" Padding="0" Click="OnPresetLink"
-                                                                 Visibility="{x:Bind HasUrl}" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <Button Content="Use this preset" Click="OnUsePreset"
-                                                        Visibility="{x:Bind local:MainWindow.Not(IsActive), Mode=OneWay}" />
-                                                <TextBlock Text="✓ In use" FontWeight="SemiBold" HorizontalAlignment="Center"
-                                                           Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
-                                                           Visibility="{x:Bind IsActive, Mode=OneWay}" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <Border Padding="20" CornerRadius="12" BorderThickness="1"
-                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Add your own" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                                <TextBlock TextWrapping="Wrap" Opacity="0.75"
-                                           Text="Drop a folder with a preset.json and a strings.txt into your presets folder, then refresh. To share a preset with everyone, add the same folder to Presets/ in the project and open a pull request; the Presets/README.md explains how." />
-                                <TextBlock Text="{x:Bind ViewModel.UserPresetsFolder}" Opacity="0.6" FontSize="12" IsTextSelectionEnabled="True" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Content="Open folder" Click="OnOpenPresetsFolder" />
-                                    <Button Content="Refresh" Click="OnRefreshPresets" />
+                        <!-- Appearance -->
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Appearance" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Text="Light or dark, or follow Windows." Opacity="0.65" />
                                 </StackPanel>
+                                <ComboBox Header="Theme" ItemsSource="{x:Bind ViewModel.ThemeChoices}" SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}"
+                                          DisplayMemberPath="Label" MinWidth="240" AutomationProperties.Name="Theme" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Updates -->
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Updates" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                        <TextBlock Opacity="0.65" TextWrapping="Wrap">
+                                            <Run Text="You have Hofwerk" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Check for updates" Command="{x:Bind ViewModel.CheckForUpdatesCommand}"
+                                            VerticalAlignment="Top" AutomationProperties.Name="Check for updates" />
+                                </Grid>
+
+                                <TextBlock Text="{x:Bind ViewModel.UpdateStatus, Mode=OneWay}" TextWrapping="Wrap"
+                                           Visibility="{x:Bind local:MainWindow.NotEmptyVisible(ViewModel.UpdateStatus), Mode=OneWay}" />
+                                <ProgressBar Minimum="0" Maximum="1" Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}"
+                                             Visibility="{x:Bind ViewModel.IsUpdateBusy, Mode=OneWay}" />
+
+                                <Border CornerRadius="8" Padding="14,12" Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                        Visibility="{x:Bind ViewModel.UpdateAvailable, Mode=OneWay}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="1">
+                                            <TextBlock Text="{x:Bind ViewModel.UpdateHeadline, Mode=OneWay}" FontWeight="SemiBold" Foreground="White" />
+                                            <TextBlock Text="{x:Bind ViewModel.UpdateDetail, Mode=OneWay}" Foreground="#E6FFFFFF" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Update now" Command="{x:Bind ViewModel.InstallUpdateCommand}" AutomationProperties.Name="Update now" />
+                                            <Button Content="What's new" Command="{x:Bind ViewModel.OpenReleasePageCommand}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <ToggleSwitch Header="Look for updates when Hofwerk starts" OnContent="On" OffContent="Off"
+                                              IsOn="{x:Bind ViewModel.CheckForUpdatesOnStart, Mode=TwoWay}" AutomationProperties.Name="Check when Hofwerk starts" />
+                                <ToggleSwitch Header="Include pre-releases (early versions that may have bugs)" OnContent="On" OffContent="Off"
+                                              IsOn="{x:Bind ViewModel.IncludePreReleases, Mode=TwoWay}" AutomationProperties.Name="Include pre-releases" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- OMSI 2 -->
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="OMSI 2" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Text="Where your game is. Hofwerk lists its .hof files on Home and checks the folders named in your depot file." Opacity="0.65" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.OmsiFolderText, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Change folder…" Click="OnChangeOmsi" AutomationProperties.Name="Change OMSI folder" />
+                                    <Button Content="Find it automatically" Command="{x:Bind ViewModel.FindOmsiAutomaticallyCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- String presets -->
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="String presets" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Opacity="0.65" TextWrapping="Wrap" Text="Names the string slots of destinations and bus stops, so “String 7” becomes something you can recognise. Pick the one that matches your bus." />
+                                </StackPanel>
+                                <ComboBox ItemsSource="{x:Bind ViewModel.Presets}" SelectedItem="{x:Bind ViewModel.SelectedPreset, Mode=TwoWay}"
+                                          DisplayMemberPath="Name" HorizontalAlignment="Stretch" AutomationProperties.Name="String preset" />
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{x:Bind ViewModel.SelectedPreset.Description, Mode=OneWay}" TextWrapping="Wrap" />
+                                    <TextBlock Opacity="0.6" FontSize="12">
+                                        <Run Text="{x:Bind ViewModel.SelectedPreset.Credit, Mode=OneWay}" /> <Run Text="·" />
+                                        <Run Text="{x:Bind ViewModel.SelectedPreset.Source, Mode=OneWay}" /> <Run Text="·" />
+                                        <Run Text="{x:Bind ViewModel.SelectedPreset.SlotSummary, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <HyperlinkButton Content="Source" Padding="0" Click="OnActivePresetLink"
+                                                     Visibility="{x:Bind ViewModel.SelectedPreset.HasUrl, Mode=OneWay}" />
+                                </StackPanel>
+                                <Expander Header="Add your own" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock TextWrapping="Wrap" Opacity="0.75"
+                                                   Text="Drop a folder with a preset.json and a strings.txt into your presets folder, then refresh. To share a preset with everyone, add the same folder to Presets/ in the project and open a pull request; the Presets/README.md explains how." />
+                                        <TextBlock Text="{x:Bind ViewModel.UserPresetsFolder}" Opacity="0.6" FontSize="12" IsTextSelectionEnabled="True" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Open folder" Click="OnOpenPresetsFolder" />
+                                            <Button Content="Refresh" Click="OnRefreshPresets" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Expander>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- About -->
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="About" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                <TextBlock TextWrapping="Wrap" Opacity="0.8">
+                                    <Run Text="Hofwerk" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
+                                    <Run Text="– a modern editor for OMSI 2 .hof files. With thanks to Lukas G., creator of the original HOF Suite, for the inspiration." />
+                                </TextBlock>
+                                <HyperlinkButton Content="Hofwerk on GitHub" NavigateUri="https://github.com/Kalmai221/Hofwerk" Padding="0" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -802,5 +860,8 @@
             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.FileDisplayPath, Mode=OneWay}" Opacity="0.6" TextTrimming="CharacterEllipsis"
                        TextAlignment="Right" HorizontalAlignment="Right" ToolTipService.ToolTip="{x:Bind ViewModel.FilePath, Mode=OneWay}" />
         </Grid>
+
+        <!-- Laid over the window for a moment while the theme changes, so the change fades instead of flipping (see Motion.cs) -->
+        <Border x:Name="ThemeFade" Grid.RowSpan="4" IsHitTestVisible="False" Visibility="Collapsed" />
     </Grid>
 </Window>

@@ -21,6 +21,20 @@ public partial class App : Application
             var window = new MainWindow { DataContext = vm };
             desktop.MainWindow = window;
 
+            // The theme chosen in App settings ("System" follows the desktop).
+            void SetTheme(string id) => RequestedThemeVariant = id switch
+            {
+                "Light" => Avalonia.Styling.ThemeVariant.Light,
+                "Dark" => Avalonia.Styling.ThemeVariant.Dark,
+                _ => Avalonia.Styling.ThemeVariant.Default,
+            };
+            SetTheme(vm.ThemeId);
+            vm.ThemeChanged += id =>
+            {
+                if (window.Content is Avalonia.Controls.Control content) Motion.ThemeChange(content, () => SetTheme(id));
+                else SetTheme(id);
+            };
+
             // After an update download the installer is running; close so it can replace the files.
             vm.ExitRequested += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => desktop.Shutdown());
 

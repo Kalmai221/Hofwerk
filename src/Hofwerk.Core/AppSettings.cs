@@ -18,6 +18,9 @@ public sealed class AppSettings
     /// <summary>The OMSI folder chosen in the installer or on Home. Empty means "find it automatically".</summary>
     public string? OmsiFolder { get; set; }
 
+    /// <summary>"System" (follow Windows or the desktop), "Light" or "Dark".</summary>
+    public string Theme { get; set; } = "System";
+
     /// <summary>Look for a newer version when the app starts.</summary>
     public bool CheckForUpdates { get; set; } = true;
 

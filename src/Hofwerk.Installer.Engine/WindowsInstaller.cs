@@ -30,6 +30,13 @@ public sealed class WindowsInstaller : PlatformInstaller
         return base.FindInstalledDirectory();
     }
 
+    // An update keeps what is already set up: the desktop shortcut and the "Open with" entry.
+    public override InstallRequest KeepExistingOptions(string directory, string? version)
+    {
+        using var assoc = Registry.CurrentUser.OpenSubKey($@"Software\Classes\{ProgId}");
+        return new InstallRequest(directory, File.Exists(DesktopLink), assoc is not null, Version: version);
+    }
+
     protected override void Register(InstallRequest request, string directory, long sizeInBytes)
     {
         string exe = Path.Combine(directory, ProgramName);
@@ -40,7 +47,7 @@ public sealed class WindowsInstaller : PlatformInstaller
         using (var key = Registry.CurrentUser.CreateSubKey(UninstallKey))
         {
             key.SetValue("DisplayName", AppInfo.Name);
-            key.SetValue("DisplayVersion", AppInfo.Version);
+            key.SetValue("DisplayVersion", request.Version ?? AppInfo.Version);
             key.SetValue("Publisher", AppInfo.Publisher);
             key.SetValue("URLInfoAbout", AppInfo.Url);
             key.SetValue("InstallLocation", directory);
@@ -66,8 +73,19 @@ public sealed class WindowsInstaller : PlatformInstaller
         }
     }
 
+    static string Normalize(string path) => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
     protected override void Unregister(string directory)
     {
+        // The entries (Start menu, Installed apps, "Open with") belong to the copy that registered last. Removing another copy
+        // that happens to live elsewhere must not take them away from it.
+        using (var current = Registry.CurrentUser.OpenSubKey(UninstallKey))
+        {
+            if (current?.GetValue("InstallLocation") is string owner
+                && !string.Equals(Normalize(owner), Normalize(directory), StringComparison.OrdinalIgnoreCase))
+                return;
+        }
+
         DeleteIfExists(StartMenuLink);
         DeleteIfExists(DesktopLink);
 

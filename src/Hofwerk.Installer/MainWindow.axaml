@@ -5,7 +5,7 @@
         x:DataType="local:InstallerViewModel"
         Title="Hofwerk Setup"
         Icon="/Assets/Hofwerk.ico"
-        Width="820" Height="540" CanResize="False"
+        Width="900" Height="540" CanResize="False"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
@@ -216,10 +216,12 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="3" ColumnDefinitions="Auto,*">
-                    <Button Content="Back" Command="{Binding BackToWelcomeCommand}" />
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                <Grid Grid.Row="3" ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="Back" Command="{Binding BackToWelcomeCommand}" />
                         <Button Content="Skip" Command="{Binding SkipLocationCommand}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
                         <Button Content="{Binding LocationChooseLabel}" Click="OnChooseOmsi" />
                         <Button Content="{Binding LocationUseLabel}" Classes="primary" Command="{Binding UseLocationCommand}"
                                 IsVisible="{Binding LocationHasPath}" />

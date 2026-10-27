@@ -37,6 +37,7 @@
 
             <!-- Line icons, 24x24 grid -->
             <StreamGeometry x:Key="IconSettings">M4,6 H20 M4,12 H20 M4,18 H20 M9,3.5 V8.5 M15,9.5 V14.5 M7,15.5 V20.5</StreamGeometry>
+            <StreamGeometry x:Key="IconGear">M9,12 A3,3 0 1 0 15,12 A3,3 0 1 0 9,12 M12,3 V6 M12,18 V21 M3,12 H6 M18,12 H21 M5.6,5.6 L7.8,7.8 M16.2,16.2 L18.4,18.4 M5.6,18.4 L7.8,16.2 M16.2,7.8 L18.4,5.6</StreamGeometry>
             <StreamGeometry x:Key="IconSign">M4,5 H20 V15 H4 Z M12,15 V20 M8,20 H16</StreamGeometry>
             <StreamGeometry x:Key="IconPin">M12,21 C12,21 5,14.5 5,9.5 A7,7 0 0 1 19,9.5 C19,14.5 12,21 12,21 Z M9.5,9.5 A2.5,2.5 0 1 0 14.5,9.5 A2.5,2.5 0 1 0 9.5,9.5</StreamGeometry>
             <StreamGeometry x:Key="IconRoute">M4,18 A2,2 0 1 0 8,18 A2,2 0 1 0 4,18 M16,6 A2,2 0 1 0 20,6 A2,2 0 1 0 16,6 M6,16 C6,10 18,14 18,8</StreamGeometry>
@@ -194,6 +195,16 @@
                     </StackPanel>
                 </Border>
 
+                <ListBox x:Name="NavFooter" DockPanel.Dock="Bottom" Classes="nav" Background="Transparent" Margin="0,8,0,0" SelectionChanged="OnFooterNavChanged">
+                    <ListBoxItem Tag="appsettings" AutomationProperties.Name="App settings">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                            <Path Classes="icon" Data="{StaticResource IconGear}" />
+                            <TextBlock Grid.Column="1" Text="App settings" VerticalAlignment="Center" />
+                            <Ellipse Grid.Column="2" Width="8" Height="8" Fill="{DynamicResource SystemAccentColor}" VerticalAlignment="Center"
+                                     IsVisible="{Binding UpdateAvailable}" ToolTip.Tip="An update is available" />
+                        </Grid>
+                    </ListBoxItem>
+                </ListBox>
                 <ListBox x:Name="Nav" Classes="nav" Background="Transparent" SelectionChanged="OnNavChanged">
                     <ListBoxItem Tag="header" IsHitTestVisible="False" Focusable="False"><TextBlock Text="START" Classes="navheader" /></ListBoxItem>
                     <ListBoxItem Tag="home" AutomationProperties.Name="Home">
@@ -202,17 +213,14 @@
                             <TextBlock Text="Home" VerticalAlignment="Center" />
                         </StackPanel>
                     </ListBoxItem>
-                    <ListBoxItem Tag="presets" AutomationProperties.Name="String Presets">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Path Classes="icon" Data="{StaticResource IconLibrary}" />
-                            <TextBlock Text="String Presets" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </ListBoxItem>
 
+                    <ListBoxItem Tag="header" IsHitTestVisible="False" Focusable="False" Padding="0">
+                        <Border Height="1" Background="{DynamicResource Muted}" Opacity="0.45" Margin="8,10,8,2" />
+                    </ListBoxItem>
                     <ListBoxItem Tag="header" IsHitTestVisible="False" Focusable="False"><TextBlock Text="EDITOR" Classes="navheader" /></ListBoxItem>
                     <ListBoxItem Tag="settings" IsEnabled="{Binding HasFile}" AutomationProperties.Name="Settings">
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Path Classes="icon" Data="{StaticResource IconSettings}" />
+                            <Path Classes="icon" Data="{StaticResource IconDocument}" />
                             <TextBlock Text="Settings" VerticalAlignment="Center" />
                         </StackPanel>
                     </ListBoxItem>
@@ -290,7 +298,7 @@
                             <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
                                 <StackPanel Spacing="2">
                                     <TextBlock Text="Welcome to Hofwerk" FontSize="24" FontWeight="SemiBold" Foreground="White" />
-                                    <TextBlock Text="Edit destinations, bus stops and routes for OMSI. You can also drop a .hof file onto this window."
+                                    <TextBlock Text="Edit destinations, bus stops and routes for OMSI. Drop a .hof file onto this window to open it."
                                                Foreground="#E6FFFFFF" TextWrapping="Wrap" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -315,20 +323,6 @@
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
-
-                                <!-- Version and the update check -->
-                                <StackPanel Spacing="4">
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <TextBlock Text="{Binding CurrentVersion, StringFormat='Version {0}'}" Foreground="#E6FFFFFF" VerticalAlignment="Center" />
-                                        <Button Content="Check for updates" Command="{Binding CheckForUpdatesCommand}" Classes="link" Padding="4,0"
-                                                Foreground="White" AutomationProperties.Name="Check for updates" />
-                                        <TextBlock Text="{Binding UpdateStatus}" Foreground="#E6FFFFFF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal" Spacing="16">
-                                        <CheckBox Content="Check when Hofwerk starts" IsChecked="{Binding CheckForUpdatesOnStart}" Foreground="#E6FFFFFF" />
-                                        <CheckBox Content="Include pre-releases" IsChecked="{Binding IncludePreReleases}" Foreground="#E6FFFFFF" />
-                                    </StackPanel>
-                                </StackPanel>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -404,50 +398,122 @@
                     </Border>
                 </Grid>
 
-                <!-- Preset library -->
-                <ScrollViewer x:Name="PresetsPanel" IsVisible="False">
-                    <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Left" Margin="0,0,0,12">
-                        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
-                                   Text="A preset names the string slots of destinations and bus stops, so “String 7” becomes something you can recognise. Pick the one that matches your bus." />
+                <!-- App settings: Hofwerk itself, not the open file -->
+                <ScrollViewer x:Name="AppSettingsPanel" IsVisible="False">
+                    <StackPanel Spacing="16" MaxWidth="820" HorizontalAlignment="Left" Margin="0,0,16,16">
 
-                        <ItemsControl ItemsSource="{Binding Presets}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:PresetViewModel">
-                                    <Border Classes="card" Margin="0,0,0,12">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                            <StackPanel Spacing="4">
-                                                <StackPanel Orientation="Horizontal" Spacing="10">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="16" />
-                                                    <TextBlock Text="{Binding Credit}" Foreground="{DynamicResource Muted}" VerticalAlignment="Bottom" />
-                                                </StackPanel>
-                                                <TextBlock Text="{Binding Description}" TextWrapping="Wrap" />
-                                                <TextBlock Foreground="{DynamicResource Muted}" FontSize="12">
-                                                    <Run Text="{Binding Source}" /><Run Text=" · " /><Run Text="{Binding SlotSummary}" />
-                                                </TextBlock>
-                                                <Button Content="Source" Classes="link" Click="OnPresetLink" IsVisible="{Binding HasUrl}"
-                                                        Padding="0" Background="Transparent" Foreground="{DynamicResource SystemAccentColor}" />
-                                            </StackPanel>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <Button Content="Use this preset" Click="OnUsePreset" IsVisible="{Binding !IsActive}" />
-                                                <TextBlock Text="✓ In use" FontWeight="SemiBold" HorizontalAlignment="Center"
-                                                           Foreground="{DynamicResource SystemAccentColor}" IsVisible="{Binding IsActive}" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
+                        <!-- Appearance -->
                         <Border Classes="card">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Add your own" FontWeight="SemiBold" FontSize="16" />
-                                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
-                                           Text="Drop a folder with a preset.json and a strings.txt into your presets folder, then refresh. To share a preset with everyone, add the same folder to Presets/ in the project and open a pull request; the Presets/README.md explains how." />
-                                <SelectableTextBlock Text="{Binding UserPresetsFolder}" Foreground="{DynamicResource Muted}" FontSize="12" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Content="Open folder" Click="OnOpenPresetsFolder" />
-                                    <Button Content="Refresh" Click="OnRefreshPresets" />
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="16" />
+                                    <TextBlock Foreground="{DynamicResource Muted}" Text="Light or dark, or follow the desktop." />
                                 </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Theme" />
+                                    <ComboBox ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme}" MinWidth="240" AutomationProperties.Name="Theme">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ThemeChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Updates -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock Foreground="{DynamicResource Muted}" Text="{Binding CurrentVersion, StringFormat='You have Hofwerk {0}'}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Check for updates" Command="{Binding CheckForUpdatesCommand}" VerticalAlignment="Top"
+                                            AutomationProperties.Name="Check for updates" />
+                                </Grid>
+
+                                <TextBlock Text="{Binding UpdateStatus}" TextWrapping="Wrap"
+                                           IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" IsVisible="{Binding IsUpdateBusy}" />
+
+                                <Border CornerRadius="8" Padding="14,12" Background="{DynamicResource SystemAccentColor}" IsVisible="{Binding UpdateAvailable}">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                        <StackPanel Spacing="1">
+                                            <TextBlock Text="{Binding UpdateHeadline}" FontWeight="SemiBold" Foreground="White" />
+                                            <TextBlock Text="{Binding UpdateDetail}" Foreground="#E6FFFFFF" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Update now" Command="{Binding InstallUpdateCommand}" AutomationProperties.Name="Update now" />
+                                            <Button Content="What's new" Command="{Binding OpenReleasePageCommand}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <ToggleSwitch Content="Look for updates when Hofwerk starts" OnContent="On" OffContent="Off"
+                                              IsChecked="{Binding CheckForUpdatesOnStart}" AutomationProperties.Name="Check when Hofwerk starts" />
+                                <ToggleSwitch Content="Include pre-releases (early versions that may have bugs)" OnContent="On" OffContent="Off"
+                                              IsChecked="{Binding IncludePreReleases}" AutomationProperties.Name="Include pre-releases" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- OMSI 2 -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="OMSI 2" FontWeight="SemiBold" FontSize="16" />
+                                    <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap"
+                                               Text="Where your game is. Hofwerk lists its .hof files on Home and checks the folders named in your depot file." />
+                                </StackPanel>
+                                <TextBlock Text="{Binding OmsiFolderText}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Change folder…" Click="OnChangeOmsi" AutomationProperties.Name="Change OMSI folder" />
+                                    <Button Content="Find it automatically" Command="{Binding FindOmsiAutomaticallyCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- String presets -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="String presets" FontWeight="SemiBold" FontSize="16" />
+                                    <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Text="Names the string slots of destinations and bus stops, so “String 7” becomes something you can recognise. Pick the one that matches your bus." />
+                                </StackPanel>
+                                <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}" HorizontalAlignment="Stretch"
+                                          AutomationProperties.Name="String preset">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PresetViewModel"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding SelectedPreset.Description}" TextWrapping="Wrap" />
+                                    <TextBlock Foreground="{DynamicResource Muted}" FontSize="12">
+                                        <Run Text="{Binding SelectedPreset.Credit}" /><Run Text=" · " /><Run Text="{Binding SelectedPreset.Source}" /><Run Text=" · " /><Run Text="{Binding SelectedPreset.SlotSummary}" />
+                                    </TextBlock>
+                                    <Button Content="Source" Classes="link" Click="OnActivePresetLink" IsVisible="{Binding SelectedPreset.HasUrl}"
+                                            Padding="0" Background="Transparent" Foreground="{DynamicResource SystemAccentColor}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                                <Expander Header="Add your own" HorizontalAlignment="Stretch">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
+                                                   Text="Drop a folder with a preset.json and a strings.txt into your presets folder, then refresh. To share a preset with everyone, add the same folder to Presets/ in the project and open a pull request; the Presets/README.md explains how." />
+                                        <SelectableTextBlock Text="{Binding UserPresetsFolder}" Foreground="{DynamicResource Muted}" FontSize="12" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Open folder" Click="OnOpenPresetsFolder" />
+                                            <Button Content="Refresh" Click="OnRefreshPresets" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Expander>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- About -->
+                        <Border Classes="card">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="About" FontWeight="SemiBold" FontSize="16" />
+                                <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
+                                           Text="{Binding CurrentVersion, StringFormat='Hofwerk {0} – a modern editor for OMSI 2 .hof files. With thanks to Lukas G., creator of the original HOF Suite, for the inspiration.'}" />
+                                <Button Content="Hofwerk on GitHub" Classes="link" Click="OnOpenGitHub" HorizontalAlignment="Left" Padding="0" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

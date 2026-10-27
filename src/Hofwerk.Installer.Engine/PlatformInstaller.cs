@@ -41,6 +41,13 @@ public abstract class PlatformInstaller
 
     public abstract void Launch(string directory);
 
+    /// <summary>The options an update installs with: whatever is already set up stays as it is.</summary>
+    public virtual InstallRequest KeepExistingOptions(string directory, string? version) => new(directory, false, false, Version: version);
+
+    /// <summary>Updates what is registered with the system (shortcuts, Installed apps) after the app's files were replaced in place.</summary>
+    public void RefreshRegistration(string directory, string version, long sizeInBytes) =>
+        Register(KeepExistingOptions(directory, version), Path.GetFullPath(directory), sizeInBytes);
+
     public Task InstallAsync(InstallRequest request, Stream payload, string installerPath,
         IProgress<InstallProgress>? progress = null, CancellationToken ct = default) =>
         Task.Run(() => Install(request, payload, installerPath, progress, ct), ct);

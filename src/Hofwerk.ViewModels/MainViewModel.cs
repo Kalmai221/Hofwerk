@@ -105,6 +105,7 @@ public partial class MainViewModel : ViewModelBase
 
         ApplyPresetNames();
         OnPropertyChanged(nameof(ActivePresetName));
+        OnPropertyChanged(nameof(SelectedPreset));
     }
 
     public void UsePreset(PresetViewModel chosen)
@@ -117,6 +118,7 @@ public partial class MainViewModel : ViewModelBase
 
         ApplyPresetNames();
         OnPropertyChanged(nameof(ActivePresetName));
+        OnPropertyChanged(nameof(SelectedPreset));
         Status = $"Using the {chosen.Name}";
     }
 
@@ -140,6 +142,7 @@ public partial class MainViewModel : ViewModelBase
         _browser = new OmsiBrowser(OmsiFolder is null ? [] : OmsiLocator.FindHofFiles(OmsiFolder));
         _omsiPath = "";
         OnPropertyChanged(nameof(HasOmsi));
+        OnPropertyChanged(nameof(OmsiFolderText));
         OnPropertyChanged(nameof(OmsiHeadline));
         OnPropertyChanged(nameof(OmsiDetail));
         ShowOmsiFolder();

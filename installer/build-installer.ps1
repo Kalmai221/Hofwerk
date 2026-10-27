@@ -7,6 +7,7 @@
 # Writes two installers to dist/ (plus the packed app the small one downloads):
 #   Hofwerk-Setup-<version>-<rid>      offline: the app is inside the file
 #   Hofwerk-WebSetup-<version>-<rid>   online: small, downloads Hofwerk-App-<version>-<rid>.hwpack from the release
+#   Hofwerk-App-<version>-<rid>.hwpack(.sha256)   the packed app; the in-app updater downloads just this
 # Works in Windows PowerShell 5.1 and PowerShell 7.
 param(
     # The setup program has to run on the machine that builds it (it packs the app into itself), so only x64 for now.
@@ -60,6 +61,10 @@ $packed = Join-Path $dist "Hofwerk-App-$Version-$Rid.hwpack"
 # The Windows build is a GUI program, so wait for it explicitly.
 $p = Start-Process -FilePath $setup -ArgumentList '--attach', "`"$(Join-Path $work 'app')`"", "`"$final`"", "`"$packed`"" -Wait -PassThru
 if ($p.ExitCode -ne 0) { throw "Packing the app failed with exit code $($p.ExitCode)" }
+
+# The in-app updater downloads only the packed app and checks it against this checksum.
+$hash = (Get-FileHash $packed -Algorithm SHA256).Hash.ToLowerInvariant()
+[IO.File]::WriteAllText("$packed.sha256", "$hash  $(Split-Path $packed -Leaf)`n")
 
 Write-Host '==> Making the online installer (no app inside, it downloads the packed app)'
 $web = Join-Path $dist "Hofwerk-WebSetup-$Version-$Rid$ext"

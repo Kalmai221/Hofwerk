@@ -5,6 +5,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Setup
 )
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\protect-install.ps1"; Save-RealInstall   # keep a real install on this machine intact
 
 $Setup = (Resolve-Path $Setup).Path
 $work = Join-Path ([IO.Path]::GetTempPath()) ("hofwerk-installer-test-" + [guid]::NewGuid().ToString('N'))
@@ -78,6 +79,7 @@ try {
     Check "nothing else is left behind ($($left -join ', '))" ($left.Count -eq 1)
 }
 finally {
+    Restore-RealInstall
     # Remove anything a failed run could have left registered.
     Remove-Item $startMenu -ErrorAction SilentlyContinue
     Remove-Item $uninstallKey -Recurse -ErrorAction SilentlyContinue

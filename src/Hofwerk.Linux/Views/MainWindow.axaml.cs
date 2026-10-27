@@ -36,24 +36,52 @@ public partial class MainWindow : Window
 
     MainViewModel Vm => (MainViewModel)DataContext!;
 
+    bool _syncingNav;
+
+    // The sidebar is two lists (the pages, and App settings at the bottom); only one of them has a selected item.
     void OnNavChanged(object? sender, SelectionChangedEventArgs e)
     {
-        string tag = (Nav.SelectedItem as ListBoxItem)?.Tag as string ?? "home";
-        if (tag == "header") return; // section labels in the sidebar are not pages
+        if (_syncingNav || Nav.SelectedItem is not ListBoxItem item) return;
+        _syncingNav = true;
+        NavFooter.SelectedItem = null;
+        _syncingNav = false;
+        ShowPage(item.Tag as string ?? "home");
+    }
+
+    void OnFooterNavChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingNav || NavFooter.SelectedItem is not ListBoxItem item) return;
+        _syncingNav = true;
+        Nav.SelectedItem = null;
+        _syncingNav = false;
+        ShowPage(item.Tag as string ?? "appsettings");
+    }
+
+    void ShowPage(string tag)
+    {
+        if (tag == "header") return; // section labels and lines in the sidebar are not pages
         if (tag == "settings") Vm.RefreshSettingsData(); // lists and folder checks are read when the page is shown
         if (tag == "routes") Vm.RefreshRouteData();      // destination list and unknown-stop flags are read when shown
         HomePanel.IsVisible = tag == "home";
-        PresetsPanel.IsVisible = tag == "presets";
+        AppSettingsPanel.IsVisible = tag == "appsettings";
         SettingsPanel.IsVisible = tag == "settings";
         DestinationsPanel.IsVisible = tag == "destinations";
         BusStopsPanel.IsVisible = tag == "busstops";
         RoutesPanel.IsVisible = tag == "routes";
         ProblemsPanel.IsVisible = tag == "problems";
 
+        // The page that was just shown eases in.
+        Control? shown = tag switch
+        {
+            "home" => HomePanel, "appsettings" => AppSettingsPanel, "settings" => SettingsPanel, "destinations" => DestinationsPanel,
+            "busstops" => BusStopsPanel, "routes" => RoutesPanel, "problems" => ProblemsPanel, _ => null,
+        };
+        if (shown is not null) Hofwerk.Linux.Motion.PageEnter(shown);
+
         (SectionTitle.Text, SectionHint.Text) = tag switch
         {
             "home" => ("Home", "Pick up where you left off, or open something from your OMSI install"),
-            "presets" => ("String Presets", "Names for the string slots, from the people who made your buses"),
+            "appsettings" => ("App settings", "Preferences for Hofwerk itself"),
             "settings" => ("Settings", "What applies to this whole depot file"),
             "destinations" => ("Destinations", "What the bus display shows for each destination code"),
             "busstops" => ("Bus stops", "Names and announcement strings"),
@@ -61,6 +89,9 @@ public partial class MainWindow : Window
             _ => ("Problems", "Things that looked wrong while reading the file"),
         };
     }
+
+    void OnOpenGitHub(object? sender, RoutedEventArgs e) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/Kalmai221/Hofwerk") { UseShellExecute = true });
 
     // Double-clicking a defined bus stop adds it to the selected route.
     void OnPickerDoubleTapped(object? sender, TappedEventArgs e) => Vm.AddPickedStopCommand.Execute(null);
@@ -207,8 +238,6 @@ public partial class MainWindow : Window
         if (Vm.LatestRecent is { } latest) OpenAndShow(latest.Path);
     }
 
-    void OnChangePreset(object? sender, RoutedEventArgs e) => SelectSection("presets");
-
     // Dropping a .hof file anywhere on the window opens it.
     void OnDragOver(object? sender, DragEventArgs e) =>
         e.DragEffects = e.DataTransfer.TryGetFiles() is { Length: > 0 } ? DragDropEffects.Copy : DragDropEffects.None;
@@ -220,15 +249,10 @@ public partial class MainWindow : Window
         else Vm.Status = "That is not a .hof file.";
     }
 
-    void OnUsePreset(object? sender, RoutedEventArgs e)
-    {
-        if ((sender as Control)?.DataContext is PresetViewModel preset) Vm.UsePreset(preset);
-    }
-
     // Preset links come from files anyone can contribute, so only plain web links are opened.
-    void OnPresetLink(object? sender, RoutedEventArgs e)
+    void OnActivePresetLink(object? sender, RoutedEventArgs e)
     {
-        if ((sender as Control)?.DataContext is PresetViewModel { HasUrl: true } preset
+        if (Vm.SelectedPreset is { HasUrl: true } preset
             && Uri.TryCreate(preset.Url, UriKind.Absolute, out var uri)
             && uri.Scheme is "http" or "https")
         {

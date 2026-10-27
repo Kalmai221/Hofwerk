@@ -27,6 +27,9 @@ public sealed class LinuxInstaller : PlatformInstaller
             throw new InstallerException("Please choose a folder whose path has no quotes, backslashes, backticks or $ signs.");
     }
 
+    public override InstallRequest KeepExistingOptions(string directory, string? version) =>
+        new(directory, File.Exists(DesktopEntry), false, Version: version);
+
     protected override void MakeExecutable(string path) =>
         File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
 

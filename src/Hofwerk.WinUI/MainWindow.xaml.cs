@@ -29,6 +29,8 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Hofwerk.ico"));
         if (AppWindow.Presenter is OverlappedPresenter presenter) { presenter.PreferredMinimumWidth = 760; presenter.PreferredMinimumHeight = 520; }
         Root.ActualThemeChanged += (_, _) => ApplyCaptionButtonColors();
+        ApplyTheme(ViewModel.ThemeId, animate: false);
+        ViewModel.ThemeChanged += id => ApplyTheme(id, animate: true);
         // After an update download the installer is running; close so it can replace the files.
         ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => Application.Current.Exit());
         Root.Loaded += async (_, _) =>
@@ -54,6 +56,28 @@ public sealed partial class MainWindow : Window
     }
 
     // Minimize/maximize/close glyphs must contrast with the Mica background, which changes with light/dark mode.
+    // "System default" follows Windows; Light and Dark force the app's own theme.
+    void ApplyTheme(string id, bool animate)
+    {
+        var before = Root.ActualTheme;
+        Root.RequestedTheme = id switch
+        {
+            "Light" => ElementTheme.Light,
+            "Dark" => ElementTheme.Dark,
+            _ => ElementTheme.Default,
+        };
+
+        // What the theme will be: the chosen one, or Windows' own for "System default".
+        var after = id switch
+        {
+            "Light" => ElementTheme.Light,
+            "Dark" => ElementTheme.Dark,
+            _ => Application.Current.RequestedTheme == ApplicationTheme.Dark ? ElementTheme.Dark : ElementTheme.Light,
+        };
+        if (animate && before != after)
+            Motion.ThemeCrossfade(ThemeFade, before == ElementTheme.Dark ? Color.FromArgb(255, 32, 32, 32) : Color.FromArgb(255, 243, 243, 243));
+    }
+
     void ApplyCaptionButtonColors()
     {
         if (!AppWindowTitleBar.IsCustomizationSupported()) return;
@@ -87,6 +111,7 @@ public sealed partial class MainWindow : Window
     public static Visibility NotNull(object? value) => value is null ? Visibility.Collapsed : Visibility.Visible;
     public static Visibility IsNull(object? value) => value is null ? Visibility.Visible : Visibility.Collapsed;
     public static bool NotEmpty(string? text) => !string.IsNullOrEmpty(text);
+    public static Visibility NotEmptyVisible(string? text) => string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
     public static Visibility Not(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
 
     void OnNavChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -95,12 +120,20 @@ public sealed partial class MainWindow : Window
         if (tag == "settings") ViewModel.RefreshSettingsData(); // lists and folder checks are read when the page is shown
         if (tag == "routes") ViewModel.RefreshRouteData();       // destination list and "stop not defined" checks
         HomePanel.Visibility = Show(tag == "home");
-        PresetsPanel.Visibility = Show(tag == "presets");
         SettingsPanel.Visibility = Show(tag == "settings");
+        AppSettingsPanel.Visibility = Show(tag == "appsettings");
         DestinationsPanel.Visibility = Show(tag == "destinations");
         BusStopsPanel.Visibility = Show(tag == "busstops");
         RoutesPanel.Visibility = Show(tag == "routes");
         ProblemsPanel.Visibility = Show(tag == "problems");
+
+        // The page that was just shown eases in.
+        UIElement? shown = tag switch
+        {
+            "home" => HomePanel, "appsettings" => AppSettingsPanel, "settings" => SettingsPanel, "destinations" => DestinationsPanel,
+            "busstops" => BusStopsPanel, "routes" => RoutesPanel, "problems" => ProblemsPanel, _ => null,
+        };
+        if (shown is not null) Motion.PageEnter(shown);
     }
 
     static Visibility Show(bool on) => on ? Visibility.Visible : Visibility.Collapsed;
@@ -260,7 +293,6 @@ public sealed partial class MainWindow : Window
         if (ViewModel.LatestRecent is { } latest) OpenAndShow(latest.Path);
     }
 
-    void OnChangePreset(object sender, RoutedEventArgs e) => SelectSection("presets");
 
     // Dropping a .hof file anywhere on the window opens it.
     void OnDragOver(object sender, DragEventArgs e)
@@ -280,15 +312,10 @@ public sealed partial class MainWindow : Window
         else ViewModel.Status = "That is not a .hof file.";
     }
 
-    void OnUsePreset(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.DataContext is PresetViewModel preset) ViewModel.UsePreset(preset);
-    }
-
     // Preset links come from files anyone can contribute, so only plain web links are opened.
-    void OnPresetLink(object sender, RoutedEventArgs e)
+    void OnActivePresetLink(object sender, RoutedEventArgs e)
     {
-        if ((sender as FrameworkElement)?.DataContext is PresetViewModel { HasUrl: true } preset
+        if (ViewModel.SelectedPreset is { HasUrl: true } preset
             && Uri.TryCreate(preset.Url, UriKind.Absolute, out var uri)
             && uri.Scheme is "http" or "https")
         {

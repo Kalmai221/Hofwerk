@@ -120,7 +120,6 @@ try {
 
     $pages = @(
         @{ Nav = 'Home';         Marker = 'Welcome to Hofwerk' },
-        @{ Nav = 'String Presets'; Marker = 'String Presets' },
         @{ Nav = 'Settings';     Marker = 'General settings' },
         @{ Nav = 'Destinations'; Marker = 'Code (ident)' },
         @{ Nav = 'Bus stops';    Marker = 'Name' },
@@ -136,10 +135,12 @@ try {
         }
     }
 
-    # Home offers a way to look for a newer version.
-    if (Select-Item $root 'Home') {
-        Check 'Home has "Check for updates"' (Wait-Named $root 'Check for updates')
-    }
+    # App settings: updates, OMSI folder and string preset.
+    Check "'App settings' can be opened" (Select-Item $root 'App settings')
+    Check 'App settings offer "Check for updates"' (Wait-Named $root 'Check for updates')
+    Check 'App settings offer a theme choice' (Wait-Named $root 'Theme')
+    Check 'App settings show the OMSI folder choice' (Wait-Named $root 'Change OMSI folder')
+    Check 'App settings show the pre-release choice' (Wait-Named $root 'Include pre-releases')
 
     # Route stops are picked from the defined bus stops, not typed.
     if (Select-Item $root 'Routes') {
@@ -170,8 +171,9 @@ try {
     }
 
     # Switching the string preset must work too (it re-labels every slot).
-    if (Select-Item $root 'String Presets') {
-        Check 'preset library lists the default preset' (Wait-Named $root 'HOF Suite Default')
+    if (Select-Item $root 'App settings') {
+        Check 'App settings have the string preset drop-down' (Wait-Named $root 'String preset')
+        Check 'the default preset is the one in use (its description is shown)' (Wait-Named $root 'The string slot names of the original HOF Suite: IBIS, ANNAX, LAWO, Krueger matrix and more.')
     }
 
     # The Settings page shows what the file says, and an edited IBIS code reaches the file.

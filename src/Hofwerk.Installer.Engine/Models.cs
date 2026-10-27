@@ -22,7 +22,8 @@ public static class AppInfo
 }
 
 /// <summary>What the user picked on the options page.</summary>
-public sealed record InstallRequest(string Directory, bool DesktopShortcut, bool FileAssociation, string? OmsiFolder = null);
+/// <param name="Version">The version being installed when it is not the installer's own (an in-app update applies a newer app with the installed setup program).</param>
+public sealed record InstallRequest(string Directory, bool DesktopShortcut, bool FileAssociation, string? OmsiFolder = null, string? Version = null);
 
 public sealed record InstallProgress(double Fraction, string Message);
 

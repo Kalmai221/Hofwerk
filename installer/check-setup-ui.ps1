@@ -10,6 +10,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Setup
 )
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\protect-install.ps1"; Save-RealInstall   # keep a real install on this machine intact
 # The window should not ask GitHub for a newer version while it is being tested.
 $env:HOFWERK_NO_UPDATE_CHECK = '1'
 Add-Type -AssemblyName UIAutomationClient
@@ -71,7 +72,9 @@ function Run-Scenario([string]$answer) {
     $p = Start-Window $Setup
     Check 'the window opens' ($p.MainWindowHandle -ne 0)
     $win = $AE::FromHandle($p.MainWindowHandle)
-    Check 'welcome screen: "Install Hofwerk"' (Wait-Named $win 'Install Hofwerk')
+    # On a machine where Hofwerk is already installed the same page is called "Update Hofwerk".
+    $title = if (Wait-Named $win 'Install Hofwerk' 3) { 'Install Hofwerk' } else { 'Update Hofwerk' }
+    Check "welcome screen: `"$title`"" (Wait-Named $win $title)
 
     # Point the install at a temporary folder through the text box.
     $edit = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
@@ -100,7 +103,7 @@ function Run-Scenario([string]$answer) {
     Check 'it offers to skip' ([bool](Find-Named $win 'Skip'))
 
     # Back returns to the first page and Next comes back here.
-    Check 'Back returns to the first page' ((Press $win 'Back') -and (Wait-Named $win 'Install Hofwerk'))
+    Check 'Back returns to the first page' ((Press $win 'Back') -and ((Wait-Named $win 'Install Hofwerk' 5) -or (Wait-Named $win 'Update Hofwerk' 1)))   # the title follows the folder typed in above
     Check 'Next goes forward again' ((Press $win 'Next') -and (Wait-Named $win 'Where is OMSI 2?'))
 
     $expectSaved = $false
@@ -153,6 +156,7 @@ catch {
     $failures.Add($_.Exception.Message)
 }
 finally {
+    Restore-RealInstall
     # Only processes this script started (the setup file itself, or anything run from its temporary install folders).
     # Another Hofwerk window the user has open is left alone.
     Get-Process -ErrorAction SilentlyContinue |

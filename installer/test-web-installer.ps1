@@ -11,6 +11,7 @@ param(
     [Parameter(Mandatory = $true)][string]$AppFolder
 )
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\protect-install.ps1"; Save-RealInstall   # keep a real install on this machine intact
 $failures = New-Object System.Collections.Generic.List[string]
 function Check([string]$what, [bool]$ok) {
     if ($ok) { Write-Host "  ok    $what" } else { Write-Host "  FAIL  $what"; $failures.Add($what) }
@@ -71,7 +72,10 @@ catch {
     Write-Host "  FAIL  $($_.Exception.Message)"
     $failures.Add($_.Exception.Message)
 }
-finally { Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue }
+finally {
+    Restore-RealInstall
+    Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 if ($failures.Count -gt 0) { Write-Host "`n$($failures.Count) check(s) failed."; exit 1 }
 Write-Host "`nThe online installer works."

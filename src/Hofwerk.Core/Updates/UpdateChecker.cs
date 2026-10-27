@@ -6,8 +6,21 @@ using System.Text.Json.Serialization;
 
 namespace Hofwerk.Core.Updates;
 
-/// <summary>A newer release that can be installed.</summary>
-public sealed record UpdateInfo(AppVersion Version, string Tag, bool IsPreRelease, string AssetName, string DownloadUrl, long Size, string PageUrl, string Notes);
+/// <summary>The packed app of a release (what the installers carry or download) and the text file with its SHA-256.</summary>
+public sealed record PackAsset(string Name, string Url, long Size, string ChecksumUrl);
+
+/// <summary>
+/// A newer release that can be installed. <see cref="Pack"/> is set when the release has the packed app on its own: an update then
+/// downloads only that (about half the size of the installer) and applies it with the setup program that is already installed.
+/// </summary>
+public sealed record UpdateInfo(AppVersion Version, string Tag, bool IsPreRelease, string AssetName, string DownloadUrl, long Size, string PageUrl, string Notes,
+    PackAsset? Pack = null)
+{
+    public long DownloadSize => Pack?.Size ?? Size;
+}
+
+/// <summary>What was downloaded: the packed app (to apply in place) or a full installer (to run).</summary>
+public sealed record UpdateDownload(string Path, bool IsPack);
 
 /// <summary>The few fields of GitHub's releases API that are used. Generated at build time so the app can be trimmed.</summary>
 internal sealed class GitHubRelease
@@ -78,7 +91,8 @@ public sealed class UpdateChecker
             var asset = release.Assets.FirstOrDefault(IsInstaller);
             if (asset is null || !IsTrustedUrl(asset.BrowserDownloadUrl)) continue;
 
-            best = new UpdateInfo(version, release.TagName, pre, asset.Name, asset.BrowserDownloadUrl, asset.Size, release.HtmlUrl, release.Body ?? "");
+            best = new UpdateInfo(version, release.TagName, pre, asset.Name, asset.BrowserDownloadUrl, asset.Size, release.HtmlUrl, release.Body ?? "",
+                FindPack(release));
         }
         return best;
     }
@@ -89,12 +103,95 @@ public sealed class UpdateChecker
         && asset.Name.Contains($"-{_runtimeId}", StringComparison.OrdinalIgnoreCase)
         && (asset.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || asset.Name.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase));
 
+    // Hofwerk-App-<version>-<rid>.hwpack, with Hofwerk-App-<version>-<rid>.hwpack.sha256 beside it.
+    PackAsset? FindPack(GitHubRelease release)
+    {
+        var pack = release.Assets.FirstOrDefault(a => a.Name.StartsWith("Hofwerk-App-", StringComparison.OrdinalIgnoreCase)
+                                                      && a.Name.EndsWith($"-{_runtimeId}.hwpack", StringComparison.OrdinalIgnoreCase));
+        var sum = pack is null ? null : release.Assets.FirstOrDefault(a => a.Name.Equals(pack.Name + ".sha256", StringComparison.OrdinalIgnoreCase));
+        if (pack is null || sum is null || pack.Size <= 0 || !IsTrustedUrl(pack.BrowserDownloadUrl) || !IsTrustedUrl(sum.BrowserDownloadUrl)) return null;
+        return new PackAsset(pack.Name, pack.BrowserDownloadUrl, pack.Size, sum.BrowserDownloadUrl);
+    }
+
     // Only files from GitHub itself are downloaded and run.
     internal static bool IsTrustedUrl(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri)
         && uri.Scheme == Uri.UriSchemeHttps
         && (uri.Host == "github.com" || uri.Host.EndsWith(".github.com", StringComparison.Ordinal)
             || uri.Host.EndsWith(".githubusercontent.com", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Downloads the update: only the packed app (checked against its published SHA-256) when the release has one and the
+    /// installed setup program can apply it, otherwise the full installer.
+    /// </summary>
+    public async Task<UpdateDownload> DownloadUpdateAsync(UpdateInfo update, string folder, bool canApplyInPlace, IProgress<double>? progress = null, CancellationToken ct = default)
+    {
+        if (update.Pack is not { } pack || !canApplyInPlace)
+            return new UpdateDownload(await DownloadAsync(update, folder, progress, ct).ConfigureAwait(false), IsPack: false);
+
+        Directory.CreateDirectory(folder);
+        string expected = (await GetTextAsync(pack.ChecksumUrl, ct).ConfigureAwait(false)).Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+        if (expected.Length != 64) throw new IOException("The update's checksum file is not valid, so it was not installed.");
+
+        string file = Path.Combine(folder, Path.GetFileName(pack.Name));
+        using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        await using (var target = File.Create(file))
+        {
+            using var response = await _http.GetAsync(pack.Url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            await using var source = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+
+            var buffer = new byte[81920];
+            long done = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+            {
+                await target.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+                sha.AppendData(buffer, 0, read);
+                done += read;
+                progress?.Report(Math.Min(1.0, (double)done / pack.Size));
+            }
+            if (done != pack.Size) throw new IOException($"The download is incomplete ({done:N0} of {pack.Size:N0} bytes). Try again.");
+        }
+
+        if (!string.Equals(Convert.ToHexString(sha.GetHashAndReset()), expected, StringComparison.OrdinalIgnoreCase))
+        {
+            File.Delete(file);
+            throw new IOException("The downloaded update did not match its checksum, so it was not installed. Try again.");
+        }
+        return new UpdateDownload(file, IsPack: true);
+    }
+
+    async Task<string> GetTextAsync(string url, CancellationToken ct)
+    {
+        if (!IsTrustedUrl(url)) throw new IOException("The update is not hosted on GitHub, so it was not downloaded.");
+        using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>True when the running app is an installed copy whose files an update can replace from the inside.</summary>
+    public static bool CanApplyInPlace(string installFolder) => Hofwerk.Installer.Engine.InPlaceUpdate.CanUpdate(installFolder);
+
+    /// <summary>
+    /// Replaces the installed files with the downloaded packed app. This app keeps running while that happens (its old files are
+    /// renamed aside); it should restart itself afterwards with <see cref="Restart"/>.
+    /// </summary>
+    public static void ApplyPackInPlace(string packFile, string version, string installFolder, IProgress<double>? progress = null) =>
+        Hofwerk.Installer.Engine.InPlaceUpdate.Apply(Hofwerk.Installer.Engine.PlatformInstaller.Create(), packFile, installFolder, version, progress);
+
+    /// <summary>Starts the (new) program again, optionally with the file that was open, so the update ends where the user left off.</summary>
+    public static void Restart(string? openFile)
+    {
+        string? program = Environment.ProcessPath;
+        if (program is null) return;
+        var start = new System.Diagnostics.ProcessStartInfo(program) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(program)! };
+        if (!string.IsNullOrEmpty(openFile)) start.ArgumentList.Add(openFile);
+        System.Diagnostics.Process.Start(start)?.Dispose();
+    }
+
+    /// <summary>Deletes leftovers of an earlier in-place update (old files Windows still held while the app ran).</summary>
+    public static void CleanUpAfterUpdate(string installFolder) => Hofwerk.Installer.Engine.InPlaceUpdate.CleanLeftovers(installFolder);
 
     /// <summary>Downloads the installer into <paramref name="folder"/> and returns the program to start.</summary>
     public async Task<string> DownloadAsync(UpdateInfo update, string folder, IProgress<double>? progress = null, CancellationToken ct = default)

@@ -24,8 +24,11 @@ public sealed class AppSettings
     /// <summary>Look for a newer version when the app starts.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
-    /// <summary>Also offer pre-releases (tags like V0.2-dev1). On by default only when the running version is one.</summary>
-    public bool IncludePreReleases { get; set; }
+    /// <summary>
+    /// Also offer pre-releases (tags like V0.2-dev1). Empty means "automatic": on while the running version is itself a
+    /// pre-release, off otherwise. Once the user flips the switch it is their choice.
+    /// </summary>
+    public bool? AllowPreReleases { get; set; }
 
     public static AppSettings Load(string? path = null)
     {

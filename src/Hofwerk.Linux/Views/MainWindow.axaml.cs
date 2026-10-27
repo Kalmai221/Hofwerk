@@ -196,16 +196,22 @@ public partial class MainWindow : Window
     // A new, empty depot: pick where to put it, and it opens ready to edit.
     async void OnNew(object? sender, RoutedEventArgs e)
     {
+        // First what to start with (empty, or from an OMSI map), then where to save it.
+        var model = Vm.StartNewFile();
+        string? maps = Vm.OmsiFolder is { } omsi ? System.IO.Path.Combine(omsi, "Maps") : null;
+        if (!await new NewFileWindow(model, maps).ShowDialog<bool>(this)) return;
+
+        var plan = model.ToPlan();
         IStorageFolder? start = await VehiclesStart();
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Create a new HOF file",
             DefaultExtension = "hof",
-            SuggestedFileName = "New depot",
+            SuggestedFileName = model.SuggestedFileName,
             SuggestedStartLocation = start,
             FileTypeChoices = HofFiles,
         });
-        if (file?.TryGetLocalPath() is { } path && Vm.CreateNew(path)) ShowSettings();
+        if (file?.TryGetLocalPath() is { } path && Vm.CreateNew(path, plan.Map, plan.Options)) ShowSettings();
     }
 
     async void OnOpen(object? sender, RoutedEventArgs e)

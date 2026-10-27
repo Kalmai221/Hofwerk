@@ -69,17 +69,27 @@ public partial class MainViewModel
         }, TaskScheduler.Default);
     }
 
+    /// <summary>The OMSI maps that have timetable data, for the New file dialog.</summary>
+    public IReadOnlyList<Hofwerk.Core.Omsi.OmsiMap> FindMaps() =>
+        OmsiFolder is null ? [] : Hofwerk.Core.Omsi.MapImporter.FindMaps(OmsiFolder);
+
+    /// <summary>The dialog for New: start empty or from a map.</summary>
+    public NewFileViewModel StartNewFile() => new(FindMaps());
+
     /// <summary>
-    /// Makes a new .hof file at <paramref name="path"/> (named after the file, with the string slots of the active preset and
-    /// Hofwerk's credit and notes in it) and opens it. Returns false, and says why in the status bar, if it can't be written.
+    /// Makes a new .hof file at <paramref name="path"/> and opens it: empty, or filled from the timetable files of an OMSI map
+    /// (<paramref name="map"/>). Either way it has the string slots of the active preset and Hofwerk's credit and notes.
+    /// Returns false, and says why in the status bar, if it can't be written.
     /// </summary>
-    public bool CreateNew(string path)
+    public bool CreateNew(string path, Hofwerk.Core.Omsi.MapData? map = null, Hofwerk.Core.Omsi.MapImportOptions? options = null)
     {
         try
         {
-            var doc = Hofwerk.Core.HofFile.CreateNew(
-                System.IO.Path.GetFileNameWithoutExtension(path),
-                Names.Count(Hofwerk.Core.Model.StringSlotKind.Terminus), Names.Count(Hofwerk.Core.Model.StringSlotKind.BusStop));
+            int terminusStrings = Names.Count(Hofwerk.Core.Model.StringSlotKind.Terminus);
+            int busStopStrings = Names.Count(Hofwerk.Core.Model.StringSlotKind.BusStop);
+            var doc = map is null
+                ? Hofwerk.Core.HofFile.CreateNew(System.IO.Path.GetFileNameWithoutExtension(path), terminusStrings, busStopStrings)
+                : Hofwerk.Core.HofFile.CreateFromMap(map, terminusStrings, busStopStrings, options ?? new Hofwerk.Core.Omsi.MapImportOptions());
             Hofwerk.Core.HofFile.Save(doc, path);
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
@@ -89,7 +99,9 @@ public partial class MainViewModel
         }
 
         if (!Open(path)) return false;
-        Status = $"Created {System.IO.Path.GetFileName(path)}";
+        Status = map is null
+            ? $"Created {System.IO.Path.GetFileName(path)}"
+            : $"Created {System.IO.Path.GetFileName(path)} from the map {map.Name}: {Termini.Count - 1} destinations, {BusStops.Count} bus stops, {Routes.Count} routes";
         return true;
     }
 

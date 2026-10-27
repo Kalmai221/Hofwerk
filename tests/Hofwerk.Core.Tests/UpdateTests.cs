@@ -119,16 +119,17 @@ public class UpdateTests : IDisposable
     }
 
     [Fact]
-    public async Task Someone_on_a_pre_release_is_offered_newer_pre_releases_and_the_final_release()
+    public async Task A_pre_release_is_only_offered_when_pre_releases_are_wanted()
     {
         var json = Releases(Release("V0.1-dev2", true), Release("V0.1-dev1", true));
+        var current = AppVersion.TryParse("0.1-dev1")!;
 
-        var found = await Checker(new FakeGitHub(json, [])).CheckAsync(AppVersion.TryParse("0.1-dev1")!, includePreReleases: false);
-        Assert.Equal("0.1-dev2", found!.Version.Text);
+        Assert.Equal("0.1-dev2", (await Checker(new FakeGitHub(json, [])).CheckAsync(current, includePreReleases: true))!.Version.Text);
+        Assert.Null(await Checker(new FakeGitHub(json, [])).CheckAsync(current, includePreReleases: false));
 
+        // the final release is offered either way
         var final = Releases(Release("v0.1.0", false), Release("V0.1-dev2", true));
-        found = await Checker(new FakeGitHub(final, [])).CheckAsync(AppVersion.TryParse("0.1-dev2")!, false);
-        Assert.Equal("0.1.0", found!.Version.Text);
+        Assert.Equal("0.1.0", (await Checker(new FakeGitHub(final, [])).CheckAsync(AppVersion.TryParse("0.1-dev2")!, false))!.Version.Text);
     }
 
     [Fact]
@@ -425,5 +426,48 @@ public class PackUpdateTests : IDisposable
         Assert.Empty(launchedInstaller);            // no separate installer is involved
         Assert.Empty(Directory.GetFiles(Path.Combine(_dir, "dl")));   // the downloaded file is cleaned up
         Assert.True(closed);
+    }
+}
+
+public class VersionNamingTests
+{
+    static AppVersion V(string s) => AppVersion.TryParse(s)!;
+
+    [Fact]
+    public void The_V1_dev_pre_releases_come_after_V0_1_and_before_V1()
+    {
+        // 0.1-dev1 < 0.1-dev2 < 1-dev1 < 1-dev2 < 1-dev10 < 1 (final)
+        string[] order = ["0.1-dev1", "0.1-dev2", "1-dev1", "1-dev2", "1-dev10", "1", "1.1"];
+        for (int i = 0; i + 1 < order.Length; i++)
+            Assert.True(V(order[i]) < V(order[i + 1]), $"{order[i]} should be older than {order[i + 1]}");
+
+        Assert.True(V("V1-dev1").IsPreRelease);
+        Assert.False(V("V1").IsPreRelease);
+        Assert.Equal(V("1"), V("V1.0.0"));
+    }
+
+    [Fact]
+    public async Task Someone_on_V0_1_dev2_is_offered_V1_dev1_with_pre_releases_on_and_V1_when_it_exists()
+    {
+        string json = """
+            [{"tag_name":"V1","html_url":"u","draft":false,"prerelease":false,"assets":[{"name":"Hofwerk-Setup-1-win-x64.exe","size":3,"browser_download_url":"https://github.com/x/y/Hofwerk-Setup-1-win-x64.exe"}]},
+             {"tag_name":"V1-dev1","html_url":"u","draft":false,"prerelease":true,"assets":[{"name":"Hofwerk-Setup-1-dev1-win-x64.exe","size":3,"browser_download_url":"https://github.com/x/y/Hofwerk-Setup-1-dev1-win-x64.exe"}]}]
+            """;
+        var checker = new UpdateChecker(new HttpClient(new Fake(json)), runtimeId: "win-x64");
+
+        var withPre = await checker.CheckAsync(V("0.1-dev2"), includePreReleases: true);
+        var without = await checker.CheckAsync(V("0.1-dev2"), includePreReleases: false);
+
+        Assert.Equal("1", withPre!.Version.Text);       // the final release is the newest of all
+        Assert.Equal("1", without!.Version.Text);
+
+        var onlyDev = new UpdateChecker(new HttpClient(new Fake(json.Replace("\"tag_name\":\"V1\"", "\"tag_name\":\"V0.5\""))), runtimeId: "win-x64");
+        Assert.Equal("1-dev1", (await onlyDev.CheckAsync(V("0.1-dev2"), includePreReleases: true))!.Version.Text);
+    }
+
+    sealed class Fake(string json) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json) });
     }
 }

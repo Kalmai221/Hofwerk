@@ -59,7 +59,7 @@ public sealed class UpdateChecker
 
     /// <summary>
     /// The newest release that is newer than <paramref name="current"/> and has an installer for this machine, or null.
-    /// Pre-releases are only offered when asked for, or when the running version is itself a pre-release.
+    /// Pre-releases are only offered when <paramref name="includePreReleases"/> is true.
     /// </summary>
     public async Task<UpdateInfo?> CheckAsync(AppVersion current, bool includePreReleases, CancellationToken ct = default)
     {
@@ -75,7 +75,6 @@ public sealed class UpdateChecker
 
     internal UpdateInfo? Pick(List<GitHubRelease> releases, AppVersion current, bool includePreReleases)
     {
-        includePreReleases |= current.IsPreRelease;
         UpdateInfo? best = null;
 
         foreach (var release in releases)

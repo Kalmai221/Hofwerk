@@ -476,6 +476,8 @@
                                               IsChecked="{Binding CheckForUpdatesOnStart}" AutomationProperties.Name="Check when Hofwerk starts" />
                                 <ToggleSwitch Content="Include pre-releases (early versions that may have bugs)" OnContent="On" OffContent="Off"
                                               IsChecked="{Binding IncludePreReleases}" AutomationProperties.Name="Include pre-releases" />
+                                <TextBlock Text="{Binding PreReleaseHint}" Foreground="{DynamicResource Muted}" TextWrapping="Wrap" FontSize="12"
+                                           IsVisible="{Binding PreReleaseHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                             </StackPanel>
                         </Border>
 

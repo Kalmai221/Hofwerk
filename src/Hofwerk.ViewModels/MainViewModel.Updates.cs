@@ -37,6 +37,8 @@ public partial class MainViewModel
         _downloadFolder = downloadFolder;
         _launchInstaller = launchInstaller;
         OnPropertyChanged(nameof(CurrentVersion));
+        OnPropertyChanged(nameof(IncludePreReleases));
+        OnPropertyChanged(nameof(PreReleaseHint));
         foreach (string name in new[] { nameof(InstalledNotes), nameof(HasInstalledNotes), nameof(InstalledNotesMissing), nameof(InstalledNotesTitle), nameof(InstalledNotesSubtitle) })
             OnPropertyChanged(name);
     }
@@ -66,17 +68,24 @@ public partial class MainViewModel
         }
     }
 
+    /// <summary>What the switch shows and what the update check uses: the user's choice, or on while running a pre-release.</summary>
     public bool IncludePreReleases
     {
-        get => _settings.IncludePreReleases;
+        get => _settings.AllowPreReleases ?? _currentVersion.IsPreRelease;
         set
         {
-            if (_settings.IncludePreReleases == value) return;
-            _settings.IncludePreReleases = value;
+            if (IncludePreReleases == value && _settings.AllowPreReleases == value) return;
+            _settings.AllowPreReleases = value;
             _settings.Save();
             OnPropertyChanged();
+            OnPropertyChanged(nameof(PreReleaseHint));
         }
     }
+
+    /// <summary>Explains why the switch is on when the user never touched it.</summary>
+    public string PreReleaseHint => _settings.AllowPreReleases is null && _currentVersion.IsPreRelease
+        ? "On because you are running a pre-release. Turn it off to be offered final versions only."
+        : "";
 
     partial void OnUpdateStatusChanged(string value) => OnPropertyChanged(nameof(UpdateDetail));
 
@@ -107,7 +116,7 @@ public partial class MainViewModel
         if (!quiet) UpdateStatus = "Checking…";
         try
         {
-            _update = await _updater.CheckAsync(_currentVersion, _settings.IncludePreReleases);
+            _update = await _updater.CheckAsync(_currentVersion, IncludePreReleases);
             UpdateStatus = _update is null ? $"You have the latest version ({_currentVersion})." : "";
             if (_update is not null) Status = $"Hofwerk {_update.Version} is available – see Settings.";
         }

@@ -18,7 +18,11 @@ implementation of the 2018 HOF Suite (see [Credits](#credits)).
 - **String presets:** names for the string slots ("IBIS 1", "ANNAX (side)" …) so you do not have to remember what
   "String 7" means. See [`Presets/`](Presets/README.md) to add your own through a pull request.
 
-Not built yet: map and trip import, export, and a visual route timeline.
+- **New file from an OMSI map:** pick a map and Hofwerk fills in its bus stops, destinations and routes.
+- **Updates inside the app**, light and dark themes, and a "What's new" for every version.
+
+Hofwerk is still in pre-release (`V1-dev1`, `V1-dev2` ...). **V1** is the release that does everything HOF Suite does. See
+the [roadmap](ROADMAP.md) for what is done and what is left, and the [changelog](CHANGELOG.md) for what changed in each version.
 
 ## Install
 

@@ -1,5 +1,6 @@
 using System.Text;
 using Hofwerk.Core.Model;
+using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.Core;
 
@@ -79,6 +80,14 @@ public static class HofWriter
 
 public static class HofFile
 {
+    /// <summary>A new depot named after an OMSI map, with the bus stops, destinations and routes taken from the map's timetable files.</summary>
+    public static HofDocument CreateFromMap(MapData map, int terminusStrings, int busStopStrings, MapImportOptions options)
+    {
+        var doc = CreateNew(map.Name, terminusStrings, busStopStrings);
+        MapImporter.Fill(doc, map, options);
+        return doc;
+    }
+
     /// <summary>
     /// A new, empty depot: one "not in service" destination, the string slots of the chosen preset, and the credit and
     /// a credit with a link to Hofwerk at the top of the file.

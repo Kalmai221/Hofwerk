@@ -23,8 +23,9 @@ public static partial class OmsiLocator
         var found = new List<string>();
         void Add(string? dir)
         {
-            if (dir is not null && LooksLikeOmsi(dir) && !found.Contains(dir, StringComparer.OrdinalIgnoreCase))
-                found.Add(dir);
+            if (dir is null || !LooksLikeOmsi(dir)) return;
+            dir = PathCasing.Normalize(dir);    // Steam and the registry write paths in lowercase
+            if (!found.Contains(dir, StringComparer.OrdinalIgnoreCase)) found.Add(dir);
         }
 
         foreach (string library in SteamLibraries())

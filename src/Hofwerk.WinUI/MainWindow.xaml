@@ -373,6 +373,8 @@
                                               IsOn="{x:Bind ViewModel.CheckForUpdatesOnStart, Mode=TwoWay}" AutomationProperties.Name="Check when Hofwerk starts" />
                                 <ToggleSwitch Header="Include pre-releases (early versions that may have bugs)" OnContent="On" OffContent="Off"
                                               IsOn="{x:Bind ViewModel.IncludePreReleases, Mode=TwoWay}" AutomationProperties.Name="Include pre-releases" />
+                                <TextBlock Text="{x:Bind ViewModel.PreReleaseHint, Mode=OneWay}" Opacity="0.65" TextWrapping="Wrap" FontSize="12"
+                                           Visibility="{x:Bind local:MainWindow.NotEmptyVisible(ViewModel.PreReleaseHint), Mode=OneWay}" />
                             </StackPanel>
                         </Border>
 

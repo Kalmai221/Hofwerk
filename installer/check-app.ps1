@@ -140,6 +140,21 @@ try {
         Check 'Home offers "New .hof file"' (Wait-Named $root 'New .hof file')
     }
     Check 'the toolbar has "New"' ([bool](Find-Named $root 'New file'))
+    # New opens a dialog (empty depot, or from an OMSI map) that Escape closes without making anything.
+    function Find-InAnyWindowNow([string]$name) {
+        $wins = $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,
+            (New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $p.Id)))
+        foreach ($w in $wins) { $el = Find-Named $w $name; if ($el) { return $el } }
+        return $null
+    }
+    Check "'New' opens the new file dialog" (Select-Item $root 'New file')
+    $dlg = $false
+    for ($i = 0; $i -lt 20 -and -not $dlg; $i++) { Start-Sleep -Milliseconds 400; $dlg = [bool](Find-InAnyWindowNow 'An empty depot') }
+    Check 'the dialog offers an empty depot' $dlg
+    Check 'the dialog offers an import from an OMSI map' ([bool]((Find-InAnyWindowNow 'Bus stops, destinations and routes from an OMSI map') -or (Find-InAnyWindowNow 'From an OMSI map')))
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+    Start-Sleep -Milliseconds 900
 
     # App settings: updates, OMSI folder and string preset.
     Check "'App settings' can be opened" (Select-Item $root 'App settings')

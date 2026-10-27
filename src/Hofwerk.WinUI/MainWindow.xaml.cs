@@ -270,13 +270,85 @@ public sealed partial class MainWindow : Window
     // File dialogs start in OMSI's Vehicles folder when it is known, otherwise where Windows would put them.
     string? OmsiStartFolder => ViewModel.VehiclesFolder is { } vehicles && Directory.Exists(vehicles) ? vehicles : null;
 
-    // A new, empty depot: pick where to put it, and it opens ready to edit.
+    // A new depot: empty, or filled from an OMSI map. Choose what to start with, then where to save it, and it opens ready to edit.
     async void OnNew(object sender, RoutedEventArgs e)
     {
-        var picker = new Pickers.FileSavePicker(AppWindow.Id) { SuggestedFileName = "New depot", SuggestedFolder = OmsiStartFolder };
+        var model = ViewModel.StartNewFile();
+        if (!await ShowNewFileDialogAsync(model)) return;
+
+        var plan = model.ToPlan();
+        var picker = new Pickers.FileSavePicker(AppWindow.Id) { SuggestedFileName = model.SuggestedFileName, SuggestedFolder = OmsiStartFolder };
         picker.FileTypeChoices.Add("OMSI HOF file", [".hof"]);
         var file = await picker.PickSaveFileAsync();
-        if (file is not null && ViewModel.CreateNew(file.Path)) SelectSection("settings");
+        if (file is not null && ViewModel.CreateNew(file.Path, plan.Map, plan.Options)) SelectSection("settings");
+    }
+
+    async Task<bool> ShowNewFileDialogAsync(NewFileViewModel model)
+    {
+        var kind = new RadioButtons { SelectedIndex = 0 };
+        kind.Items.Add("An empty depot");
+        kind.Items.Add("Bus stops, destinations and routes from an OMSI map");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(kind, "Start with");
+
+        var maps = new ComboBox { ItemsSource = model.Maps, DisplayMemberPath = "Name", PlaceholderText = "Choose a map", HorizontalAlignment = HorizontalAlignment.Stretch };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(maps, "Map");
+        var browse = new Button { Content = "Choose another map folder…" };
+        var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.75 };
+        var busStops = new CheckBox { Content = "Bus stops", IsChecked = true };
+        var destinations = new CheckBox { Content = "Destinations", IsChecked = true };
+        var routes = new CheckBox { Content = "Routes, with their stops", IsChecked = true };
+
+        var mapPanel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+        mapPanel.Children.Add(maps);
+        mapPanel.Children.Add(browse);
+        mapPanel.Children.Add(summary);
+        var parts = new StackPanel { Spacing = 0 };
+        parts.Children.Add(new TextBlock { Text = "Take from the map", Margin = new Thickness(0, 4, 0, 4) });
+        parts.Children.Add(busStops);
+        parts.Children.Add(destinations);
+        parts.Children.Add(routes);
+        mapPanel.Children.Add(parts);
+
+        var content = new StackPanel { Spacing = 14, MinWidth = 460 };
+        content.Children.Add(kind);
+        content.Children.Add(mapPanel);
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.ActualTheme,
+            Title = "New .hof file",
+            Content = content,
+            PrimaryButtonText = "Choose where to save…",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        void Refresh()
+        {
+            mapPanel.Visibility = model.FromMap ? Visibility.Visible : Visibility.Collapsed;
+            summary.Text = model.Summary;
+            dialog.IsPrimaryButtonEnabled = model.CanContinue;
+        }
+        kind.SelectionChanged += (_, _) => model.FromMap = kind.SelectedIndex == 1;
+        maps.SelectionChanged += (_, _) => model.SelectedMap = maps.SelectedItem as OmsiMap;
+        busStops.Click += (_, _) => model.ImportBusStops = busStops.IsChecked == true;
+        destinations.Click += (_, _) => model.ImportDestinations = destinations.IsChecked == true;
+        routes.Click += (_, _) => model.ImportRoutes = routes.IsChecked == true;
+        browse.Click += async (_, _) =>
+        {
+            var picker = new Pickers.FolderPicker(AppWindow.Id) { SuggestedFolder = ViewModel.OmsiFolder is { } omsi ? Path.Combine(omsi, "Maps") : null };
+            if (await picker.PickSingleFolderAsync() is { } folder)
+            {
+                model.AddMapFolder(folder.Path);
+                kind.SelectedIndex = 1;
+                maps.SelectedItem = model.SelectedMap;
+            }
+        };
+        model.PropertyChanged += (_, _) => Refresh();
+        Refresh();
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
     void OnPickEntry(object sender, ItemClickEventArgs e)

@@ -133,7 +133,7 @@ public partial class MainViewModel : ViewModelBase
 
         // The folder chosen in the installer or with Change... wins; otherwise look for Steam installs.
         string? chosen = _settings.OmsiFolder;
-        OmsiFolder = !string.IsNullOrWhiteSpace(chosen) && Directory.Exists(chosen) ? chosen : OmsiLocator.FindInstallFolders().FirstOrDefault();
+        OmsiFolder = !string.IsNullOrWhiteSpace(chosen) && Directory.Exists(chosen) ? PathCasing.Normalize(chosen) : OmsiLocator.FindInstallFolders().FirstOrDefault();
         _vehicleIndexBuilt = false; // the folder checks on the Settings page read the new install next time they are shown
         OnPropertyChanged(nameof(VehiclesFolder));
         SetRecent(_recent.Load());   // after the OMSI folder is known, so paths can start at Vehicles\

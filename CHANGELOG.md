@@ -1,11 +1,28 @@
 # Changelog
 
 All notable changes to Hofwerk are written down here. The format follows [Keep a Changelog](https://keepachangelog.com/),
-and versions follow the release tags (`V0.1-dev1` is a pre-release of 0.1).
+and versions follow the release tags. Pre-releases are called `V1-dev1`, `V1-dev2` and so on until V1, the release with the
+same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.1-dev2` came before them.
 
 ## [Unreleased]
 
 Nothing yet.
+
+## [1-dev1] - pre-release
+
+The first pre-release on the way to V1, the release with the same features as HOF Suite (see the [roadmap](ROADMAP.md)).
+
+### Added
+- **Import from an OMSI map.** New .hof file can start from a map: pick a map and Hofwerk reads its timetable files, then fills in
+  the bus stops, the destinations and the routes (with their stops, in order). You choose which of the three to take. Route codes are
+  suggestions (line 28 gives 2801, 2802 and so on) and can be changed in the editor.
+- **Roadmap.** `ROADMAP.md` lists what HOF Suite does, what Hofwerk already does, and what is left before V1.
+
+### Changed
+- **Pre-releases:** the "Include pre-releases" switch now does what it says. It is on by itself only while you run a pre-release (and
+  says so); if you turn it off you are offered final versions only. Before, a pre-release always got newer pre-releases.
+- **Folder names** such as the OMSI 2 folder are shown the way they are on disk (`C:\Program Files (x86)\Steam`), not in the lowercase
+  that Steam and the registry store.
 
 ## [0.1-dev2] - pre-release
 
@@ -60,6 +77,7 @@ First pre-release.
 - **OMSI 2 detection** through Steam and the Windows registry, and a "Where is OMSI 2?" step in the installer.
 - **Installers**: a single `.exe` for Windows and a `tar.gz` for Linux, with an uninstaller. Releases are built by the GitHub workflow.
 
-[Unreleased]: https://github.com/Kalmai221/Hofwerk/compare/V0.1-dev2...HEAD
+[Unreleased]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev1...HEAD
+[1-dev1]: https://github.com/Kalmai221/Hofwerk/compare/V0.1-dev2...V1-dev1
 [0.1-dev2]: https://github.com/Kalmai221/Hofwerk/compare/V0.1-dev1...V0.1-dev2
 [0.1-dev1]: https://github.com/Kalmai221/Hofwerk/releases/tag/V0.1-dev1

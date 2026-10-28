@@ -6,11 +6,16 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1-dev5] - pre-release
+
 ### Added
 - **Languages.** Hofwerk and its installer now come in English and German. The language follows your system until you choose one: in the installer (bottom left), and under *App settings → Appearance and language* in the app. The installer remembers its choice for the app. Screens, dialogs, messages and the installer are translated; what Hofwerk writes into your `.hof` files stays as it is. The German is written by the developer and not yet checked by a native speaker, so corrections are welcome.
 - **A guide for adding a language** (`src/Hofwerk.Installer.Engine/Languages/README.md`) and a check, run on every change, that every language has every text.
 - **German README, roadmap and string presets guide**, and a German version of the website (`/de/`), with a language switch. The changelog stays in English.
 - **`Setup --silent --language de`** to choose the language without a window.
+- **A new look for the website.** The home page opens with a destination sign like the ones on OMSI's buses, flipping through destinations; the rest is quieter, with the features as a plain list, flatter download tiles and a light and a dark theme that follow your system.
 
 ## [1-dev4] - pre-release
 

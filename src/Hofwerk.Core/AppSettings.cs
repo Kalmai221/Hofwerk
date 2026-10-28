@@ -9,8 +9,15 @@ public sealed class AppSettings
 {
     [JsonIgnore] string _path = DefaultPath;
 
-    static string DefaultPath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hofwerk", "settings.json");
+    /// <summary>
+    /// The folder with the settings and the recent files list. Normally %APPDATA%\Hofwerk (~/.config/Hofwerk on Linux); starting Hofwerk with
+    /// HOFWERK_DATA_DIR set to a folder uses that folder instead, which is how pictures and tests run without touching the real ones.
+    /// </summary>
+    static string DataFolder => Environment.GetEnvironmentVariable("HOFWERK_DATA_DIR") is { Length: > 0 } folder
+        ? folder
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hofwerk");
+
+    static string DefaultPath => Path.Combine(DataFolder, "settings.json");
 
     /// <summary>The string preset whose slot names the editor shows.</summary>
     public string ActivePresetId { get; set; } = PresetLibrary.DefaultId;

@@ -26,14 +26,14 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
   build:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
+    # A newer build cancels an older one that is still going.
+    concurrency:
+      group: website-build
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -51,6 +51,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-24.04
+    # A deployment that has started is finished, never cut short; if several wait, only the newest runs.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

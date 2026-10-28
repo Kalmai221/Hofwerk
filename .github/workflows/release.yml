@@ -10,6 +10,11 @@ on:
 permissions:
   contents: write
 
+# Running the same tag again (it was moved, or the run was started by hand) cancels the older run.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # The release text is the part of CHANGELOG.md written for this version, plus a guide to the files. Checked first, so a tag with no
   # notes fails in seconds and not after the builds. The app shows the same text under "What's new".

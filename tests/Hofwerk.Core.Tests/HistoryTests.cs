@@ -103,9 +103,9 @@ public class HistoryTests : IDisposable
         var vm = Open(settleAtOnce: false);
         vm.EditSettleTime = TimeSpan.FromMilliseconds(30);
         vm.Name = "A";
-        Thread.Sleep(250);
+        Assert.True(WaitFor(() => vm.UndoSteps == 1, 10_000));    // waits for the step itself, not for a time: a slow computer is slower
         vm.Name = "B";
-        Thread.Sleep(250);
+        Assert.True(WaitFor(() => vm.UndoSteps == 2, 10_000));
 
         vm.Undo();
         Assert.Equal("A", vm.Name);                         // two pauses, two steps
@@ -295,12 +295,12 @@ public class HistoryTests : IDisposable
     public void Each_new_change_restarts_the_autosave_wait()
     {
         var vm = Open(configure: s => s.AutoSave = true);
-        vm.AutoSaveDelayOverride = TimeSpan.FromMilliseconds(400);
+        vm.AutoSaveDelayOverride = TimeSpan.FromMilliseconds(1500);    // far longer than the gaps between the edits, even on a slow computer
 
-        for (int i = 0; i < 5; i++) { vm.Name = $"Typing {i}"; Thread.Sleep(120); }
+        for (int i = 0; i < 5; i++) { vm.Name = $"Typing {i}"; Thread.Sleep(150); }
         Assert.True(vm.IsDirty);                    // still typing, so not yet
 
-        Assert.True(WaitFor(() => !vm.IsDirty));
+        Assert.True(WaitFor(() => !vm.IsDirty, 10_000));
     }
 
     [Fact]

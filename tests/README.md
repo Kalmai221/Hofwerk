@@ -33,8 +33,19 @@ Every test class has `[Trait("Area", "...")]`. Put a new class in the area it be
 save and restore a real installation on the machine (`installer/protect-install.ps1`) and the crash log, so they are safe to run
 on a computer that has Hofwerk installed.
 
+## Running Hofwerk on its own data
+
+Start Hofwerk with `HOFWERK_DATA_DIR` set to a folder and it keeps its settings and its recent files list there instead of in
+`%APPDATA%\Hofwerk`. Useful for taking pictures or trying things without touching the real ones:
+
+```powershell
+$env:HOFWERK_DATA_DIR = "$env:TEMP\hofwerk-try"
+dotnet run --project src/Hofwerk.WinUI -r win-x64
+```
+
 ## Writing a test
 
 - Use a temporary folder under `Path.GetTempPath()` and delete it in `Dispose()`; never touch the real `%APPDATA%\Hofwerk`.
 - Use a fake `HttpMessageHandler` for anything online; no test may reach the network.
-- Wait for something to happen by polling, not by a fixed sleep.
+- Wait for something to happen by polling for it, not by a fixed sleep: a CI computer can be many times slower than yours, and a test that
+  "waits long enough" will fail there now and then. (A sleep is fine for checking that something did *not* happen.)

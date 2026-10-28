@@ -6,13 +6,16 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1-dev4] - pre-release
+
+### Added
 - **Station links.** Many maps write the stops of a timetable file only as numbers, and the names are in the map's `Busstops.cfg`. HOF Suite 1.3 added support for that, and now Hofwerk reads them too. Before, importing a map such as Lincolnshire, Yorkshire, London or Pimlico gave routes with no stops at all (87 of 87 routes on Lincolnshire V5); now each route has its stops. Trips that mix both ways of writing a stop, and files saved as UTF-16, are read too.
 - **Import into the file you have open.** The new Import button adds the bus stops, destinations and routes of an OMSI map, or one timetable file (`.ttp`) as a single route, to what the file already has. You choose what to take, and before anything changes it says what would be added and what is already in the file. A destination the file already has is reused, a bus stop or route that is already there is not added twice, and new codes never clash with old ones. The whole import is one step for Undo.
 - **A website.** Downloads, what is new, the comparison with HOF Suite, the roadmap and the string presets guide are on the Hofwerk website, and the installers are copied onto it, so nobody has to go to the code host. Files made with Hofwerk, "Installed apps" and the "What's new" window now link to the website. Only "Report a bug" and the update check still use GitHub.
 - **A tidier toolbar.** The buttons are grouped (New and Open, Save and Save as, Undo and Redo, Export) with thin lines between the groups. Undo and Redo are small icon buttons with a tip. On a narrow Linux window the buttons move under the page title instead of squeezing it.
 - **A new logo.** The front of a bus with its destination sign, in the app, the installers, the Windows and Linux icons and on the website. The smallest icon sizes have their own simpler drawing so they stay clear.
-- The published Windows app no longer closes when App settings is opened (a layout class had to be marked partial for trimming).
-- Export finds a folder whatever the letter case, also on Linux.
 
 ## [1-dev3] - pre-release
 
@@ -119,7 +122,8 @@ First pre-release.
 - **OMSI 2 detection** through Steam and the Windows registry, and a "Where is OMSI 2?" step in the installer.
 - **Installers**: a single `.exe` for Windows and a `tar.gz` for Linux, with an uninstaller. Releases are built by the GitHub workflow.
 
-[Unreleased]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev3...HEAD
+[Unreleased]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev4...HEAD
+[1-dev4]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev3...V1-dev4
 [1-dev3]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev2...V1-dev3
 [1-dev2]: https://github.com/Kalmai221/Hofwerk/compare/V1-dev1...V1-dev2
 [1-dev1]: https://github.com/Kalmai221/Hofwerk/compare/V0.1-dev2...V1-dev1

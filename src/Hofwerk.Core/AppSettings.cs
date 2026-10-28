@@ -25,6 +25,9 @@ public sealed class AppSettings
     /// <summary>The OMSI folder chosen in the installer or on Home. Empty means "find it automatically".</summary>
     public string? OmsiFolder { get; set; }
 
+    /// <summary>The language of the app: "auto" (empty means the same) follows the language Windows or the desktop is set to, otherwise a code such as "en" or "de".</summary>
+    public string? Language { get; set; }
+
     /// <summary>"System" (follow Windows or the desktop), "Light" or "Dark".</summary>
     public string Theme { get; set; } = "System";
 

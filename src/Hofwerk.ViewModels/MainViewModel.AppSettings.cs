@@ -1,7 +1,9 @@
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using Hofwerk.Localization;
 
 namespace Hofwerk.ViewModels;
 
@@ -12,8 +14,59 @@ public sealed record ThemeChoice(string Id, string Label);
 
 public partial class MainViewModel
 {
-    public IReadOnlyList<ThemeChoice> ThemeChoices { get; } =
-        [new("System", "System default"), new("Light", "Light"), new("Dark", "Dark")];
+    // The choices are rebuilt when the language changes, so their names are in the language in use.
+    public ObservableCollection<ThemeChoice> ThemeChoices { get; } = [];
+    public ObservableCollection<LanguageChoice> LanguageChoices { get; } = [];
+
+    void BuildChoices()
+    {
+        ThemeChoices.Clear();
+        foreach (var (id, label) in new[] { ("System", "System default"), ("Light", "Light"), ("Dark", "Dark") })
+            ThemeChoices.Add(new ThemeChoice(id, Localizer.T(label)));
+
+        LanguageChoices.Clear();
+        foreach (var choice in Localizer.Choices()) LanguageChoices.Add(choice);
+    }
+
+    void OnLanguageChanged()
+    {
+        BuildChoices();
+        OnPropertyChanged(nameof(SelectedTheme));
+        OnPropertyChanged(nameof(SelectedLanguage));
+        OnPropertyChanged(nameof(ActivePresetName));
+        OnPropertyChanged(nameof(WindowTitle));
+        OnPropertyChanged(nameof(FileStateText));
+        OnPropertyChanged(nameof(UpdateHeadline));
+        OnPropertyChanged(nameof(UpdateDetail));
+        OnPropertyChanged(nameof(HasExportLocations));
+        foreach (var row in Folders) row.RefreshTexts();
+        foreach (string name in new[] { nameof(LatestTitle), nameof(LatestDetail), nameof(OmsiHeadline), nameof(OmsiDetail), nameof(OmsiFolderText), nameof(OmsiLocation),
+                     nameof(FileDisplayName), nameof(FileFolder), nameof(PreReleaseHint), nameof(InstalledNotesTitle), nameof(InstalledNotesSubtitle), nameof(UpdateNotesTitle) })
+            OnPropertyChanged(name);
+        if (FilePath is null) Status = Localizer.T("Open a .hof file to start.");
+    }
+
+    Action<string> _useLanguage = id => Localizer.Use(id);
+
+    /// <summary>For tests: what happens when another language is chosen (the real one switches the whole app).</summary>
+    public void ConfigureLanguage(Action<string> use) => _useLanguage = use;
+
+    /// <summary>The language setting: "auto" (the language Windows or the desktop is set to) or a language code.</summary>
+    string LanguageSetting => string.IsNullOrWhiteSpace(_settings.Language) ? Localizer.Automatic : _settings.Language.Trim().ToLowerInvariant();
+
+    /// <summary>The language chosen in App settings. Picking one saves it and switches the whole app to it at once.</summary>
+    public LanguageChoice SelectedLanguage
+    {
+        get => LanguageChoices.FirstOrDefault(c => c.Id == LanguageSetting) ?? LanguageChoices[0];
+        set
+        {
+            if (value is null || value.Id == SelectedLanguage.Id) return;
+            _settings.Language = value.Id;
+            _settings.Save();
+            OnPropertyChanged();
+            _useLanguage(value.Id);
+        }
+    }
 
     /// <summary>Raised when the user picks another theme; the window applies it. Gets "System", "Light" or "Dark".</summary>
     public event Action<string>? ThemeChanged;
@@ -78,12 +131,12 @@ public partial class MainViewModel
     {
         try
         {
-            if (new System.IO.FileInfo(file).Length > 2_000_000) { Status = "That file is too big to be a strings file."; return null; }
+            if (new System.IO.FileInfo(file).Length > 2_000_000) { Status = Localizer.T("That file is too big to be a strings file."); return null; }
             return new PresetImportViewModel(Hofwerk.Core.Presets.PresetImporter.ReadText(System.IO.File.ReadAllBytes(file)), file);
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            Status = $"Could not read the file: {ex.Message}";
+            Status = Localizer.F("Could not read the file: {0}", ex.Message);
             return null;
         }
     }
@@ -96,7 +149,7 @@ public partial class MainViewModel
             var preset = import.Import(_userPresetsFolder);
             RefreshPresets();
             if (Presets.FirstOrDefault(p => p.Preset.Id == preset.Id) is { } added) UsePreset(added);
-            Status = $"Imported the preset {preset.Name} and switched to it";
+            Status = Localizer.F("Imported the preset {0} and switched to it", preset.Name);
             return true;
         }
         catch (Hofwerk.Core.Presets.PresetImportException ex)
@@ -112,10 +165,10 @@ public partial class MainViewModel
     /// <summary>The export dialog, with the folders the file already lists (its HOF Suite export list) ticked. Null, with the reason in the status bar, when there is nothing to export into.</summary>
     public ExportViewModel? StartExport()
     {
-        if (FilePath is null) { Status = "Open a .hof file first."; return null; }
+        if (FilePath is null) { Status = Localizer.T("Open a .hof file first."); return null; }
         if (VehiclesFolder is not { } vehicles || !System.IO.Directory.Exists(vehicles))
         {
-            Status = "Hofwerk does not know where your OMSI Vehicles folder is. Set the OMSI folder in App settings.";
+            Status = Localizer.T("Hofwerk does not know where your OMSI Vehicles folder is. Set the OMSI folder in App settings.");
             return null;
         }
         return new ExportViewModel(FilePath, vehicles, ExportLocationNames());
@@ -136,7 +189,7 @@ public partial class MainViewModel
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            Status = $"Could not save the file, so nothing was exported: {ex.Message}";
+            Status = Localizer.F("Could not save the file, so nothing was exported: {0}", ex.Message);
             export.Report = Status;
             return false;
         }
@@ -144,7 +197,7 @@ public partial class MainViewModel
         var results = await export.RunAsync();
         int written = results.Count(r => r.Outcome == Hofwerk.Core.Omsi.ExportOutcome.Written);
         int notDone = results.Count(r => r.Outcome is Hofwerk.Core.Omsi.ExportOutcome.Failed or Hofwerk.Core.Omsi.ExportOutcome.Skipped);
-        Status = $"Exported {System.IO.Path.GetFileName(FilePath)}: {written} folder{(written == 1 ? "" : "s")} updated" + (notDone > 0 ? $", {notDone} not done" : "");
+        Status = Localizer.F("Exported {0}: ", System.IO.Path.GetFileName(FilePath)) + Localizer.Count(written, "{0} folder updated", "{0} folders updated") + (notDone > 0 ? Localizer.F(", {0} not done", notDone) : "");
         return true;
     }
 
@@ -169,18 +222,18 @@ public partial class MainViewModel
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            Status = $"Could not create the file: {ex.Message}";
+            Status = Localizer.F("Could not create the file: {0}", ex.Message);
             return false;
         }
 
         if (!Open(path)) return false;
         Status = map is null
-            ? $"Created {System.IO.Path.GetFileName(path)}"
-            : $"Created {System.IO.Path.GetFileName(path)} from the map {map.Name}: {Termini.Count - 1} destinations, {BusStops.Count} bus stops, {Routes.Count} routes";
+            ? Localizer.F("Created {0}", System.IO.Path.GetFileName(path))
+            : Localizer.F("Created {0} from the map {1}: {2} destinations, {3} bus stops, {4} routes", System.IO.Path.GetFileName(path), map.Name, Termini.Count - 1, BusStops.Count, Routes.Count);
         return true;
     }
 
-    public string OmsiFolderText => OmsiFolder ?? "Not found yet. Hofwerk looks for OMSI 2 in your Steam libraries.";
+    public string OmsiFolderText => OmsiFolder ?? Localizer.T("Not found yet. Hofwerk looks for OMSI 2 in your Steam libraries.");
 
     /// <summary>Forgets a folder chosen by hand and looks for OMSI 2 again.</summary>
     [RelayCommand]
@@ -189,6 +242,6 @@ public partial class MainViewModel
         _settings.OmsiFolder = null;
         _settings.Save();
         RefreshHome();
-        Status = OmsiFolder is null ? "OMSI 2 was not found. Choose its folder by hand." : $"Found OMSI at {OmsiFolder}";
+        Status = OmsiFolder is null ? Localizer.T("OMSI 2 was not found. Choose its folder by hand.") : Localizer.F("Found OMSI at {0}", OmsiFolder);
     }
 }

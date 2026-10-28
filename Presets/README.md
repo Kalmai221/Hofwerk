@@ -1,5 +1,7 @@
 # String presets
 
+[**English**](README.md) · [Deutsch](README.de.md)
+
 A preset gives the string slots of a destination or bus stop meaningful names. Without one, a slot is just
 "String 7"; with a preset for your bus it becomes something like "Stacked (1st) Primary Text". Presets are chosen in
 the app under **Presets**, and every preset in this folder is built into the app.

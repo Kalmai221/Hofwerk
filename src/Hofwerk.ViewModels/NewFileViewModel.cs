@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -42,10 +43,10 @@ public sealed partial class NewFileViewModel : ObservableObject
         get
         {
             if (!FromMap) return "";
-            if (SelectedMap is null) return Maps.Count == 0 ? "No maps were found in OMSI's Maps folder. Choose a map folder yourself." : "Choose a map.";
-            if (IsReading) return "Reading the map…";
+            if (SelectedMap is null) return Maps.Count == 0 ? Localizer.T("No maps were found in OMSI's Maps folder. Choose a map folder yourself.") : Localizer.T("Choose a map.");
+            if (IsReading) return Localizer.T("Reading the map…");
             if (Data is null) return "";
-            return Data.IsEmpty ? "This map has no timetable data (TTData) to import from." : $"Found {Data.Summary}.";
+            return Data.IsEmpty ? Localizer.T("This map has no timetable data (TTData) to import from.") : Localizer.F("Found {0}.", Data.Summary);
         }
     }
 
@@ -58,7 +59,7 @@ public sealed partial class NewFileViewModel : ObservableObject
             : new NewFilePlan(null, new MapImportOptions());
 
     /// <summary>A name to offer for the file: the map's, or a plain one.</summary>
-    public string SuggestedFileName => FromMap && SelectedMap is not null ? SelectedMap.Name : "New depot";
+    public string SuggestedFileName => FromMap && SelectedMap is not null ? SelectedMap.Name : Localizer.T("New depot");
 
     /// <summary>Adds a map folder the user picked by hand (one that is not in OMSI's Maps folder) and selects it.</summary>
     public void AddMapFolder(string folder)

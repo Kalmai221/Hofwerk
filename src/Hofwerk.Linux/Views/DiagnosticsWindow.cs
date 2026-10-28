@@ -62,21 +62,29 @@ public sealed class DiagnosticsWindow : Window
         bottom.Children.Add(row);
         bottom.Children.Add(closeRow);
 
-        var layout = new DockPanel { Margin = new Thickness(20, 16, 20, 16) };
-        DockPanel.SetDock(bottom, Dock.Bottom);
-        layout.Children.Add(bottom);
-        layout.Children.Add(new StackPanel
+        // the heading on top, the buttons at the bottom, and the report fills everything between them
+        var heading = new StackPanel
         {
             Spacing = 8,
+            Margin = new Thickness(0, 0, 0, 12),
             Children =
             {
                 new TextBlock { Text = "Diagnostics", FontSize = 20, FontWeight = FontWeight.SemiBold },
                 new TextBlock { Text = "What Hofwerk knows about itself. Your user name is taken out of the paths, so this can be pasted into a bug report.", Opacity = 0.7, TextWrapping = TextWrapping.Wrap },
             },
-        });
-        // the report fills what is left
-        var reportHost = new Border { Margin = new Thickness(0, 90, 0, 0), Child = box };
-        layout.Children.Add(reportHost);
+        };
+        box.HorizontalAlignment = HorizontalAlignment.Stretch;
+        box.VerticalAlignment = VerticalAlignment.Stretch;
+        box.TextWrapping = TextWrapping.NoWrap;
+        ScrollViewer.SetHorizontalScrollBarVisibility(box, Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
+        ScrollViewer.SetVerticalScrollBarVisibility(box, Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
+
+        var layout = new DockPanel { Margin = new Thickness(20, 16, 20, 16), LastChildFill = true };
+        DockPanel.SetDock(heading, Dock.Top);
+        DockPanel.SetDock(bottom, Dock.Bottom);
+        layout.Children.Add(heading);
+        layout.Children.Add(bottom);
+        layout.Children.Add(box);
         Content = layout;
     }
 

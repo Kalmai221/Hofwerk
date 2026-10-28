@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 namespace Hofwerk.Installer.Engine;
 
 /// <summary>
@@ -22,7 +23,7 @@ public static class InPlaceUpdate
     {
         string dir = Path.GetFullPath(directory);
         if (!PlatformInstaller.IsInstalled(dir))
-            throw new InstallerException("Hofwerk is not installed in this folder, so it cannot be updated here.");
+            throw new InstallerException(Localizer.T("Hofwerk is not installed in this folder, so it cannot be updated here."));
 
         var staged = new List<(string Relative, string Destination, string Temp)>();
         try
@@ -38,7 +39,7 @@ public static class InPlaceUpdate
                     string destination = Path.GetFullPath(Path.Combine(dir, relative));
                     string check = Path.GetRelativePath(dir, destination);
                     if (check.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(check))
-                        throw new InstallerException($"The update is damaged ({entry.Path} points outside the install folder).");
+                        throw new InstallerException(Localizer.F("The update is damaged ({0} points outside the install folder).", entry.Path));
 
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                     string temp = destination + NewSuffix;
@@ -52,7 +53,7 @@ public static class InPlaceUpdate
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             DeleteAll(staged.Select(s => s.Temp));
-            throw new InstallerException($"The update could not be unpacked: {ex.Message}", ex);
+            throw new InstallerException(Localizer.F("The update could not be unpacked: {0}", ex.Message), ex);
         }
         catch
         {
@@ -96,7 +97,7 @@ public static class InPlaceUpdate
         {
             Rollback(swapped);
             DeleteAll(staged.Select(s => s.Temp));
-            throw new InstallerException($"The update could not be installed and Hofwerk was left as it was: {ex.Message}", ex);
+            throw new InstallerException(Localizer.F("The update could not be installed and Hofwerk was left as it was: {0}", ex.Message), ex);
         }
         progress?.Report(0.90);
 
@@ -137,13 +138,13 @@ public static class InPlaceUpdate
     {
         string dir = Path.GetFullPath(installFolder);
         if (!PlatformInstaller.IsInstalled(dir))
-            throw new InstallerException("Hofwerk is not installed in this folder, so nothing can be added to it.");
+            throw new InstallerException(Localizer.T("Hofwerk is not installed in this folder, so nothing can be added to it."));
 
         string target = Path.Combine(dir, subfolder);
         try { if (Directory.Exists(target)) Directory.Delete(target, recursive: true); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallerException($"The old compatibility version could not be removed (is it still running?): {ex.Message}", ex);
+            throw new InstallerException(Localizer.F("The old compatibility version could not be removed (is it still running?): {0}", ex.Message), ex);
         }
 
         var written = new List<string>();
@@ -156,7 +157,7 @@ public static class InPlaceUpdate
                 string destination = Path.GetFullPath(Path.Combine(target, relative));
                 string check = Path.GetRelativePath(target, destination);
                 if (check.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(check))
-                    throw new InstallerException($"The download is damaged ({entry.Path} points outside its folder).");
+                    throw new InstallerException(Localizer.F("The download is damaged ({0} points outside its folder).", entry.Path));
 
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 using (var file = File.Create(destination)) content.CopyTo(file);
@@ -166,7 +167,7 @@ public static class InPlaceUpdate
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             try { if (Directory.Exists(target)) Directory.Delete(target, recursive: true); } catch (IOException) { }
-            throw new InstallerException($"The compatibility version could not be installed: {ex.Message}", ex);
+            throw new InstallerException(Localizer.F("The compatibility version could not be installed: {0}", ex.Message), ex);
         }
 
         string manifest = Path.Combine(dir, PlatformInstaller.ManifestName);

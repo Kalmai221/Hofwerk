@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<meta name="color-scheme" content="dark light">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:image" content="{{root}}assets/windows-and-linux.png">
+<link rel="icon" type="image/svg+xml" href="{{root}}assets/logo.svg">
+<link rel="icon" href="{{root}}favicon.ico" sizes="any">
+{{alternates}}
+<link rel="stylesheet" href="{{root}}assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Zum Inhalt springen</a>
+<header class="top">
+  <div class="bar">
+    <a class="brand" href="index.html"><img src="{{root}}assets/logo.svg" alt="" width="32" height="32"><span>Hofwerk</span></a>
+    <nav aria-label="Hauptmenü">{{nav}}</nav>
+    {{switch}}
+  </div>
+</header>
+<main id="main">
+{{content}}
+</main>
+<footer>
+  <div class="wrap">
+    <p><strong>Hofwerk</strong> ist kostenlos. Es ist ein neuer Editor, inspiriert von der originalen
+      <a href="https://gitlab.com/omsi2/hof-suite">HOF Suite</a> von Lukas G., und liest und schreibt dieselben <code>.hof</code>-Dateien.</p>
+    <p>OMSI 2 ist ein Produkt seiner jeweiligen Inhaber. Hofwerk steht in keiner Verbindung zu ihnen.</p>
+    <p class="links"><a href="compare.html">Hofwerk und HOF Suite</a> · <a href="roadmap.html">Roadmap</a> ·
+      <a href="https://github.com/Kalmai221/Hofwerk/issues/new?labels=bug">Fehler melden</a> · &copy; {{year}}</p>
+  </div>
+</footer>
+<script src="{{root}}assets/site.js" defer></script>
+</body>
+</html>

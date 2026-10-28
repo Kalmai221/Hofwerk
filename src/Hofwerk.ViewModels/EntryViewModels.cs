@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -167,7 +168,7 @@ public partial class RouteViewModel : ObservableObject
     public ObservableCollection<RouteStopViewModel> Stops { get; } = [];
 
     public string Title => $"{Ident}  {Name}";
-    public string StopSummary => Stops.Count == 1 ? "1 stop" : $"{Stops.Count} stops";
+    public string StopSummary => Localizer.Count(Stops.Count, "{0} stop", "{0} stops");
     public bool HasStops => Stops.Count > 0;
     partial void OnIdentChanged(string value) => OnPropertyChanged(nameof(Title));
     partial void OnNameChanged(string value) => OnPropertyChanged(nameof(Title));
@@ -255,7 +256,7 @@ public partial class PresetViewModel(Hofwerk.Core.Presets.StringPreset preset, b
     public string Url => Preset.Url;
     public bool HasUrl => Preset.Url.Length > 0;
     public string Credit => Preset.Author.Length > 0 ? $"by {Preset.Author}" : "";
-    public string Source => Preset.IsBuiltIn ? "Built in" : "Your preset";
+    public string Source => Preset.IsBuiltIn ? Localizer.T("Built in") : Localizer.T("Your preset");
     public string SlotSummary =>
-        $"{Preset.Templates.Count(StringSlotKind.Terminus)} destination slots · {Preset.Templates.Count(StringSlotKind.BusStop)} bus stop slots";
+        Localizer.F("{0} destination slots · {1} bus stop slots", Preset.Templates.Count(StringSlotKind.Terminus), Preset.Templates.Count(StringSlotKind.BusStop));
 }

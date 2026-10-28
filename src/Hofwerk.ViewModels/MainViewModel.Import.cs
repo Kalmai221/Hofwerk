@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using Hofwerk.Core.Omsi;
 
 namespace Hofwerk.ViewModels;
@@ -10,7 +11,7 @@ public partial class MainViewModel
     /// <summary>The Import dialog for the open file, or null (with the reason in the status bar) when no file is open.</summary>
     public ImportViewModel? StartImport()
     {
-        if (FilePath is null) { Status = "Open a .hof file first."; return null; }
+        if (FilePath is null) { Status = Localizer.T("Open a .hof file first."); return null; }
         return new ImportViewModel(FindMaps(), (data, options) => MapImporter.Preview(ToDocument(), data, options));
     }
 
@@ -32,7 +33,7 @@ public partial class MainViewModel
         ApplyDocument(doc, refreshProblems: false, keep);
         Touch();            // unsaved now, and the step is kept for Undo
         CommitEdit();
-        Status = $"Imported {data.Name}: {result.Describe(past: true)}";
+        Status = Localizer.F("Imported {0}: ", data.Name) + result.Describe(past: true);
         return true;
     }
 }

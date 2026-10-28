@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Hofwerk.Core.Presets;
 
@@ -9,11 +10,11 @@ namespace Hofwerk.ViewModels;
 /// </summary>
 public sealed partial class PresetImportViewModel : ObservableObject
 {
-    public static IReadOnlyList<string> LayoutChoices { get; } =
+    public static IReadOnlyList<string> LayoutChoices =>
     [
-        "An OMSI strings file (string 0:, [TerminusString] ...)",
-        "One name per line, with the slot number in front (0 = IBIS 1)",
-        "One name per line, in slot order (the first line is the first slot)",
+        Localizer.T("An OMSI strings file (string 0:, [TerminusString] ...)"),
+        Localizer.T("One name per line, with the slot number in front (0 = IBIS 1)"),
+        Localizer.T("One name per line, in slot order (the first line is the first slot)"),
     ];
 
     readonly string _text;
@@ -52,8 +53,8 @@ public sealed partial class PresetImportViewModel : ObservableObject
         get
         {
             var preview = PresetImporter.Preview(_text, Layout, FirstSlot);
-            if (preview.Slots == 0) return "Nothing was found with this way of reading the file. Try another one.";
-            return $"Found {preview.Slots} names, for example {string.Join(", ", preview.Sample)}.";
+            if (preview.Slots == 0) return Localizer.T("Nothing was found with this way of reading the file. Try another one.");
+            return Localizer.F("Found {0} names, for example {1}.", preview.Slots, string.Join(", ", preview.Sample));
         }
     }
 

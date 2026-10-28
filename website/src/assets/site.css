@@ -155,3 +155,7 @@ footer a:hover { color: var(--text); }
   .date { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* the other language, next to the menu */
+nav a.lang, a.lang { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 999px; font-size: .95rem; border: 1px solid var(--line); }
+a.lang:hover { color: var(--text); background: var(--bg-soft); }

@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -68,7 +69,7 @@ public static class PresetImporter
     public static string SuggestName(string filePath)
     {
         string name = Path.GetFileNameWithoutExtension(filePath).Replace('_', ' ').Replace('-', ' ').Trim();
-        return name.Length == 0 ? "My strings" : char.ToUpperInvariant(name[0]) + name[1..];
+        return name.Length == 0 ? Localizer.T("My strings") : char.ToUpperInvariant(name[0]) + name[1..];
     }
 
     public static StringFilePreview Preview(string text, StringFileLayout layout, int firstSlot = 0)
@@ -143,16 +144,16 @@ public static class PresetImporter
     /// <exception cref="PresetImportException">Something is missing or the file has no names in it; the message says what.</exception>
     public static StringPreset Import(string text, PresetImportOptions options, string userFolder)
     {
-        if (string.IsNullOrWhiteSpace(options.Name)) throw new PresetImportException("Give the preset a name.");
+        if (string.IsNullOrWhiteSpace(options.Name)) throw new PresetImportException(Localizer.T("Give the preset a name."));
         if (options.Layout != StringFileLayout.OmsiStrings && options.Targets == SlotTargets.None)
-            throw new PresetImportException("Choose what the names are for: destinations, bus stops, or both.");
+            throw new PresetImportException(Localizer.T("Choose what the names are for: destinations, bus stops, or both."));
 
         string strings = ToStringsFile(text, options);
         var parsed = StringTemplates.Parse(strings);
         if (parsed.Count(StringSlotKind.Terminus) + parsed.Count(StringSlotKind.BusStop) == 0)
             throw new PresetImportException(options.Layout == StringFileLayout.OmsiStrings
-                ? "No names were found. Is this file written the way OMSI strings files are? Try one of the other ways of reading it."
-                : "No names were found in the file with this way of reading it. Try another one.");
+                ? Localizer.T("No names were found. Is this file written the way OMSI strings files are? Try one of the other ways of reading it.")
+                : Localizer.T("No names were found in the file with this way of reading it. Try another one."));
 
         string id = FreeId(userFolder, Slug(options.Name));
         string folder = Path.Combine(userFolder, id);
@@ -165,7 +166,7 @@ public static class PresetImporter
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new PresetImportException($"The preset could not be saved: {ex.Message}");
+            throw new PresetImportException(Localizer.F("The preset could not be saved: {0}", ex.Message));
         }
 
         return PresetLibrary.LoadAll(userFolder).First(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));

@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:Hofwerk.Installer"
+        xmlns:loc="using:Hofwerk.Localization"
         x:Class="Hofwerk.Installer.MainWindow"
         x:DataType="local:InstallerViewModel"
         Title="Hofwerk Setup"
@@ -101,8 +102,19 @@
                     <TextBlock Text="{Binding Version, StringFormat='Version {0}'}" FontSize="12" Foreground="#A8FFFFFF" HorizontalAlignment="Center" Margin="0,6,0,0" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="1" Margin="24,0,24,22" TextWrapping="Wrap" TextAlignment="Center" FontSize="11.5" Foreground="#B8FFFFFF"
-                           Text="With thanks to Lukas G., creator of the original HOF Suite, for the inspiration." />
+                <StackPanel Grid.Row="1" Margin="24,0,24,22" Spacing="14">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Language" FontSize="12" Foreground="#D2FFFFFF" />
+                        <ComboBox ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch"
+                                  AutomationProperties.Name="Language">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="loc:LanguageChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock TextWrapping="Wrap" TextAlignment="Center" FontSize="11.5" Foreground="#B8FFFFFF"
+                               Text="With thanks to Lukas G., creator of the original HOF Suite, for the inspiration." />
+                </StackPanel>
             </Grid>
         </Border>
 

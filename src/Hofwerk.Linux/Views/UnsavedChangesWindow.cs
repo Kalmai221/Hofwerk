@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -39,7 +40,7 @@ public sealed class UnsavedChangesWindow : Window
         body.Children.Add(new TextBlock { Text = "Save your changes?", FontSize = 20, FontWeight = FontWeight.SemiBold });
         body.Children.Add(new TextBlock
         {
-            Text = $"{fileName} has changes that are not saved. If you close without saving, they are lost.",
+            Text = Localizer.F("{0} has changes that are not saved. If you close without saving, they are lost.", fileName),
             TextWrapping = TextWrapping.Wrap,
         });
         body.Children.Add(buttons);

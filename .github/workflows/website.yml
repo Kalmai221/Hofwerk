@@ -12,8 +12,11 @@ on:
       - website/**
       - CHANGELOG.md
       - ROADMAP.md
+      - ROADMAP.de.md
       - README.md
+      - README.de.md
       - Presets/README.md
+      - Presets/README.de.md
       - docs/**
       - .github/workflows/website.yml
   workflow_run:

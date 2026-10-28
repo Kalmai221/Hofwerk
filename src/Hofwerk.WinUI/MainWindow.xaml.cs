@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using Hofwerk.Core.Omsi;
 using Hofwerk.ViewModels;
 using Microsoft.UI;
@@ -58,9 +59,11 @@ public sealed partial class MainWindow : Window
         ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => { _closeConfirmed = true; Application.Current.Exit(); });
         AppWindow.Closing += OnWindowClosing;
         Root.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnRootPointerPressed), true);
+        Hofwerk.Localization.Localizer.Changed += QueueTranslate;
         Root.Loaded += async (_, _) =>
         {
             ApplyCaptionButtonColors();
+            QueueTranslate();
 
             // A file passed on the command line is opened once the window is up; WinUI crashes if navigation changes earlier.
             if (openPath is not null)
@@ -130,7 +133,7 @@ public sealed partial class MainWindow : Window
     // Helpers for x:Bind function bindings.
     public static bool HasFile(string? path) => path is not null;
     public static Visibility HasText(string? text) => string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
-    public static string FolderText(string? folder) => folder ?? "OMSI was not found automatically. Use “Open a .hof file” instead.";
+    public static string FolderText(string? folder) => folder ?? Localizer.T("OMSI was not found automatically. Use “Open a .hof file” instead.");
     public static double D(int value) => value;
 
     // The dot in the sidebar file card: green when everything is saved, amber when there are unsaved changes.
@@ -291,7 +294,7 @@ public sealed partial class MainWindow : Window
             DefaultButton = ContentDialogButton.Close,
         };
         dialog.Resources["ContentDialogMaxWidth"] = 680.0;
-        if (await dialog.ShowAsync() == ContentDialogResult.Secondary && hasPage) _ = Windows.System.Launcher.LaunchUriAsync(page);
+        if (await dialog.ShowTranslated() == ContentDialogResult.Secondary && hasPage) _ = Windows.System.Launcher.LaunchUriAsync(page);
     }
 
     // File dialogs start in OMSI's Vehicles folder when it is known, otherwise where Windows would put them.
@@ -305,7 +308,7 @@ public sealed partial class MainWindow : Window
 
         var plan = model.ToPlan();
         var picker = new Pickers.FileSavePicker(AppWindow.Id) { SuggestedFileName = model.SuggestedFileName, SuggestedFolder = OmsiStartFolder };
-        picker.FileTypeChoices.Add("OMSI HOF file", [".hof"]);
+        picker.FileTypeChoices.Add(Localizer.T("OMSI HOF file"), [".hof"]);
         var file = await picker.PickSaveFileAsync();
         if (file is not null && ViewModel.CreateNew(file.Path, plan.Map, plan.Options)) SelectSection("settings");
     }
@@ -340,8 +343,8 @@ public sealed partial class MainWindow : Window
     async Task<bool> ShowNewFileDialogAsync(NewFileViewModel model)
     {
         var kind = new RadioButtons { SelectedIndex = 0 };
-        kind.Items.Add("An empty depot");
-        kind.Items.Add("Bus stops, destinations and routes from an OMSI map");
+        kind.Items.Add(Localizer.T("An empty depot"));
+        kind.Items.Add(Localizer.T("Bus stops, destinations and routes from an OMSI map"));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(kind, "Start with");
 
         // The maps as pictures with their names, like OMSI's own map list (and HOF Suite's): click one to choose it.
@@ -415,7 +418,7 @@ public sealed partial class MainWindow : Window
         model.PropertyChanged += (_, _) => Refresh();
         Refresh();
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await dialog.ShowTranslated() == ContentDialogResult.Primary;
     }
 
     void OnPickEntry(object sender, ItemClickEventArgs e)
@@ -481,7 +484,7 @@ public sealed partial class MainWindow : Window
     {
         if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
         e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Open in Hofwerk";
+        e.DragUIOverride.Caption = Localizer.T("Open in Hofwerk");
     }
 
     async void OnDrop(object sender, DragEventArgs e)
@@ -491,7 +494,7 @@ public sealed partial class MainWindow : Window
         var items = await e.DataView.GetStorageItemsAsync();
         var file = items.OfType<StorageFile>().FirstOrDefault(f => f.FileType.Equals(".hof", StringComparison.OrdinalIgnoreCase));
         if (file is not null) OpenAndShow(file.Path);
-        else ViewModel.Status = "That is not a .hof file.";
+        else ViewModel.Status = Localizer.T("That is not a .hof file.");
     }
 
     // Preset links come from files anyone can contribute, so only plain web links are opened.
@@ -589,7 +592,7 @@ public sealed partial class MainWindow : Window
             clear.Click += (_, _) => { ViewModel.ClearRecentFiles(); clear.Content = "Cleared"; };
             simulate.Click += (_, _) => { simulateAfterwards = true; dialog.Hide(); };   // only one dialog at a time: the error dialog comes after this one
 
-            await dialog.ShowAsync();
+            await dialog.ShowTranslated();
             if (simulateAfterwards) SimulateError();
         }
         finally { _diagnosticsOpen = false; }
@@ -601,7 +604,10 @@ public sealed partial class MainWindow : Window
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
     }
 
-    public static IReadOnlyList<string> AutoSaveChoices => MainViewModel.AutoSaveChoices;
+    public static IReadOnlyList<string> AutoSaveChoices => MainViewModel.AutoSaveChoices.Select(Hofwerk.Localization.Localizer.T).ToList();
+
+    // Puts the fixed texts of the window into the language in use (later, so lists and pages that are still being built are included).
+    void QueueTranslate() => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => Translator.Apply(Root));
 
     // ---- Closing with unsaved work: ask first (with autosave on, the work is simply saved) -----------------------
 
@@ -627,13 +633,13 @@ public sealed partial class MainWindow : Window
                 XamlRoot = Root.XamlRoot,
                 RequestedTheme = Root.ActualTheme,
                 Title = "Save your changes?",
-                Content = $"{ViewModel.FileDisplayName} has changes that are not saved. If you close without saving, they are lost.",
+                Content = Localizer.F("{0} has changes that are not saved. If you close without saving, they are lost.", ViewModel.FileDisplayName),
                 PrimaryButtonText = "Save",
                 SecondaryButtonText = "Don't save",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
             };
-            var answer = await dialog.ShowAsync();
+            var answer = await dialog.ShowTranslated();
             if (answer == ContentDialogResult.None) return;                       // stay open
 
             if (answer == ContentDialogResult.Primary)
@@ -641,7 +647,7 @@ public sealed partial class MainWindow : Window
                 try { ViewModel.Save(ViewModel.FilePath!); }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    ViewModel.Status = $"Could not save: {ex.Message}";           // the file is still open, nothing is lost
+                    ViewModel.Status = Localizer.F("Could not save: {0}", ex.Message);           // the file is still open, nothing is lost
                     return;
                 }
             }
@@ -663,8 +669,8 @@ public sealed partial class MainWindow : Window
         if (ViewModel.StartImport() is not { } model) return;
 
         var kind = new RadioButtons { SelectedIndex = 0 };
-        kind.Items.Add("From an OMSI map");
-        kind.Items.Add("One timetable file (.ttp)");
+        kind.Items.Add(Localizer.T("From an OMSI map"));
+        kind.Items.Add(Localizer.T("One timetable file (.ttp)"));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(kind, "Import from");
 
         var maps = new GridView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 280 };
@@ -743,7 +749,7 @@ public sealed partial class MainWindow : Window
         model.PropertyChanged += (_, _) => Refresh();
         Refresh();
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary) ViewModel.ApplyImport(model);
+        if (await dialog.ShowTranslated() == ContentDialogResult.Primary) ViewModel.ApplyImport(model);
     }
 
     async void OnExport(object sender, RoutedEventArgs e)
@@ -780,7 +786,7 @@ public sealed partial class MainWindow : Window
         {
             TextWrapping = TextWrapping.Wrap,
             Opacity = 0.8,
-            Text = $"Put {export.FileName} into every folder you tick, so every bus that uses it has the latest version. The ticked folders are saved in the file, like HOF Suite does, so next time they are ticked already.",
+            Text = Localizer.F("Put {0} into every folder you tick, so every bus that uses it has the latest version. The ticked folders are saved in the file, like HOF Suite does, so next time they are ticked already.", export.FileName),
         });
         content.Children.Add(search);
         content.Children.Add(scroll);
@@ -832,7 +838,7 @@ public sealed partial class MainWindow : Window
         Rebuild();
         Refresh();
 
-        await dialog.ShowAsync();
+        await dialog.ShowTranslated();
     }
 
     // A strings file of the user's own, usually without a preset.json: pick it, then say what is in it.
@@ -862,7 +868,7 @@ public sealed partial class MainWindow : Window
         var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.8 };
 
         var content = new StackPanel { Spacing = 12, MinWidth = 520 };
-        content.Children.Add(new TextBlock { Text = $"File: {import.FileName}", Opacity = 0.7 });
+        content.Children.Add(new TextBlock { Text = Localizer.F("File: {0}", import.FileName), Opacity = 0.7 });
         foreach (UIElement part in new UIElement[] { name, author, description, layout, forPanel, first, summary }) content.Children.Add(part);
 
         var dialog = new ContentDialog
@@ -893,12 +899,12 @@ public sealed partial class MainWindow : Window
         import.PropertyChanged += (_, _) => Refresh();
         Refresh();
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary) ViewModel.FinishPresetImport(import);
+        if (await dialog.ShowTranslated() == ContentDialogResult.Primary) ViewModel.FinishPresetImport(import);
     }
 
     void OnSave(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.FilePath is { } path) Guarded(() => ViewModel.Save(path), "save");
+        if (ViewModel.FilePath is { } path) Guarded(() => ViewModel.Save(path));
     }
 
     async void OnSaveAs(object sender, RoutedEventArgs e)
@@ -910,18 +916,18 @@ public sealed partial class MainWindow : Window
             SuggestedFileName = Path.GetFileNameWithoutExtension(ViewModel.FilePath),
             SuggestedFolder = beside is not null && Directory.Exists(beside) ? beside : OmsiStartFolder,
         };
-        picker.FileTypeChoices.Add("OMSI HOF file", [".hof"]);
+        picker.FileTypeChoices.Add(Localizer.T("OMSI HOF file"), [".hof"]);
         var file = await picker.PickSaveFileAsync();
-        if (file is not null) Guarded(() => ViewModel.Save(file.Path), "save");
+        if (file is not null) Guarded(() => ViewModel.Save(file.Path));
     }
 
     // File problems (locked file, no permission) go to the status bar instead of crashing the app.
-    void Guarded(Action action, string verb)
+    void Guarded(Action action)
     {
         try { action(); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ViewModel.Status = $"Could not {verb} the file: {ex.Message}";
+            ViewModel.Status = Localizer.F("Could not save the file: {0}", ex.Message);
         }
     }
 }

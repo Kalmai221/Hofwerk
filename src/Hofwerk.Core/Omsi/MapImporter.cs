@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Text.RegularExpressions;
 using Hofwerk.Core.Model;
 
@@ -28,9 +29,8 @@ public sealed class MapData
     public bool IsEmpty => BusStops.Count == 0 && Trips.Count == 0;
 
     /// <summary>"22 bus stops, 2 destinations, 17 routes".</summary>
-    public string Summary => $"{Count(BusStops.Count, "bus stop")}, {Count(Destinations.Count, "destination")}, {Count(Trips.Count, "route")}";
-
-    static string Count(int n, string noun) => n == 1 ? $"1 {noun}" : $"{n} {noun}s";
+    public string Summary => string.Join(", ", Localizer.Count(BusStops.Count, "{0} bus stop", "{0} bus stops"),
+        Localizer.Count(Destinations.Count, "{0} destination", "{0} destinations"), Localizer.Count(Trips.Count, "{0} route", "{0} routes"));
 }
 
 /// <summary>What to take from the map when making a new .hof file.</summary>
@@ -42,26 +42,25 @@ public sealed record MergeResult(int NewBusStops, int KnownBusStops, int NewDest
     public int Added => NewBusStops + NewDestinations + NewRoutes;
     public int AlreadyThere => KnownBusStops + KnownDestinations + KnownRoutes;
 
-    static string Count(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
 
     /// <summary>"12 bus stops, 2 destinations and 8 routes will be added; 3 bus stops and 1 route are already in the file."</summary>
     public string Describe(bool past = false)
     {
         var added = new List<string>();
-        if (NewBusStops > 0) added.Add(Count(NewBusStops, "bus stop", "bus stops"));
-        if (NewDestinations > 0) added.Add(Count(NewDestinations, "destination", "destinations"));
-        if (NewRoutes > 0) added.Add(Count(NewRoutes, "route", "routes"));
+        if (NewBusStops > 0) added.Add(Localizer.Count(NewBusStops, "{0} bus stop", "{0} bus stops"));
+        if (NewDestinations > 0) added.Add(Localizer.Count(NewDestinations, "{0} destination", "{0} destinations"));
+        if (NewRoutes > 0) added.Add(Localizer.Count(NewRoutes, "{0} route", "{0} routes"));
         var known = new List<string>();
-        if (KnownBusStops > 0) known.Add(Count(KnownBusStops, "bus stop", "bus stops"));
-        if (KnownDestinations > 0) known.Add(Count(KnownDestinations, "destination", "destinations"));
-        if (KnownRoutes > 0) known.Add(Count(KnownRoutes, "route", "routes"));
+        if (KnownBusStops > 0) known.Add(Localizer.Count(KnownBusStops, "{0} bus stop", "{0} bus stops"));
+        if (KnownDestinations > 0) known.Add(Localizer.Count(KnownDestinations, "{0} destination", "{0} destinations"));
+        if (KnownRoutes > 0) known.Add(Localizer.Count(KnownRoutes, "{0} route", "{0} routes"));
 
-        string text = added.Count == 0 ? "Nothing new to add" : Join(added) + (past ? " added" : " will be added");
-        if (known.Count > 0) text += $"; {Join(known)} {(AlreadyThere == 1 ? "is" : "are")} already in the file";
+        string text = added.Count == 0 ? Localizer.T("Nothing new to add") : Join(added) + (past ? Localizer.T(" added") : Localizer.T(" will be added"));
+        if (known.Count > 0) text += "; " + Localizer.F(AlreadyThere == 1 ? "{0} is already in the file" : "{0} are already in the file", Join(known));
         return text + ".";
     }
 
-    static string Join(List<string> parts) => parts.Count == 1 ? parts[0] : string.Join(", ", parts[..^1]) + " and " + parts[^1];
+    static string Join(List<string> parts) => parts.Count == 1 ? parts[0] : string.Join(", ", parts[..^1]) + Localizer.T(" and ") + parts[^1];
 }
 
 /// <summary>

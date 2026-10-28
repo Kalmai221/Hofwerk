@@ -1,5 +1,7 @@
 # Roadmap
 
+[**English**](ROADMAP.md) · [Deutsch](ROADMAP.de.md)
+
 ## Versions
 
 Hofwerk is released as **pre-releases until it can do everything the original HOF Suite does**. The pre-releases are called
@@ -28,12 +30,12 @@ HOF Suite and something is missing here, please open an issue.
 - [x] **Import a map into a file you already have**, choosing what to add. What is already in the file is left alone (the preview says what would be added), and Undo takes the whole import back
 - [x] **Import a trip**: add one timetable file (`.ttp`) to a file as a route (HOF Suite's *Import trip*)
 - [x] **Station links** (HOF Suite 1.3): timetable files that write a stop only as a number (`[station_typ2]`) get its name from the map's `Busstops.cfg`. Maps like Lincolnshire, Yorkshire, London and Pimlico write most of their trips this way. (It is not the `StnLinks.cfg` file, as this roadmap first guessed)
+- [x] **Translations** (HOF Suite has English and German): Hofwerk comes in English and German, in the app and in the installer, and follows the system language. More languages can be added with one file each
 - [x] Start a new file from an OMSI **map**: its bus stops, destinations and routes, with the map's picture and name (a first version
   of HOF Suite's *Import map*)
 
 ### Still to do for V1
 
-- [ ] **Translations**: HOF Suite has a German version; Hofwerk is English only so far
 - [ ] **A visual route timeline** (planned from the start)
 - [ ] A last full comparison against HOF Suite with real `.hof` files, to catch anything that is missing or different
 
@@ -64,4 +66,5 @@ Ideas that HOF Suite never had. Nothing here is promised.
 - Compare two `.hof` files
 - Check a file against the bus stops of a map and warn about stops that do not exist there
 - Several `.hof` files open at once
+- More languages, and a German check by a native speaker
 - Ask about unsaved changes when opening or creating a file over them, and an option to export on every save

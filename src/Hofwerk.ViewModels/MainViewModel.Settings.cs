@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -39,7 +40,7 @@ public partial class MainViewModel
 
             // A value that is not one of the destinations stays selectable rather than being lost.
             if (!string.IsNullOrWhiteSpace(ServiceTrip) && !ServiceTripChoices.Any(c => SameName(c.Name, ServiceTrip)))
-                ServiceTripChoices.Add(new ServiceTripChoice($"{ServiceTrip.Trim()} (not in the destination list)", ServiceTrip));
+                ServiceTripChoices.Add(new ServiceTripChoice(Localizer.F("{0} (not in the destination list)", ServiceTrip.Trim()), ServiceTrip));
         }
         finally { _syncingChoices = false; }
 
@@ -108,12 +109,12 @@ public partial class MainViewModel
         {
             string made = VehicleFolderIndex.CreateFolder(parent, row.Name);
             RefreshFolderStatuses(rescan: true);
-            Status = $"Created {made}";
+            Status = Localizer.F("Created {0}", made);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Status = $"Could not create the folder: {ex.Message}";
+            Status = Localizer.F("Could not create the folder: {0}", ex.Message);
             return false;
         }
     }
@@ -184,7 +185,7 @@ public partial class MainViewModel
 
     // ---- Sidebar file card --------------------------------------------------------------------------------------
 
-    public string FileDisplayName => FilePath is null ? "No file open" : Path.GetFileName(FilePath);
-    public string FileFolder => FilePath is null ? "Open a .hof file to start editing" : Path.GetDirectoryName(FileDisplayPath) ?? "";
-    public string FileStateText => FilePath is null ? "" : IsDirty ? "Unsaved changes" : "All changes saved";
+    public string FileDisplayName => FilePath is null ? Localizer.T("No file open") : Path.GetFileName(FilePath);
+    public string FileFolder => FilePath is null ? Localizer.T("Open a .hof file to start editing") : Path.GetDirectoryName(FileDisplayPath) ?? "";
+    public string FileStateText => FilePath is null ? "" : IsDirty ? Localizer.T("Unsaved changes") : Localizer.T("All changes saved");
 }

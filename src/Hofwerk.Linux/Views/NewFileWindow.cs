@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Automation;
@@ -94,7 +95,7 @@ public sealed class NewFileWindow : Window
             IStorageFolder? start = mapsFolder is { Length: > 0 } && System.IO.Directory.Exists(mapsFolder) ? await StorageProvider.TryGetFolderFromPathAsync(mapsFolder) : null;
             var picked = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
-                Title = "Choose an OMSI map folder",
+                Title = Localizer.T("Choose an OMSI map folder"),
                 AllowMultiple = false,
                 SuggestedStartLocation = start,
             });

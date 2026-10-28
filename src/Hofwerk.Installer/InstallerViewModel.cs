@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using Hofwerk.Core.Omsi;
 using Hofwerk.Core.Updates;
 using Hofwerk.Installer.Engine;
+using Hofwerk.Localization;
+using System.Collections.ObjectModel;
 
 namespace Hofwerk.Installer;
 
@@ -71,8 +73,42 @@ public partial class InstallerViewModel : ObservableObject
     /// <summary>Raised after a newer installer was started: this window closes so only one installer is open.</summary>
     public event Action? ExitRequested;
 
+    // ---- Language: the installer is shown in it, and Hofwerk starts in it ------------------------------------------------
+
+    public ObservableCollection<LanguageChoice> LanguageChoices { get; } = [];
+    string _languageId = Localizer.Automatic;
+
+    /// <summary>The language of the installer and of the installed Hofwerk. Picking one switches this window at once.</summary>
+    public LanguageChoice SelectedLanguage
+    {
+        get => LanguageChoices.FirstOrDefault(c => c.Id == _languageId) ?? LanguageChoices[0];
+        set
+        {
+            if (value is null || value.Id == _languageId) return;
+            _languageId = value.Id;
+            Localizer.Use(value.Id);
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>"auto" or a language code: what the installed Hofwerk is told to start in.</summary>
+    public string LanguageId => _languageId;
+
+    void RebuildLanguageChoices()
+    {
+        LanguageChoices.Clear();
+        foreach (var choice in Localizer.Choices()) LanguageChoices.Add(choice);
+        OnPropertyChanged(nameof(SelectedLanguage));
+    }
+
     public InstallerViewModel(string[] args)
     {
+        // The language chosen last time (installing again or updating keeps it), else the language of the system; --language overrides both.
+        int option = Array.FindIndex(args, a => a.Equals("--language", StringComparison.OrdinalIgnoreCase));
+        _languageId = option >= 0 && option + 1 < args.Length ? args[option + 1] : UserSettings.ReadLanguage() ?? Localizer.Automatic;
+        Localizer.Use(_languageId);
+        RebuildLanguageChoices();
+        Localizer.Changed += () => { RebuildLanguageChoices(); OnPropertyChanged(string.Empty); };
         _checkForNewer = !args.Contains("--no-update-check", StringComparer.OrdinalIgnoreCase)
                          && Environment.GetEnvironmentVariable("HOFWERK_NO_UPDATE_CHECK") != "1";
         bool wantsUninstall = args.Contains("--uninstall", StringComparer.OrdinalIgnoreCase);
@@ -115,8 +151,8 @@ public partial class InstallerViewModel : ObservableObject
     // ---- A newer version than this installer ------------------------------------------------------------------
 
     public bool ShowNewerVersion => _newer is not null && Stage == SetupStage.Welcome;
-    public string NewerHeadline => _newer is null ? "" : $"Hofwerk {_newer.Version} is available";
-    public string NewerDetail => _newer is null ? "" : $"This installer has {Version}. Get the newest installer instead, or continue with this one.";
+    public string NewerHeadline => _newer is null ? "" : Localizer.F("Hofwerk {0} is available", _newer.Version);
+    public string NewerDetail => _newer is null ? "" : Localizer.F("This installer has {0}. Get the newest installer instead, or continue with this one.", Version);
     [ObservableProperty] public partial bool IsDownloadingNewer { get; set; }
     [ObservableProperty] public partial double NewerProgress { get; set; }
     [ObservableProperty] public partial string NewerStatus { get; set; } = "";
@@ -163,17 +199,17 @@ public partial class InstallerViewModel : ObservableObject
             var progress = new Progress<double>(p =>
             {
                 NewerProgress = p;
-                NewerStatus = $"Downloading… {p:P0}";
+                NewerStatus = Localizer.F("Downloading… {0:P0}", p);
             });
             string installer = await _updater.DownloadAsync(_newer, _downloadFolder, progress);
-            NewerStatus = "Starting the new installer…";
+            NewerStatus = Localizer.T("Starting the new installer…");
             _launchInstaller(installer);
             ExitRequested?.Invoke();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException
                                        or System.ComponentModel.Win32Exception)
         {
-            NewerStatus = $"The download failed: {ex.Message} You can still install this version.";
+            NewerStatus = Localizer.F("The download failed: {0} You can still install this version.", ex.Message);
         }
         finally { IsDownloadingNewer = false; }
     }
@@ -183,7 +219,7 @@ public partial class InstallerViewModel : ObservableObject
 
     /// <summary>The online installer: the app is downloaded while installing instead of being inside this file.</summary>
     public bool IsWeb => _web is not null;
-    public string WebNote => _web is null ? "" : $"This small installer downloads Hofwerk ({_web.Size / 1_048_576.0:0.#} MB) from GitHub while installing. It needs an internet connection.";
+    public string WebNote => _web is null ? "" : Localizer.F("This small installer downloads Hofwerk ({0:0.#} MB) from GitHub while installing. It needs an internet connection.", _web.Size / 1_048_576.0);
 
     [ObservableProperty] public partial SetupStage Stage { get; set; } = SetupStage.Welcome;
     [ObservableProperty] public partial string Directory { get; set; } = "";
@@ -213,15 +249,15 @@ public partial class InstallerViewModel : ObservableObject
     public bool LocationHasPath => Location != LocationState.NotFound;
     public string LocationChooseLabel => Location switch
     {
-        LocationState.Detected => "No, choose a folder…",
-        LocationState.NotFound => "Select the folder…",
-        _ => "Choose again…",
+        LocationState.Detected => Localizer.T("No, choose a folder…"),
+        LocationState.NotFound => Localizer.T("Select the folder…"),
+        _ => Localizer.T("Choose again…"),
     };
     public string LocationUseLabel => Location switch
     {
-        LocationState.Detected => "Yes, that is correct",
-        LocationState.Invalid => "Use it anyway",
-        _ => "Use this folder",
+        LocationState.Detected => Localizer.T("Yes, that is correct"),
+        LocationState.Invalid => Localizer.T("Use it anyway"),
+        _ => Localizer.T("Use this folder"),
     };
     public bool HasWelcomeError => WelcomeError.Length > 0;
     public bool ShowWorking => Stage == SetupStage.Working;
@@ -231,13 +267,13 @@ public partial class InstallerViewModel : ObservableObject
     public bool ShowUnavailable => Mode == SetupMode.Unavailable;
 
     public bool IsUpdate => IsInstall && PlatformInstaller.IsInstalled(SafeFullPath(Directory));
-    public string Title => IsUninstall ? "Remove Hofwerk" : IsUpdate ? "Update Hofwerk" : "Install Hofwerk";
-    public string PrimaryLabel => IsUninstall ? "Uninstall" : "Next";
-    public string WorkingTitle => IsUninstall ? "Removing Hofwerk…" : IsUpdate ? "Updating Hofwerk…" : "Installing Hofwerk…";
-    public string DoneTitle => IsUninstall ? "Hofwerk was removed" : IsUpdate ? "Hofwerk is up to date" : "Hofwerk is ready";
+    public string Title => IsUninstall ? Localizer.T("Remove Hofwerk") : IsUpdate ? Localizer.T("Update Hofwerk") : Localizer.T("Install Hofwerk");
+    public string PrimaryLabel => IsUninstall ? Localizer.T("Uninstall") : Localizer.T("Next");
+    public string WorkingTitle => IsUninstall ? Localizer.T("Removing Hofwerk…") : IsUpdate ? Localizer.T("Updating Hofwerk…") : Localizer.T("Installing Hofwerk…");
+    public string DoneTitle => IsUninstall ? Localizer.T("Hofwerk was removed") : IsUpdate ? Localizer.T("Hofwerk is up to date") : Localizer.T("Hofwerk is ready");
     public string DoneDetail => IsUninstall
-        ? "The app and its shortcuts are gone. Your .hof files were not touched."
-        : $"Installed to {_installedDirectory}";
+        ? Localizer.T("The app and its shortcuts are gone. Your .hof files were not touched.")
+        : Localizer.F("Installed to {0}", _installedDirectory);
     public string Percent => $"{(int)Math.Round(Fraction * 100)}%";
 
     partial void OnStageChanged(SetupStage value)
@@ -318,7 +354,7 @@ public partial class InstallerViewModel : ObservableObject
     async Task StartAsync(string? omsiFolder)
     {
         Fraction = 0;
-        Message = "Getting ready";
+        Message = Localizer.T("Getting ready");
         Stage = SetupStage.Working;
 
         var progress = new Progress<InstallProgress>(p =>
@@ -339,18 +375,18 @@ public partial class InstallerViewModel : ObservableObject
                 var downloading = new Progress<double>(d =>
                 {
                     Fraction = d * share;
-                    Message = $"Downloading Hofwerk… {d:P0}";
+                    Message = Localizer.F("Downloading Hofwerk… {0:P0}", d);
                 });
-                if (IsWeb) Message = "Downloading Hofwerk…";
+                if (IsWeb) Message = Localizer.T("Downloading Hofwerk…");
                 using var payload = await WebPayload.OpenInstallPayloadAsync(_program, downloading)
-                                    ?? throw new InstallerException("This installer has no app attached.");
+                                    ?? throw new InstallerException(Localizer.T("This installer has no app attached."));
                 var installing = new Progress<InstallProgress>(p =>
                 {
                     Fraction = share + p.Fraction * (1 - share);
                     Message = p.Message;
                     if (p.Step != InstallStep.None) SetStep(p.Step);
                 });
-                await _platform.InstallAsync(new InstallRequest(Directory, DesktopShortcut, FileAssociation && SupportsFileAssociation, omsiFolder),
+                await _platform.InstallAsync(new InstallRequest(Directory, DesktopShortcut, FileAssociation && SupportsFileAssociation, omsiFolder, Language: _languageId),
                     payload, _program, installing);
                 _installedDirectory = SafeFullPath(Directory);
             }
@@ -371,7 +407,7 @@ public partial class InstallerViewModel : ObservableObject
             if (ex is not (InstallerException or IOException or UnauthorizedAccessException)) SetupLog.Write("Unexpected error", ex);
             ErrorText = ex is InstallerException or IOException or UnauthorizedAccessException
                 ? ex.Message
-                : $"Something unexpected went wrong: {ex.Message}\nDetails were saved to {SetupLog.Path_}";
+                : Localizer.F("Something unexpected went wrong: {0}\nDetails were saved to {1}", ex.Message, SetupLog.Path_);
             Stage = SetupStage.Failed;
         }
     }

@@ -319,6 +319,28 @@ public class InstallerTests : IDisposable
     }
 
     [Fact]
+    public async Task The_language_chosen_in_the_installer_is_saved_for_the_app_and_nothing_is_written_when_none_was_chosen()
+    {
+        var platform = new FakeInstaller { SettingsFile = Path_("settings.json") };
+        File.WriteAllText(platform.SettingsFile, """{ "ActivePresetId": "my-bus-pack" }""");
+        string installer = MakeInstaller(("app.exe", "program"));
+
+        using (var payload = PayloadFile.OpenPayload(installer)!)
+            await platform.InstallAsync(new InstallRequest(Path_("Hofwerk"), false, false, Language: "de"), payload, installer);
+
+        var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(platform.SettingsFile))!;
+        Assert.Equal("de", (string?)saved["Language"]);
+        Assert.Equal("my-bus-pack", (string?)saved["ActivePresetId"]);
+
+        // an update from inside the app does not ask again: the language stays as it is
+        File.WriteAllText(platform.SettingsFile, """{ "Language": "en" }""");
+        string again = MakeInstaller(("app.exe", "program 2"));
+        using (var payload = PayloadFile.OpenPayload(again)!)
+            await platform.InstallAsync(new InstallRequest(Path_("Hofwerk"), false, false), payload, again);
+        Assert.Equal("en", (string?)System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(platform.SettingsFile))!["Language"]);
+    }
+
+    [Fact]
     public async Task The_chosen_OMSI_folder_is_saved_into_the_apps_settings_without_losing_other_settings()
     {
         var platform = new FakeInstaller { SettingsFile = Path_("settings.json") };

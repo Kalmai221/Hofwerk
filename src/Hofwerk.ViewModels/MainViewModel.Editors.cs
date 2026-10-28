@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -97,7 +98,7 @@ public partial class MainViewModel
         if (SelectedRoute is null) return;
         SelectedRoute.AddStop(stop.Name);
         RefreshKnownStops();
-        Status = $"Added {stop.Name} to {SelectedRoute.Title.Trim()}";
+        Status = Localizer.F("Added {0} to {1}", stop.Name, SelectedRoute.Title.Trim());
     }
 
     [RelayCommand]
@@ -124,9 +125,7 @@ public partial class MainViewModel
         get
         {
             int n = SelectedRoute?.Stops.Count(s => s.IsUnknown) ?? 0;
-            return n == 0 ? "" : n == 1
-                ? "1 stop on this route is not in your bus stop list."
-                : $"{n} stops on this route are not in your bus stop list.";
+            return n == 0 ? "" : Localizer.Count(n, "{0} stop on this route is not in your bus stop list.", "{0} stops on this route are not in your bus stop list.");
         }
     }
 
@@ -147,7 +146,7 @@ public partial class MainViewModel
         {
             if (SelectedBusStop is null) return "";
             int n = Routes.Count(r => r.Stops.Any(s => string.Equals(s.Name.Trim(), SelectedBusStop.Name.Trim(), StringComparison.OrdinalIgnoreCase)));
-            return n == 0 ? "Not used in any route" : n == 1 ? "Used in 1 route" : $"Used in {n} routes";
+            return n == 0 ? Localizer.T("Not used in any route") : Localizer.Count(n, "Used in {0} route", "Used in {0} routes");
         }
     }
 
@@ -183,7 +182,7 @@ public partial class MainViewModel
             // An ident that is not a destination stays selectable rather than being lost.
             string? ident = SelectedRoute?.TerminusIdent;
             if (!string.IsNullOrWhiteSpace(ident) && !DestinationChoices.Any(c => c.Ident == ident))
-                DestinationChoices.Add(new DestinationChoice(ident, $"{ident} (not in the destination list)"));
+                DestinationChoices.Add(new DestinationChoice(ident, Localizer.F("{0} (not in the destination list)", ident)));
         }
         finally { _syncingDestination = false; }
 

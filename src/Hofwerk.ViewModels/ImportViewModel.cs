@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Hofwerk.Core.Omsi;
@@ -53,18 +54,18 @@ public sealed partial class ImportViewModel : ObservableObject
         {
             if (FromTrip)
             {
-                if (string.IsNullOrEmpty(TripFile)) return "Choose a timetable file (.ttp), for example from a map's TTData folder.";
-                if (_tripData is null) return "That file is not an OMSI timetable (.ttp), so there is nothing to import.";
+                if (string.IsNullOrEmpty(TripFile)) return Localizer.T("Choose a timetable file (.ttp), for example from a map's TTData folder.");
+                if (_tripData is null) return Localizer.T("That file is not an OMSI timetable (.ttp), so there is nothing to import.");
             }
             else
             {
-                if (SelectedMap is null) return Maps.Count == 0 ? "No maps were found in OMSI's Maps folder. Choose a map folder yourself." : "Choose a map.";
-                if (IsReading) return "Reading the map…";
+                if (SelectedMap is null) return Maps.Count == 0 ? Localizer.T("No maps were found in OMSI's Maps folder. Choose a map folder yourself.") : Localizer.T("Choose a map.");
+                if (IsReading) return Localizer.T("Reading the map…");
                 if (_mapData is null) return "";
-                if (_mapData.IsEmpty) return "This map has no timetable data (TTData) to import from.";
+                if (_mapData.IsEmpty) return Localizer.T("This map has no timetable data (TTData) to import from.");
             }
 
-            if (!AnyPart) return "Tick what to take.";
+            if (!AnyPart) return Localizer.T("Tick what to take.");
             return Result?.Describe() ?? "";
         }
     }

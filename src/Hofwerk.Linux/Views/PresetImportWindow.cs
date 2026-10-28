@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Automation;
@@ -60,7 +61,7 @@ public sealed class PresetImportWindow : Window
 
         var body = new StackPanel { Spacing = 12, Margin = new Thickness(0, 0, 14, 0) };
         body.Children.Add(new TextBlock { Text = "Import a strings file", FontSize = 20, FontWeight = FontWeight.SemiBold });
-        body.Children.Add(new TextBlock { Text = $"File: {model.FileName}", Opacity = 0.7 });
+        body.Children.Add(new TextBlock { Text = Localizer.F("File: {0}", model.FileName), Opacity = 0.7 });
         foreach (Control part in new Control[] { name, author, description, layoutPanel, _forPanel, _firstPanel, _summary }) body.Children.Add(part);
 
         var layoutRoot = new DockPanel { Margin = new Thickness(24, 20, 24, 18) };

@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Hofwerk.Core.Omsi;
@@ -11,7 +12,7 @@ public sealed partial class ExportFolderItem(string name, bool exists) : Observa
     /// <summary>False for a folder named in the file that is not in this OMSI install (it is kept in the list, but nothing is copied there).</summary>
     public bool Exists { get; } = exists;
     [ObservableProperty] public partial bool IsSelected { get; set; }
-    public string Note => Exists ? "" : "not in your Vehicles folder";
+    public string Note => Exists ? "" : Localizer.T("not in your Vehicles folder");
 }
 
 /// <summary>
@@ -55,7 +56,7 @@ public sealed partial class ExportViewModel : ObservableObject
     [ObservableProperty] public partial string Report { get; set; } = "";
 
     public int SelectedCount => _all.Count(i => i.IsSelected);
-    public string SelectionText => SelectedCount switch { 0 => "No folder ticked", 1 => "1 folder ticked", var n => $"{n} folders ticked" };
+    public string SelectionText => SelectedCount switch { 0 => Localizer.T("No folder ticked"), var n => Localizer.Count(n, "{0} folder ticked", "{0} folders ticked") };
     public bool CanExport => !IsRunning && !IsDone && SelectedCount > 0;
     public bool HasFolders => _all.Count > 0;
 
@@ -110,8 +111,8 @@ public sealed partial class ExportViewModel : ObservableObject
 
         var lines = new List<string>
         {
-            $"{written} folder{(written == 1 ? "" : "s")} updated" + (same > 0 ? $", {same} already had the file" : "")
-            + (problems.Count > 0 ? $", {problems.Count} not done" : "") + ".",
+            Localizer.Count(written, "{0} folder updated", "{0} folders updated") + (same > 0 ? Localizer.F(", {0} already had the file", same) : "")
+            + (problems.Count > 0 ? Localizer.F(", {0} not done", problems.Count) : "") + ".",
         };
         lines.AddRange(problems.Select(p => $"{p.Folder}: {p.Message}"));
         return string.Join(Environment.NewLine, lines);

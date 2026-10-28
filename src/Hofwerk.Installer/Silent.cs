@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Runtime.InteropServices;
 using Hofwerk.Installer.Engine;
 
@@ -36,17 +37,17 @@ static class Silent
             {
                 string dir = Value("--dir") ?? (canInstall ? platform.FindInstalledDirectory() : Path.GetDirectoryName(exe)) ?? platform.DefaultDirectory;
                 platform.UninstallAsync(dir, Has("--remove-user-data"), progress).GetAwaiter().GetResult();
-                Console.WriteLine("Hofwerk was removed.");
+                Console.WriteLine(Localizer.T("Hofwerk was removed."));
                 return 0;
             }
 
             string target = Value("--dir") ?? platform.FindInstalledDirectory() ?? platform.DefaultDirectory;
             var request = new InstallRequest(target, Has("--desktop-shortcut"), Has("--file-association") && platform.SupportsFileAssociation,
-                OmsiFolder: Value("--omsi-folder"));
+                OmsiFolder: Value("--omsi-folder"), Language: Value("--language"));
             var download = new Progress<double>(d => Console.WriteLine($"[{d * 100,3:0}%] Downloading Hofwerk"));
             using var payload = WebPayload.OpenInstallPayloadAsync(exe, download).GetAwaiter().GetResult()!;
             platform.InstallAsync(request, payload, exe, progress).GetAwaiter().GetResult();
-            Console.WriteLine($"Hofwerk {AppInfo.Version} was installed to {Path.GetFullPath(target)}");
+            Console.WriteLine(Localizer.F("Hofwerk {0} was installed to {1}", AppInfo.Version, Path.GetFullPath(target)));
             return 0;
         }
         catch (InstallerException ex)
@@ -57,7 +58,7 @@ static class Silent
         catch (Exception ex)
         {
             SetupLog.Write("Unexpected error (silent)", ex);
-            Console.Error.WriteLine($"Unexpected error: {ex.Message} (details in {SetupLog.Path_})");
+            Console.Error.WriteLine(Localizer.F("Unexpected error: {0} (details in {1})", ex.Message, SetupLog.Path_));
             return 2;
         }
     }

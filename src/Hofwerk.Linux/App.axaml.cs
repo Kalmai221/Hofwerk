@@ -33,7 +33,14 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var vm = new MainViewModel();
+            var vm = new MainViewModel();   // reads the settings and starts in the language they ask for
+
+            // Every window, the dialogs built in code too, is shown in the language in use once it has loaded; and all of them again when it changes.
+            Avalonia.Controls.Control.LoadedEvent.AddClassHandler<Avalonia.Controls.Window>((w, _) => Hofwerk.Localization.AvaloniaTranslator.Apply(w));
+            Hofwerk.Localization.Localizer.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                foreach (var open in desktop.Windows) Hofwerk.Localization.AvaloniaTranslator.Apply(open);
+            });
             var window = new MainWindow { DataContext = vm };
             desktop.MainWindow = window;
 

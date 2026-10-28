@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- One file per language, see Languages/README.md. They travel inside the program, so the installer is translated too. -->
+    <EmbeddedResource Include="Languages\*.json" LogicalName="Languages/%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

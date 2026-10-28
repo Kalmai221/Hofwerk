@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -64,7 +65,7 @@ public sealed class WindowsInstaller : PlatformInstaller
             using (var ext = Registry.CurrentUser.CreateSubKey(@"Software\Classes\.hof\OpenWithProgids"))
                 ext.SetValue(ProgId, Array.Empty<byte>(), RegistryValueKind.None);
             using (var prog = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProgId}"))
-                prog.SetValue("", "OMSI HOF file");
+                prog.SetValue("", Localizer.T("OMSI HOF file"));
             using (var icon = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProgId}\DefaultIcon"))
                 icon.SetValue("", $"\"{exe}\",0");
             using (var cmd = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProgId}\shell\open\command"))
@@ -126,7 +127,7 @@ public sealed class WindowsInstaller : PlatformInstaller
             Call(link, "TargetPath", BindingFlags.SetProperty, target);
             Call(link, "WorkingDirectory", BindingFlags.SetProperty, workingDirectory);
             Call(link, "IconLocation", BindingFlags.SetProperty, target + ",0");
-            Call(link, "Description", BindingFlags.SetProperty, "Edit OMSI .hof files");
+            Call(link, "Description", BindingFlags.SetProperty, Localizer.T("Edit OMSI .hof files"));
             Call(link, "Save", BindingFlags.InvokeMethod);
         }
         finally

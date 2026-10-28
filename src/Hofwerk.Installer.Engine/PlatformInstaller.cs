@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 
 namespace Hofwerk.Installer.Engine;
 
@@ -59,7 +60,7 @@ public abstract class PlatformInstaller
     void Install(InstallRequest request, Stream payload, string installerPath, IProgress<InstallProgress>? progress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Directory))
-            throw new InstallerException("Choose a folder to install into.");
+            throw new InstallerException(Localizer.T("Choose a folder to install into."));
 
         string dir = Path.GetFullPath(request.Directory);
         CheckTargetFolder(dir);
@@ -90,7 +91,7 @@ public abstract class PlatformInstaller
                     string destination = Path.GetFullPath(Path.Combine(stage, relative));
                     string check = Path.GetRelativePath(stage, destination);
                     if (check.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(check))
-                        throw new InstallerException($"The installer package is damaged ({entry.Path} points outside the install folder).");
+                        throw new InstallerException(Localizer.F("The installer package is damaged ({0} points outside the install folder).", entry.Path));
 
                     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                     using (var file = File.Create(destination))
@@ -98,10 +99,10 @@ public abstract class PlatformInstaller
 
                     written.Add(relative);
                     doneBytes += entry.Length;
-                    Report(0.05 + 0.50 * doneBytes / totalBytes, $"Extracting {Path.GetFileName(destination)}", InstallStep.Extract);
+                    Report(0.05 + 0.50 * doneBytes / totalBytes, Localizer.F("Extracting {0}", Path.GetFileName(destination)), InstallStep.Extract);
                 });
 
-            Report(0.56, "Moving files", InstallStep.Move);
+            Report(0.56, Localizer.T("Moving files"), InstallStep.Move);
             RemoveOldVersion(dir);
             for (int i = 0; i < written.Count; i++)
             {
@@ -109,10 +110,10 @@ public abstract class PlatformInstaller
                 string destination = Path.GetFullPath(Path.Combine(dir, written[i]));
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 File.Move(Path.Combine(stage, written[i]), destination, overwrite: true);
-                Report(0.56 + 0.30 * (i + 1) / written.Count, $"Moving {Path.GetFileName(destination)}", InstallStep.Move);
+                Report(0.56 + 0.30 * (i + 1) / written.Count, Localizer.F("Moving {0}", Path.GetFileName(destination)), InstallStep.Move);
             }
 
-            Report(0.88, "Adding the uninstaller", InstallStep.Move);
+            Report(0.88, Localizer.T("Adding the uninstaller"), InstallStep.Move);
             string uninstaller = Path.Combine(dir, UninstallerName);
             PayloadFile.CopyProgramOnly(installerPath, uninstaller);
             MakeExecutable(uninstaller);
@@ -121,7 +122,7 @@ public abstract class PlatformInstaller
 
             File.WriteAllLines(Path.Combine(dir, ManifestName), written);
 
-            Report(0.92, "Setting up shortcuts", InstallStep.Move);
+            Report(0.92, Localizer.T("Setting up shortcuts"), InstallStep.Move);
             long size = written.Sum(f => new FileInfo(Path.Combine(dir, f)).Length);
             Register(request, dir, size);
 
@@ -129,7 +130,11 @@ public abstract class PlatformInstaller
             if (!string.IsNullOrWhiteSpace(request.OmsiFolder))
                 UserSettings.SaveOmsiFolder(Path.GetFullPath(request.OmsiFolder), SettingsPath);
 
-            Report(0.96, "Cleaning up", InstallStep.Cleanup);
+            // The language chosen in the installer is the language Hofwerk starts in ("auto" means the language of the system).
+            if (!string.IsNullOrWhiteSpace(request.Language))
+                UserSettings.SaveLanguage(request.Language, SettingsPath);
+
+            Report(0.96, Localizer.T("Cleaning up"), InstallStep.Cleanup);
             DeleteStage(stage);
             InPlaceUpdate.CleanLeftovers(dir);
 
@@ -137,7 +142,7 @@ public abstract class PlatformInstaller
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            throw new InstallerException($"Installing failed: {ex.Message}", ex);
+            throw new InstallerException(Localizer.F("Installing failed: {0}", ex.Message), ex);
         }
         finally
         {
@@ -160,11 +165,11 @@ public abstract class PlatformInstaller
         string dir = Path.GetFullPath(directory);
         string manifest = Path.Combine(dir, ManifestName);
         if (!File.Exists(manifest))
-            throw new InstallerException("Hofwerk does not seem to be installed in this folder, so there is nothing to remove.");
+            throw new InstallerException(Localizer.T("Hofwerk does not seem to be installed in this folder, so there is nothing to remove."));
 
         try
         {
-            Report(0.05, "Removing shortcuts and registrations");
+            Report(0.05, Localizer.T("Removing shortcuts and registrations"));
             Unregister(dir);
 
             string[] files = File.ReadAllLines(manifest).Where(l => l.Length > 0).ToArray();
@@ -182,14 +187,14 @@ public abstract class PlatformInstaller
                 else if (File.Exists(path))
                     File.Delete(path);
 
-                Report(0.10 + 0.75 * (i + 1) / files.Length, $"Removing {Path.GetFileName(path)}");
+                Report(0.10 + 0.75 * (i + 1) / files.Length, Localizer.F("Removing {0}", Path.GetFileName(path)));
             }
 
             RemoveEmptyFolders(dir);
 
             if (removeUserData)
             {
-                Report(0.92, "Removing your settings");
+                Report(0.92, Localizer.T("Removing your settings"));
                 string data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppInfo.Name);
                 if (Directory.Exists(data)) Directory.Delete(data, recursive: true);
             }
@@ -202,14 +207,14 @@ public abstract class PlatformInstaller
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallerException($"Removing failed: {ex.Message}", ex);
+            throw new InstallerException(Localizer.F("Removing failed: {0}", ex.Message), ex);
         }
     }
 
     /// <summary>Throws an InstallerException with a user-friendly message if Hofwerk cannot be installed into this folder.</summary>
     public void CheckTarget(string directory)
     {
-        if (string.IsNullOrWhiteSpace(directory)) throw new InstallerException("Choose a folder to install into.");
+        if (string.IsNullOrWhiteSpace(directory)) throw new InstallerException(Localizer.T("Choose a folder to install into."));
         string dir = Path.GetFullPath(directory);
         CheckTargetFolder(dir);
         ValidateDirectory(dir);
@@ -219,11 +224,11 @@ public abstract class PlatformInstaller
     static void CheckTargetFolder(string dir)
     {
         if (Path.GetPathRoot(dir) == dir)
-            throw new InstallerException("Please choose a folder, not a whole drive.");
+            throw new InstallerException(Localizer.T("Please choose a folder, not a whole drive."));
         if (File.Exists(dir))
-            throw new InstallerException("That path is a file. Choose a folder.");
+            throw new InstallerException(Localizer.T("That path is a file. Choose a folder."));
         if (Directory.Exists(dir) && !IsInstalled(dir) && Directory.EnumerateFileSystemEntries(dir).Any())
-            throw new InstallerException("That folder is not empty. Choose an empty folder or a new one, for example a new folder named Hofwerk.");
+            throw new InstallerException(Localizer.T("That folder is not empty. Choose an empty folder or a new one, for example a new folder named Hofwerk."));
     }
 
     // An update replaces the old version's files, including ones the new version no longer has.

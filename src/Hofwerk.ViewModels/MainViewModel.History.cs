@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using CommunityToolkit.Mvvm.Input;
 using Hofwerk.Core;
 using Hofwerk.Core.Model;
@@ -185,12 +186,12 @@ public partial class MainViewModel
         try
         {
             Save(path);
-            Status = $"Autosaved {Path.GetFileName(path)} at {DateTime.Now:t}";
+            Status = Localizer.F("Autosaved {0} at {1}", Path.GetFileName(path), DateTime.Now.ToString("t"));
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Status = $"Autosave failed: {ex.Message}";
+            Status = Localizer.F("Autosave failed: {0}", ex.Message);
             return false;
         }
     }

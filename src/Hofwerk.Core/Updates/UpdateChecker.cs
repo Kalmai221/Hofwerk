@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Net.Http.Headers;
@@ -154,7 +155,7 @@ public sealed class UpdateChecker
     {
         Directory.CreateDirectory(folder);
         string expected = (await GetTextAsync(pack.ChecksumUrl, ct).ConfigureAwait(false)).Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
-        if (expected.Length != 64) throw new IOException("The checksum file is not valid, so the download was not used.");
+        if (expected.Length != 64) throw new IOException(Localizer.T("The checksum file is not valid, so the download was not used."));
 
         string file = Path.Combine(folder, Path.GetFileName(pack.Name));
         using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
@@ -174,20 +175,20 @@ public sealed class UpdateChecker
                 done += read;
                 progress?.Report(Math.Min(1.0, (double)done / pack.Size));
             }
-            if (done != pack.Size) throw new IOException($"The download is incomplete ({done:N0} of {pack.Size:N0} bytes). Try again.");
+            if (done != pack.Size) throw new IOException(Localizer.F("The download is incomplete ({0:N0} of {1:N0} bytes). Try again.", done, pack.Size));
         }
 
         if (!string.Equals(Convert.ToHexString(sha.GetHashAndReset()), expected, StringComparison.OrdinalIgnoreCase))
         {
             File.Delete(file);
-            throw new IOException("The download did not match its checksum, so it was not used. Try again.");
+            throw new IOException(Localizer.T("The download did not match its checksum, so it was not used. Try again."));
         }
         return file;
     }
 
     async Task<string> GetTextAsync(string url, CancellationToken ct)
     {
-        if (!IsTrustedUrl(url)) throw new IOException("The update is not hosted on GitHub, so it was not downloaded.");
+        if (!IsTrustedUrl(url)) throw new IOException(Localizer.T("The update is not hosted on GitHub, so it was not downloaded."));
         using var response = await _http.GetAsync(url, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -211,10 +212,10 @@ public sealed class UpdateChecker
     /// <exception cref="IOException">The program could not be started (the caller then keeps this copy open).</exception>
     public static void Restart(string? openFile)
     {
-        string program = Environment.ProcessPath ?? throw new IOException("The path of the running program is not known.");
+        string program = Environment.ProcessPath ?? throw new IOException(Localizer.T("The path of the running program is not known."));
         var start = new System.Diagnostics.ProcessStartInfo(program) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(program)! };
         if (!string.IsNullOrEmpty(openFile)) start.ArgumentList.Add(openFile);
-        using var started = System.Diagnostics.Process.Start(start) ?? throw new IOException("Hofwerk could not be started again.");
+        using var started = System.Diagnostics.Process.Start(start) ?? throw new IOException(Localizer.T("Hofwerk could not be started again."));
     }
 
     /// <summary>Deletes leftovers of an earlier in-place update (old files Windows still held while the app ran).</summary>
@@ -233,7 +234,7 @@ public sealed class UpdateChecker
     /// <summary>Downloads the installer into <paramref name="folder"/> and returns the program to start.</summary>
     public async Task<string> DownloadAsync(UpdateInfo update, string folder, IProgress<double>? progress = null, CancellationToken ct = default)
     {
-        if (!IsTrustedUrl(update.DownloadUrl)) throw new IOException("The update is not hosted on GitHub, so it was not downloaded.");
+        if (!IsTrustedUrl(update.DownloadUrl)) throw new IOException(Localizer.T("The update is not hosted on GitHub, so it was not downloaded."));
         Directory.CreateDirectory(folder);
 
         // The name comes from the release; only its file name part is used.
@@ -255,7 +256,7 @@ public sealed class UpdateChecker
                 if (total > 0) progress?.Report((double)done / total);
             }
             if (update.Size > 0 && done != update.Size)
-                throw new IOException($"The download is incomplete ({done:N0} of {update.Size:N0} bytes). Try again.");
+                throw new IOException(Localizer.F("The download is incomplete ({0:N0} of {1:N0} bytes). Try again.", done, update.Size));
         }
 
         return file.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase) ? ExtractLinuxInstaller(file, folder) : file;
@@ -272,7 +273,7 @@ public sealed class UpdateChecker
             TarFile.ExtractToDirectory(gzip, extracted, overwriteFiles: true);
 
         string installer = Directory.EnumerateFiles(extracted, "Hofwerk-Setup-*", SearchOption.AllDirectories).FirstOrDefault()
-                           ?? throw new IOException("The downloaded archive does not contain an installer.");
+                           ?? throw new IOException(Localizer.T("The downloaded archive does not contain an installer."));
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(installer, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return installer;

@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System;
 using Avalonia;
 using Avalonia.Automation;
@@ -29,7 +30,7 @@ public sealed class ErrorWindow : Window
         restart.Click += (_, _) =>
         {
             if (ErrorActions.Restart()) ErrorHandler.Exit();
-            else Say("Hofwerk could not be started again. Please start it yourself.");
+            else Say(Localizer.T("Hofwerk could not be started again. Please start it yourself."));
         };
 
         var send = new Button { Content = "Report a bug" };
@@ -37,7 +38,7 @@ public sealed class ErrorWindow : Window
         send.Click += (_, _) =>
         {
             if (!ErrorActions.OpenInBrowser(report.IssueUrl()))
-                Say("The browser could not be opened. The report is in the box below; you can copy it into an issue at " + Hofwerk.Core.Model.HofHeader.RepositoryUrl + "/issues.");
+                Say(Localizer.F("The browser could not be opened. The report is in the box below; you can copy it into an issue at {0}/issues.", Hofwerk.Core.Model.HofHeader.RepositoryUrl));
         };
 
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -52,7 +53,7 @@ public sealed class ErrorWindow : Window
             standard.Click += (_, _) =>
             {
                 if (ui.SwitchToStandard(AppSettings.Load(), currentFile)) ErrorHandler.Exit();
-                else Say("The standard version could not be started.");
+                else Say(Localizer.T("The standard version could not be started."));
             };
             buttons.Children.Add(standard);
         }
@@ -78,8 +79,9 @@ public sealed class ErrorWindow : Window
         layout.Children.Add(new TextBlock { Text = report.Summary, TextWrapping = TextWrapping.Wrap, FontWeight = FontWeight.SemiBold });
         layout.Children.Add(new TextBlock
         {
-            Text = "Hofwerk ran into a problem it did not expect. You can restart it" + (buttons.Children.Count > 2 ? ", try the standard version," : "")
-                   + " or report the bug so it can be fixed.",
+            Text = buttons.Children.Count > 2
+                ? Localizer.T("Hofwerk ran into a problem it did not expect. You can restart it, try the standard version, or report the bug so it can be fixed.")
+                : Localizer.T("Hofwerk ran into a problem it did not expect. You can restart it or report the bug so it can be fixed."),
             TextWrapping = TextWrapping.Wrap,
             Opacity = 0.8,
         });

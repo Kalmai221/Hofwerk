@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -22,7 +23,7 @@ public partial class MainWindow : Window
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Choose where to install Hofwerk",
+            Title = Localizer.T("Choose where to install Hofwerk"),
             AllowMultiple = false,
         });
 
@@ -34,7 +35,7 @@ public partial class MainWindow : Window
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Select your OMSI 2 folder",
+            Title = Localizer.T("Select your OMSI 2 folder"),
             AllowMultiple = false,
         });
 

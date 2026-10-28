@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -53,10 +54,10 @@ public partial class MainViewModel
 
     public bool UpdateAvailable => _update is not null;
     public bool CanCheckForUpdates => !IsUpdateBusy;
-    public string UpdateHeadline => _update is null ? "You are up to date" : $"Hofwerk {_update.Version} is available";
+    public string UpdateHeadline => _update is null ? Localizer.T("You are up to date") : Localizer.F("Hofwerk {0} is available", _update.Version);
     public string UpdateDetail => _update is null
         ? UpdateStatus
-        : $"{(_update.IsPreRelease ? "Pre-release · " : "")}{_update.DownloadSize / 1_048_576.0:0.#} MB download";
+        : (_update.IsPreRelease ? Localizer.T("Pre-release · ") : "") + Localizer.F("{0:0.#} MB download", _update.DownloadSize / 1_048_576.0);
 
     public bool CheckForUpdatesOnStart
     {
@@ -86,7 +87,7 @@ public partial class MainViewModel
 
     /// <summary>Explains why the switch is on when the user never touched it.</summary>
     public string PreReleaseHint => _settings.AllowPreReleases is null && _currentVersion.IsPreRelease
-        ? "On because you are running a pre-release. Turn it off to be offered final versions only."
+        ? Localizer.T("On because you are running a pre-release. Turn it off to be offered final versions only.")
         : "";
 
     partial void OnUpdateStatusChanged(string value) => OnPropertyChanged(nameof(UpdateDetail));
@@ -120,13 +121,13 @@ public partial class MainViewModel
         try
         {
             _update = await _updater.CheckAsync(_currentVersion, IncludePreReleases);
-            UpdateStatus = _update is null ? $"You have the latest version ({_currentVersion})." : "";
-            if (_update is not null) Status = $"Hofwerk {_update.Version} is available – see Settings.";
+            UpdateStatus = _update is null ? Localizer.F("You have the latest version ({0}).", _currentVersion) : "";
+            if (_update is not null) Status = Localizer.F("Hofwerk {0} is available – see Settings.", _update.Version);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or IOException)
         {
             _update = null;
-            UpdateStatus = quiet ? "" : "Could not check for updates. Check your internet connection and try again.";
+            UpdateStatus = quiet ? "" : Localizer.T("Could not check for updates. Check your internet connection and try again.");
         }
         finally
         {
@@ -149,7 +150,7 @@ public partial class MainViewModel
         if (_update is null) return;
         if (IsDirty)
         {
-            UpdateStatus = "Save your changes first, then update.";
+            UpdateStatus = Localizer.T("Save your changes first, then update.");
             return;
         }
 
@@ -161,7 +162,7 @@ public partial class MainViewModel
             var progress = new Progress<double>(p =>
             {
                 UpdateProgress = p;
-                UpdateStatus = $"Downloading… {p:P0}";
+                UpdateStatus = Localizer.F("Downloading… {0:P0}", p);
             });
             var download = await _updater.DownloadUpdateAsync(_update, _downloadFolder, _canApplyPack(), progress);
             UpdateIndeterminate = true;
@@ -176,7 +177,7 @@ public partial class MainViewModel
                 catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception or InvalidOperationException)
                 {
                     // The files are already the new version, but it did not start: stay open (nothing old is deleted until a new copy runs).
-                    UpdateStatus = $"Hofwerk {_update.Version} is installed, but it could not be started again ({ex.Message}). Close this window and open Hofwerk.";
+                    UpdateStatus = Localizer.F("Hofwerk {0} is installed, but it could not be started again ({1}). Close this window and open Hofwerk.", _update.Version, ex.Message);
                     return;
                 }
             }
@@ -187,7 +188,7 @@ public partial class MainViewModel
         {
             // Whatever goes wrong while updating must not close the app; the files are rolled back by the update itself.
             Hofwerk.Core.Errors.CrashLog.Write("The update failed", ex);
-            UpdateStatus = $"The update failed: {ex.Message}";
+            UpdateStatus = Localizer.F("The update failed: {0}", ex.Message);
         }
         finally
         {

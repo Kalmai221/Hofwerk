@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,17 +8,19 @@
 <meta name="color-scheme" content="dark light">
 <meta property="og:title" content="{{title}}">
 <meta property="og:description" content="{{description}}">
-<meta property="og:image" content="assets/windows-and-linux.png">
-<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="icon" href="favicon.ico" sizes="any">
-<link rel="stylesheet" href="assets/site.css">
+<meta property="og:image" content="{{root}}assets/windows-and-linux.png">
+<link rel="icon" type="image/svg+xml" href="{{root}}assets/logo.svg">
+<link rel="icon" href="{{root}}favicon.ico" sizes="any">
+{{alternates}}
+<link rel="stylesheet" href="{{root}}assets/site.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to the content</a>
 <header class="top">
   <div class="bar">
-    <a class="brand" href="index.html"><img src="assets/logo.svg" alt="" width="32" height="32"><span>Hofwerk</span></a>
+    <a class="brand" href="index.html"><img src="{{root}}assets/logo.svg" alt="" width="32" height="32"><span>Hofwerk</span></a>
     <nav aria-label="Main">{{nav}}</nav>
+    {{switch}}
   </div>
 </header>
 <main id="main">
@@ -33,6 +35,6 @@
       <a href="https://github.com/Kalmai221/Hofwerk/issues/new?labels=bug">Report a bug</a> · &copy; {{year}}</p>
   </div>
 </footer>
-<script src="assets/site.js" defer></script>
+<script src="{{root}}assets/site.js" defer></script>
 </body>
 </html>

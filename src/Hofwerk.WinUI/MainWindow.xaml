@@ -340,11 +340,15 @@
                         <Border Style="{StaticResource SectionCard}">
                             <StackPanel Spacing="12">
                                 <StackPanel Spacing="2">
-                                    <TextBlock Text="Appearance" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                                    <TextBlock Text="Light or dark, or follow Windows." Opacity="0.65" />
+                                    <TextBlock Text="Appearance and language" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Text="Light or dark, or follow Windows. The language follows Windows too, unless you choose one." Opacity="0.65" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <ComboBox Header="Theme" ItemsSource="{x:Bind ViewModel.ThemeChoices}" SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}"
-                                          DisplayMemberPath="Label" MinWidth="240" AutomationProperties.Name="Theme" />
+                                <local:WrapPanel HorizontalSpacing="24" VerticalSpacing="12">
+                                    <ComboBox Header="Theme" ItemsSource="{x:Bind ViewModel.ThemeChoices}" SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}"
+                                              DisplayMemberPath="Label" MinWidth="240" AutomationProperties.Name="Theme" />
+                                    <ComboBox Header="Language" ItemsSource="{x:Bind ViewModel.LanguageChoices}" SelectedItem="{x:Bind ViewModel.SelectedLanguage, Mode=TwoWay}"
+                                              DisplayMemberPath="Label" MinWidth="240" AutomationProperties.Name="Language" />
+                                </local:WrapPanel>
                             </StackPanel>
                         </Border>
 

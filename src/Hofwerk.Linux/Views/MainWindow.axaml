@@ -1,4 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui"
+        xmlns:loc="using:Hofwerk.Localization"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Hofwerk.ViewModels"
         xmlns:core="using:Hofwerk.Core.Omsi"
@@ -459,17 +460,27 @@
                         <Border Classes="card">
                             <StackPanel Spacing="12">
                                 <StackPanel Spacing="2">
-                                    <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="16" />
-                                    <TextBlock Foreground="{DynamicResource Muted}" Text="Light or dark, or follow the desktop." />
+                                    <TextBlock Text="Appearance and language" FontWeight="SemiBold" FontSize="16" />
+                                    <TextBlock Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Text="Light or dark, or follow the desktop. The language follows the desktop too, unless you choose one." />
                                 </StackPanel>
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Theme" />
-                                    <ComboBox ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme}" MinWidth="240" AutomationProperties.Name="Theme">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:ThemeChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
-                                </StackPanel>
+                                <WrapPanel ItemSpacing="24" LineSpacing="12">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Theme" />
+                                        <ComboBox ItemsSource="{Binding ThemeChoices}" SelectedItem="{Binding SelectedTheme}" MinWidth="240" AutomationProperties.Name="Theme">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ThemeChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Language" />
+                                        <ComboBox ItemsSource="{Binding LanguageChoices}" SelectedItem="{Binding SelectedLanguage}" MinWidth="240" AutomationProperties.Name="Language">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="loc:LanguageChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </WrapPanel>
                             </StackPanel>
                         </Border>
 
@@ -495,7 +506,7 @@
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                     <StackPanel Spacing="2">
                                         <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock Foreground="{DynamicResource Muted}" Text="{Binding CurrentVersion, StringFormat='You have Hofwerk {0}'}" />
+                                        <TextBlock Foreground="{DynamicResource Muted}"><Run Text="You have Hofwerk" /> <Run Text="{Binding CurrentVersion}" /></TextBlock>
                                         <Button Content="{Binding InstalledNotesTitle}" Classes="link" Click="OnShowInstalledNotes" Padding="0" Background="Transparent"
                                                 Foreground="{DynamicResource SystemAccentColor}" HorizontalAlignment="Left" AutomationProperties.Name="What's new" />
                                     </StackPanel>
@@ -602,7 +613,7 @@
                                 <TextBlock Text="About" FontWeight="SemiBold" FontSize="16" />
                                 <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}"
                                            Text="{Binding CurrentVersion, StringFormat='Hofwerk {0} – a modern editor for OMSI 2 .hof files. With thanks to Lukas G., creator of the original HOF Suite, for the inspiration.'}" />
-                                <Button Content="Hofwerk on GitHub" Classes="link" Click="OnOpenGitHub" HorizontalAlignment="Left" Padding="0" />
+                                <Button Content="Hofwerk website" Classes="link" Click="OnOpenGitHub" HorizontalAlignment="Left" Padding="0" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

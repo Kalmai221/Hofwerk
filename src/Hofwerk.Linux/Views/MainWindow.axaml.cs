@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace Hofwerk.Linux.Views;
 public partial class MainWindow : Window
 {
     static readonly IReadOnlyList<FilePickerFileType> HofFiles =
-        [new("OMSI HOF files") { Patterns = ["*.hof"] }, FilePickerFileTypes.All];
+        [new(Localizer.T("OMSI HOF files")) { Patterns = ["*.hof"] }, FilePickerFileTypes.All];
 
     public MainWindow()
     {
@@ -49,6 +50,8 @@ public partial class MainWindow : Window
     // The sidebar is two lists (the pages, and App settings at the bottom); only one of them has a selected item.
     void OnNavChanged(object? sender, SelectionChangedEventArgs e)
     {
+        // a page opened for the first time: its texts are put into the language in use once it has been built
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => Hofwerk.Localization.AvaloniaTranslator.Apply(this), Avalonia.Threading.DispatcherPriority.Background);
         if (_syncingNav || Nav.SelectedItem is not ListBoxItem item) return;
         _syncingNav = true;
         NavFooter.SelectedItem = null;
@@ -86,7 +89,7 @@ public partial class MainWindow : Window
         };
         if (shown is not null) Hofwerk.Linux.Motion.PageEnter(shown);
 
-        (SectionTitle.Text, SectionHint.Text) = tag switch
+        (string title, string hint) = tag switch
         {
             "home" => ("Home", "Pick up where you left off, or open something from your OMSI install"),
             "appsettings" => ("App settings", "Preferences for Hofwerk itself"),
@@ -96,6 +99,7 @@ public partial class MainWindow : Window
             "routes" => ("Routes", "Trips with their destination and list of stops"),
             _ => ("Problems", "Things that looked wrong while reading the file"),
         };
+        (SectionTitle.Text, SectionHint.Text) = (Localizer.T(title), Localizer.T(hint));
     }
 
     // ---- What's new: a pop-up, so App settings stays short -------------------------------------------------------
@@ -121,7 +125,7 @@ public partial class MainWindow : Window
     {
         string? file = Vm.FilePath is { } path && !Vm.IsDirty && System.IO.File.Exists(path) ? path : null;
         if (Hofwerk.Core.Errors.WindowsUi.Current.SwitchToStandard(Hofwerk.Core.AppSettings.Load(), file)) ErrorHandler.Exit();
-        else Vm.Status = "The standard version could not be started.";
+        else Vm.Status = Localizer.T("The standard version could not be started.");
     }
 
     void OnOpenGitHub(object? sender, RoutedEventArgs e) =>
@@ -140,7 +144,7 @@ public partial class MainWindow : Window
         RootGrid.ColumnDefinitions[0].Width = new GridLength(narrow ? 200 : 232);
 
         // The buttons sit to the right of the page title; when there is not room for both they move under the title.
-        bool stackedHeader = width - (narrow ? 200 : 232) < 940;
+        bool stackedHeader = width - (narrow ? 200 : 232) < 1000;
         Grid.SetRow(HeaderButtons, stackedHeader ? 1 : 0);
         Grid.SetColumn(HeaderButtons, stackedHeader ? 0 : 1);
         Grid.SetColumnSpan(HeaderButtons, stackedHeader ? 2 : 1);
@@ -229,7 +233,7 @@ public partial class MainWindow : Window
         IStorageFolder? start = await VehiclesStart();
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Create a new HOF file",
+            Title = Localizer.T("Create a new HOF file"),
             DefaultExtension = "hof",
             SuggestedFileName = model.SuggestedFileName,
             SuggestedStartLocation = start,
@@ -242,7 +246,7 @@ public partial class MainWindow : Window
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Open HOF file",
+            Title = Localizer.T("Open HOF file"),
             AllowMultiple = false,
             SuggestedStartLocation = await VehiclesStart(),
             FileTypeFilter = HofFiles,
@@ -280,7 +284,7 @@ public partial class MainWindow : Window
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Select your OMSI 2 folder",
+            Title = Localizer.T("Select your OMSI 2 folder"),
             AllowMultiple = false,
             SuggestedStartLocation = await StartAt(Vm.OmsiFolder),
         });
@@ -298,7 +302,7 @@ public partial class MainWindow : Window
 
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = $"Where should “{row.Name}” be created?",
+            Title = Localizer.F("Where should “{0}” be created?", row.Name),
             AllowMultiple = false,
             SuggestedStartLocation = await VehiclesStart(),
         });
@@ -318,7 +322,7 @@ public partial class MainWindow : Window
     {
         var file = e.DataTransfer.TryGetFiles()?.FirstOrDefault(f => f.Name.EndsWith(".hof", StringComparison.OrdinalIgnoreCase));
         if (file?.TryGetLocalPath() is { } path) OpenAndShow(path);
-        else Vm.Status = "That is not a .hof file.";
+        else Vm.Status = Localizer.T("That is not a .hof file.");
     }
 
     // Preset links come from files anyone can contribute, so only plain web links are opened.
@@ -403,7 +407,7 @@ public partial class MainWindow : Window
                 try { Vm.Save(Vm.FilePath!); }
                 catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
                 {
-                    Vm.Status = $"Could not save: {ex.Message}";                  // the file is still open, nothing is lost
+                    Vm.Status = Localizer.F("Could not save: {0}", ex.Message);                  // the file is still open, nothing is lost
                     return;
                 }
             }
@@ -426,7 +430,7 @@ public partial class MainWindow : Window
     // A strings file of the user's own, usually without a preset.json: pick it, then say what is in it.
     async void OnImportPreset(object? sender, RoutedEventArgs e)
     {
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Choose a strings file", AllowMultiple = false });
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = Localizer.T("Choose a strings file"), AllowMultiple = false });
         if (files.Count != 1 || files[0].TryGetLocalPath() is not { } path) return;
         if (Vm.StartPresetImport(path) is not { } import) return;
         if (await new PresetImportWindow(import).ShowDialog<bool>(this)) Vm.FinishPresetImport(import);
@@ -439,14 +443,14 @@ public partial class MainWindow : Window
 
     async void OnSave(object? sender, RoutedEventArgs e)
     {
-        if (Vm.FilePath is { } path) await Guarded(() => Vm.Save(path), "save");
+        if (Vm.FilePath is { } path) await Guarded(() => Vm.Save(path));
     }
 
     async void OnSaveAs(object? sender, RoutedEventArgs e)
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Save HOF file",
+            Title = Localizer.T("Save HOF file"),
             DefaultExtension = "hof",
             SuggestedFileName = System.IO.Path.GetFileName(Vm.FilePath),
             // Saving a copy lands next to the file that is open.
@@ -454,16 +458,16 @@ public partial class MainWindow : Window
             FileTypeChoices = HofFiles,
         });
         if (file?.TryGetLocalPath() is { } path)
-            await Guarded(() => Vm.Save(path), "save");
+            await Guarded(() => Vm.Save(path));
     }
 
     // File problems (locked file, no permission) are reported in the status bar instead of crashing the app.
-    Task Guarded(Action action, string verb)
+    Task Guarded(Action action)
     {
         try { action(); }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            Vm.Status = $"Could not {verb} the file: {ex.Message}";
+            Vm.Status = Localizer.F("Could not save the file: {0}", ex.Message);
         }
         return Task.CompletedTask;
     }

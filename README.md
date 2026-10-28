@@ -2,6 +2,8 @@
 
 # Hofwerk
 
+[**English**](README.md) · [Deutsch](README.de.md)
+
 A modern editor for the **`.hof` files of OMSI 2**: the destination displays, bus stops and routes that let one bus
 model run on many lines. The name is German for "depot works" (*Hof* is OMSI's word for a depot). Hofwerk is a new
 implementation of the 2018 HOF Suite (see [Credits](#credits)).
@@ -43,6 +45,7 @@ Their `.hof` files are the same files, and they deserve a native editor.
 - **String presets:** names for the string slots ("IBIS 1", "ANNAX (side)" …) so you do not have to remember what
   "String 7" means. Import a strings file of your own (Hofwerk asks what is in it), or see [`Presets/`](Presets/README.md)
   to add one through a pull request.
+- **English and German**, in the app and in the installer. Hofwerk follows your system's language until you choose one ([Deutsch](README.de.md)).
 - **Updates inside the app**, light and dark themes, a "What's new" for every version, and an error window with a
   ready-made bug report.
 
@@ -66,7 +69,7 @@ layout (see the [roadmap](ROADMAP.md)), so a detail may be missing.
 | Import a map into an existing file, import a single trip | Yes | Yes, nothing is added twice and Undo takes it back |
 | Export one file to several bus folders (the list is kept in the file) | Yes | Yes, with a backup of replaced files |
 | Station links (timetable files that write their stops as numbers) | Yes | Yes |
-| Translations | English and German | English only so far |
+| Translations | English and German | English and German; [add a language](src/Hofwerk.Installer.Engine/Languages/README.md) |
 | Updates inside the app, "What's new" | Not in its changelog | Yes |
 | Light, dark and system theme | Not in its changelog | Yes |
 | Undo and redo, autosave, a question before closing with unsaved changes | Not in its changelog | Yes |
@@ -98,7 +101,7 @@ small and downloads the app while it installs. Both show their steps: Download, 
   entry has an *Uninstall Hofwerk* action. *Not tested on a real Linux desktop yet.*
 
 For scripts, both installers also run without a window:
-`Setup --silent [--dir PATH] [--desktop-shortcut] [--file-association]`, and `Uninstall --silent --uninstall`.
+`Setup --silent [--dir PATH] [--language de] [--desktop-shortcut] [--file-association]`, and `Uninstall --silent --uninstall`.
 
 ## Build
 

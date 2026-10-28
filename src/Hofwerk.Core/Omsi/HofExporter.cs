@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 namespace Hofwerk.Core.Omsi;
 
 public enum ExportOutcome
@@ -83,10 +84,10 @@ public static class HofExporter
     static ExportResult ExportOne(string source, string fileName, string? ownFolder, string vehiclesFolder, string name, ExportOptions options)
     {
         string? folder = ResolveFolder(vehiclesFolder, name);
-        if (folder is null) return new ExportResult(name, null, ExportOutcome.Skipped, "There is no folder with this name in Vehicles.");
+        if (folder is null) return new ExportResult(name, null, ExportOutcome.Skipped, Localizer.T("There is no folder with this name in Vehicles."));
 
         if (string.Equals(Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar), ownFolder, StringComparison.OrdinalIgnoreCase))
-            return new ExportResult(name, null, ExportOutcome.Skipped, "The file is already saved in this folder.");
+            return new ExportResult(name, null, ExportOutcome.Skipped, Localizer.T("The file is already saved in this folder."));
 
         string target = Path.Combine(folder, fileName);
         try
@@ -94,7 +95,7 @@ public static class HofExporter
             byte[] content = File.ReadAllBytes(source);
             bool exists = File.Exists(target);
             if (exists && File.ReadAllBytes(target).AsSpan().SequenceEqual(content))
-                return new ExportResult(name, target, ExportOutcome.Unchanged, "Already has this file.");
+                return new ExportResult(name, target, ExportOutcome.Unchanged, Localizer.T("Already has this file."));
 
             if (exists && options.BackupReplaced) File.Copy(target, target + ".bak", overwrite: true);
 
@@ -102,7 +103,7 @@ public static class HofExporter
             string temp = target + ".hwtmp";
             File.WriteAllBytes(temp, content);
             File.Move(temp, target, overwrite: true);
-            return new ExportResult(name, target, ExportOutcome.Written, exists ? "Replaced the file that was there." : "Added the file.");
+            return new ExportResult(name, target, ExportOutcome.Written, exists ? Localizer.T("Replaced the file that was there.") : Localizer.T("Added the file."));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

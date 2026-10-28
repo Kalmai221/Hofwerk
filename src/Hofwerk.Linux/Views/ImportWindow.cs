@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Automation;
@@ -97,7 +98,7 @@ public sealed class ImportWindow : Window
         browseMap.Click += async (_, _) =>
         {
             IStorageFolder? start = mapsFolder is { Length: > 0 } && System.IO.Directory.Exists(mapsFolder) ? await StorageProvider.TryGetFolderFromPathAsync(mapsFolder) : null;
-            var picked = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Choose an OMSI map folder", AllowMultiple = false, SuggestedStartLocation = start });
+            var picked = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = Localizer.T("Choose an OMSI map folder"), AllowMultiple = false, SuggestedStartLocation = start });
             if (picked.Count == 1 && picked[0].TryGetLocalPath() is { } path)
             {
                 model.AddMapFolder(path);
@@ -110,10 +111,10 @@ public sealed class ImportWindow : Window
             IStorageFolder? start = mapsFolder is { Length: > 0 } && System.IO.Directory.Exists(mapsFolder) ? await StorageProvider.TryGetFolderFromPathAsync(mapsFolder) : null;
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Choose an OMSI timetable file",
+                Title = Localizer.T("Choose an OMSI timetable file"),
                 AllowMultiple = false,
                 SuggestedStartLocation = start,
-                FileTypeFilter = [new FilePickerFileType("OMSI timetable (*.ttp)") { Patterns = ["*.ttp"] }, FilePickerFileTypes.All],
+                FileTypeFilter = [new FilePickerFileType(Localizer.T("OMSI timetable (*.ttp)")) { Patterns = ["*.ttp"] }, FilePickerFileTypes.All],
             });
             if (files.Count == 1 && files[0].TryGetLocalPath() is { } path) model.SetTripFile(path);
         };

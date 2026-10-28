@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 namespace Hofwerk.Core.Omsi;
 
 /// <summary>One row of the OMSI library: a folder to step into, or a .hof file to open.</summary>
@@ -41,7 +42,7 @@ public sealed class OmsiBrowser(IReadOnlyList<HofFileEntry> files)
 
         var result = new List<OmsiItem>(subfolders.Count + here.Count);
         foreach (var (name, count) in subfolders)
-            result.Add(new OmsiItem(true, name, count == 1 ? "1 .hof file" : $"{count:N0} .hof files", prefix + name));
+            result.Add(new OmsiItem(true, name, Localizer.F(count == 1 ? "{0} .hof file" : "{0:N0} .hof files", count), prefix + name));
 
         here.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         result.AddRange(here);
@@ -56,7 +57,7 @@ public sealed class OmsiBrowser(IReadOnlyList<HofFileEntry> files)
             .Where(x => x.File.Title.Contains(text, StringComparison.OrdinalIgnoreCase)
                         || x.Dir.Contains(text, StringComparison.OrdinalIgnoreCase))
             .Take(max)
-            .Select(x => new OmsiItem(false, x.File.Title, x.Dir.Length == 0 ? "Vehicles" : x.Dir.Replace("/", " › "), x.File.Path))
+            .Select(x => new OmsiItem(false, x.File.Title, x.Dir.Length == 0 ? Localizer.T("Vehicles") : x.Dir.Replace("/", " › "), x.File.Path))
             .ToList();
     }
 
@@ -71,7 +72,7 @@ public sealed class OmsiBrowser(IReadOnlyList<HofFileEntry> files)
     public static string Breadcrumb(string folder)
     {
         folder = Normalize(folder);
-        return folder.Length == 0 ? "Vehicles" : "Vehicles › " + folder.Replace("/", " › ");
+        return folder.Length == 0 ? Localizer.T("Vehicles") : Localizer.T("Vehicles") + " › " + folder.Replace("/", " › ");
     }
 
     static string Normalize(string path) => path.Replace('\\', '/').Trim('/');

@@ -58,5 +58,7 @@
     <ProjectReference Include="..\Hofwerk.Installer.Engine\Hofwerk.Installer.Engine.csproj" />
     <!-- Finds where OMSI is installed, for the "Where is OMSI 2?" step. -->
     <ProjectReference Include="..\Hofwerk.Core\Hofwerk.Core.csproj" />
+    <!-- The same translator the Linux app uses puts the fixed texts of the setup window into the language in use. -->
+    <Compile Include="..\Hofwerk.Linux\Localization\AvaloniaTranslator.cs" Link="Localization\AvaloniaTranslator.cs" />
   </ItemGroup>
 </Project>

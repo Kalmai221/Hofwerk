@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -11,7 +12,7 @@ public sealed partial class ExportLocation(string name, bool exists) : Observabl
     public string Name { get; } = name;
     [ObservableProperty] public partial bool Exists { get; set; } = exists;
     public bool IsMissing => !Exists;
-    public string StatusText => Exists ? "Found under Vehicles" : "Not found under Vehicles, so nothing is copied there";
+    public string StatusText => Exists ? Localizer.T("Found under Vehicles") : Localizer.T("Not found under Vehicles, so nothing is copied there");
 
     partial void OnExistsChanged(bool value)
     {

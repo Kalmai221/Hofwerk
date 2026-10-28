@@ -23,7 +23,7 @@ public static class AppInfo
 
 /// <summary>What the user picked on the options page.</summary>
 /// <param name="Version">The version being installed when it is not the installer's own (an in-app update applies a newer app with the installed setup program).</param>
-public sealed record InstallRequest(string Directory, bool DesktopShortcut, bool FileAssociation, string? OmsiFolder = null, string? Version = null);
+public sealed record InstallRequest(string Directory, bool DesktopShortcut, bool FileAssociation, string? OmsiFolder = null, string? Version = null, string? Language = null);
 
 /// <summary>The stages an install goes through, in order. The online installer starts with Download; the offline one has it already.</summary>
 public enum InstallStep { None, Download, Extract, Move, Cleanup, Close }

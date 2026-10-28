@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -39,7 +40,7 @@ static class ErrorHandler
         Console.Error.WriteLine(report.Text);
 
         if (!OperatingSystem.IsWindows()) return;
-        string text = $"Hofwerk ran into a problem it did not expect:\n\n{report.Summary}\n\nThe details were saved to:\n{CrashLog.Path_}\n\nDo you want to report this problem on GitHub?";
+        string text = Localizer.F("Hofwerk ran into a problem it did not expect:\n\n{0}\n\nThe details were saved to:\n{1}\n\nDo you want to report this problem on GitHub?", report.Summary, CrashLog.Path_);
         try
         {
             if (MessageBoxW(IntPtr.Zero, text, "Hofwerk", 0x4 | 0x10) == 6) ErrorActions.OpenInBrowser(report.IssueUrl());

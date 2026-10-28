@@ -1,0 +1,26 @@
+<section class="help">
+  <h2>Welche Datei nehme ich?</h2>
+  <p>Der <strong>Windows-Installer</strong> hat die ganze App an Bord und funktioniert ohne Internet, ist also die sichere Wahl. Der <strong>Online-Installer</strong>
+    ist eine kleinere Datei, die die App während der Installation herunterlädt. <strong>Linux</strong> ist eine Datei für 64-Bit-Desktops.</p>
+
+  <h2>Unter Windows installieren</h2>
+  <ol>
+    <li>Starte die heruntergeladene Datei. Hofwerk installiert nur für dich, du brauchst also keine Administratorrechte.</li>
+    <li>Windows meldet eventuell, dass es deinen PC schützt, weil der Installer noch nicht signiert ist. Wähle <strong>Weitere Informationen</strong> und dann <strong>Trotzdem ausführen</strong>.</li>
+    <li>Sag ihm, wo OMSI 2 liegt, falls er es nicht findet, und wähle, ob du eine Desktop-Verknüpfung möchtest. Die Sprache oben links ist die deines Systems, solange du keine andere wählst.</li>
+    <li>Hofwerk startet, wenn es fertig ist. Zum späteren Entfernen nutze Windows&rsquo; <em>Installierte Apps</em>.</li>
+  </ol>
+  <p>Du brauchst Windows 10 (Version 1809) oder neuer, 64-Bit. Läuft die Standardversion auf deinem Rechner nicht, bietet Hofwerk bei einem Fehler eine zweite Version an.</p>
+
+  <h2>Unter Linux installieren</h2>
+  <pre><code>tar -xzf Hofwerk-Setup-*-linux-x64.tar.gz
+./Hofwerk-Setup-*-linux-x64</code></pre>
+  <p>Es installiert nach <code>~/.local/share/hofwerk</code>, fügt Hofwerk deinem Anwendungsmenü hinzu und legt einen Befehl <code>hofwerk</code> an. Der Menüeintrag hat die Aktion <em>Hofwerk deinstallieren</em>.
+    Die Linux-Version ist neu und wurde auf noch nicht vielen Desktops ausprobiert; sag mir also bitte Bescheid, wenn etwas nicht funktioniert.</p>
+
+  <h2>Deinen Download prüfen</h2>
+  <p>Jeder Download zeigt seine SHA-256-Prüfsumme. Unter Windows gibt <code>Get-FileHash datei.exe</code> in PowerShell denselben Wert aus; unter Linux nimm <code>sha256sum</code>.</p>
+
+  <h2>Updates</h2>
+  <p>Ist Hofwerk einmal installiert, sucht es beim Start nach neuen Versionen und aktualisiert sich aus der App heraus. Diese Seite brauchst du also nur einmal.</p>
+</section>

@@ -16,6 +16,10 @@ It is plain HTML, CSS and a few lines of JavaScript, made by `build.py` (Python 
 
 So the changelog, the roadmap and the comparison are edited in one place only (the Markdown files), and the site follows.
 
+### German
+
+The site is built twice: English at the top, German under `/de/`, with a language switch on every page. The German pages use `README.de.md`, `ROADMAP.de.md` and `Presets/README.de.md`, and German versions of the layout, the home page and the download help in `website/src/de/`. The page texts that `build.py` writes itself are in its `TEXT` table. The changelog is English on both.
+
 ## Try it on your computer
 
 ```powershell

@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -87,7 +88,7 @@ public static class WebPayload
     public static async Task<Stream> DownloadAsync(WebManifest manifest, IProgress<double>? progress = null, HttpClient? http = null, CancellationToken ct = default)
     {
         if (!Uri.TryCreate(manifest.Url, UriKind.Absolute, out var uri) || !IsAllowed(uri))
-            throw new InstallerException("This installer points to a download that is not on GitHub, so it was not used.");
+            throw new InstallerException(Localizer.T("This installer points to a download that is not on GitHub, so it was not used."));
 
         string temp = Path.Combine(Path.GetTempPath(), "Hofwerk-setup-" + Guid.NewGuid().ToString("N") + ".hwpack");
         bool keep = false;
@@ -113,18 +114,18 @@ public static class WebPayload
                 sha.TransformFinalBlock([], 0, 0);
 
                 if (done != manifest.Size)
-                    throw new InstallerException($"The download is incomplete ({done:N0} of {manifest.Size:N0} bytes). Check your connection and try again.");
+                    throw new InstallerException(Localizer.F("The download is incomplete ({0:N0} of {1:N0} bytes). Check your connection and try again.", done, manifest.Size));
             }
 
             if (!string.Equals(Convert.ToHexString(sha.Hash!), manifest.Sha256, StringComparison.OrdinalIgnoreCase))
-                throw new InstallerException("The downloaded file did not match what was expected, so it was not installed. Try again, or use the offline installer.");
+                throw new InstallerException(Localizer.T("The downloaded file did not match what was expected, so it was not installed. Try again, or use the offline installer."));
 
             keep = true;
             return new FileStream(temp, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.DeleteOnClose);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InstallerException("Could not download Hofwerk. Check your internet connection and try again, or use the offline installer.", ex);
+            throw new InstallerException(Localizer.T("Could not download Hofwerk. Check your internet connection and try again, or use the offline installer."), ex);
         }
         finally
         {

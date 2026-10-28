@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty] public partial string? FilePath { get; set; }
     [ObservableProperty] public partial bool IsDirty { get; set; }
-    [ObservableProperty] public partial string Status { get; set; } = "Open a .hof file to start.";
+    [ObservableProperty] public partial string Status { get; set; } = Localizer.T("Open a .hof file to start.");
 
     [ObservableProperty] public partial string Name { get; set; } = "";
     [ObservableProperty] public partial string ServiceTrip { get; set; } = "";
@@ -49,10 +50,10 @@ public partial class MainViewModel : ViewModelBase
 
     // The three summary cards at the top of Home.
     public HofFileEntry? LatestRecent => Recent.FirstOrDefault();
-    public string LatestTitle => LatestRecent?.Title ?? "Nothing opened yet";
-    public string LatestDetail => LatestRecent?.Subtitle ?? "Open a .hof file and it will wait for you here.";
-    public string OmsiHeadline => HasOmsi ? $"{_browser.FileCount:N0} .hof files found" : "OMSI 2 not found";
-    public string OmsiDetail => OmsiFolder ?? "Use “Open a .hof file” to pick one yourself.";
+    public string LatestTitle => LatestRecent?.Title ?? Localizer.T("Nothing opened yet");
+    public string LatestDetail => LatestRecent?.Subtitle ?? Localizer.T("Open a .hof file and it will wait for you here.");
+    public string OmsiHeadline => HasOmsi ? Localizer.F("{0:N0} .hof files found", _browser.FileCount) : Localizer.T("OMSI 2 not found");
+    public string OmsiDetail => OmsiFolder ?? Localizer.T("Use “Open a .hof file” to pick one yourself.");
 
     // String presets: the library of slot-name sets and the one currently in use (saved in the app settings).
     readonly AppSettings _settings;
@@ -65,13 +66,23 @@ public partial class MainViewModel : ViewModelBase
 
     public string WindowTitle => FilePath is null ? "Hofwerk" : $"{Path.GetFileName(FilePath)}{(IsDirty ? " •" : "")} – Hofwerk";
 
-    public MainViewModel() : this(AppSettings.Load()) { }
+    /// <summary>The app itself: reads the settings and starts in the language they ask for (the system language unless one was chosen).</summary>
+    public MainViewModel() : this(LoadSettingsAndLanguage()) { }
+
+    static AppSettings LoadSettingsAndLanguage()
+    {
+        var settings = AppSettings.Load();
+        Hofwerk.Localization.Localizer.Use(settings.Language);
+        return settings;
+    }
 
     public MainViewModel(AppSettings settings, string? userPresetsFolder = null)
     {
         _settings = settings;
         _recent = new RecentFiles(settings.RecentFilesPath);
         _userPresetsFolder = userPresetsFolder ?? PresetLibrary.UserFolder;
+        BuildChoices();
+        Hofwerk.Localization.Localizer.Changed += OnLanguageChanged;
         InitEditorLists();
         InitExportLocations();
         Termini.CollectionChanged += (_, _) => Touch();
@@ -121,7 +132,7 @@ public partial class MainViewModel : ViewModelBase
         ApplyPresetNames();
         OnPropertyChanged(nameof(ActivePresetName));
         OnPropertyChanged(nameof(SelectedPreset));
-        Status = $"Using the {chosen.Name}";
+        Status = Localizer.F("Using the {0}", chosen.Name);
     }
 
     void ApplyPresetNames()
@@ -155,21 +166,21 @@ public partial class MainViewModel : ViewModelBase
     {
         if (!OmsiLocator.LooksLikeOmsi(folder))
         {
-            Status = "That doesn't look like an OMSI 2 folder: it needs a Vehicles folder and a Maps folder or Omsi.exe.";
+            Status = Localizer.T("That doesn't look like an OMSI 2 folder: it needs a Vehicles folder and a Maps folder or Omsi.exe.");
             return false;
         }
 
         _settings.OmsiFolder = folder;
         _settings.Save();
         RefreshHome();
-        Status = $"Using OMSI at {folder}";
+        Status = Localizer.F("Using OMSI at {0}", folder);
         return true;
     }
 
     // The OMSI library works like a file explorer: folders with .hof files first, then files. Typing searches everything.
     public bool IsSearchingOmsi => OmsiFilter.Trim().Length > 0;
     public bool CanGoUp => _omsiPath.Length > 0 && !IsSearchingOmsi;
-    public string OmsiLocation => IsSearchingOmsi ? $"Search results for “{OmsiFilter.Trim()}”" : OmsiBrowser.Breadcrumb(_omsiPath);
+    public string OmsiLocation => IsSearchingOmsi ? Localizer.F("Search results for “{0}”", OmsiFilter.Trim()) : OmsiBrowser.Breadcrumb(_omsiPath);
 
     partial void OnOmsiFilterChanged(string value) => ShowOmsiFolder();
 
@@ -214,7 +225,7 @@ public partial class MainViewModel : ViewModelBase
         try { Load(path); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Status = $"Could not open the file: {ex.Message}";
+            Status = Localizer.F("Could not open the file: {0}", ex.Message);
             return false;
         }
         SetRecent(_recent.Add(path));
@@ -266,8 +277,8 @@ public partial class MainViewModel : ViewModelBase
         FilePath = path;
         ResetHistory();
         IsDirty = false;
-        Status = $"Loaded {Termini.Count} destinations, {BusStops.Count} bus stops, {Routes.Count} routes"
-                 + (Problems.Count > 0 ? $" – {Problems.Count} problem(s) found" : "");
+        Status = Localizer.F("Loaded {0} destinations, {1} bus stops, {2} routes", Termini.Count, BusStops.Count, Routes.Count)
+                 + (Problems.Count > 0 ? Localizer.F(" – {0} problem(s) found", Problems.Count) : "");
     }
 
     /// <summary>Puts a document on the screen (what Load and Undo/Redo both do). Does not touch the file name, the history or the dirty flag.</summary>
@@ -293,7 +304,7 @@ public partial class MainViewModel : ViewModelBase
             if (refreshProblems)
             {
                 Problems.Clear();
-                foreach (var d in doc.Diagnostics) Problems.Add($"Line {d.Line}: {d.Message}");
+                foreach (var d in doc.Diagnostics) Problems.Add(Localizer.F("Line {0}: {1}", d.Line, d.Message));
             }
             // The same entries stay selected (by position) after an undo, so the page does not jump back to the top.
             SelectedTerminus = Pick(Termini, selection?.Terminus);
@@ -314,7 +325,7 @@ public partial class MainViewModel : ViewModelBase
         MarkSaved();
         IsDirty = false;
         SetRecent(_recent.Add(path));
-        Status = $"Saved {Path.GetFileName(path)}";
+        Status = Localizer.F("Saved {0}", Path.GetFileName(path));
     }
 
     HofDocument ToDocument()

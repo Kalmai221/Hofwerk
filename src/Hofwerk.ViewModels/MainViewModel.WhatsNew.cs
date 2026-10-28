@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Collections.Generic;
 using System.Linq;
 using Hofwerk.Core.Updates;
@@ -20,18 +21,18 @@ public partial class MainViewModel
     public bool InstalledNotesMissing => !HasInstalledNotes;
 
     public string InstalledNotesTitle => InstalledSection is not null
-        ? $"What's new in {_currentVersion.Text}"
-        : ShownInstalledSection is { } newest ? $"What's new in {newest.Version}" : "What's new";
+        ? Localizer.F("What's new in {0}", _currentVersion.Text)
+        : ShownInstalledSection is { } newest ? Localizer.F("What's new in {0}", newest.Version) : Localizer.T("What's new");
 
-    public string InstalledNotesSubtitle => InstalledSection is not null ? "You have this version."
+    public string InstalledNotesSubtitle => InstalledSection is not null ? Localizer.T("You have this version.")
         : ShownInstalledSection is not null
-            ? $"This build ({_currentVersion.Text}) has no notes of its own, so these are the newest ones in the changelog."
-            : "Release notes are not available in this build.";
+            ? Localizer.F("This build ({0}) has no notes of its own, so these are the newest ones in the changelog.", _currentVersion.Text)
+            : Localizer.T("Release notes are not available in this build.");
 
     /// <summary>The notes of the newer version found by the update check, when its release has any.</summary>
     public IReadOnlyList<ChangeGroup> UpdateNotes => _update is null ? [] : ChangeNotes.FromMarkdown(_update.Notes);
     public bool ShowUpdateNotes => UpdateNotes.Count > 0;
-    public string UpdateNotesTitle => _update is null ? "What's new" : $"What's new in {_update.Version}";
+    public string UpdateNotesTitle => _update is null ? Localizer.T("What's new") : Localizer.F("What's new in {0}", _update.Version);
 
     /// <summary>The page of the newer version's release on GitHub (shown as a button in the notes pop-up).</summary>
     public string? UpdatePageUrl => _update?.PageUrl;

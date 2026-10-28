@@ -1,3 +1,4 @@
+using Hofwerk.Localization;
 using System.Runtime.InteropServices;
 using Hofwerk.Core;
 using Hofwerk.Core.Errors;
@@ -81,8 +82,9 @@ static class ErrorHandler
             content.Children.Add(new TextBlock { Text = report.Summary, TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.SemiBold });
             content.Children.Add(new TextBlock
             {
-                Text = "Hofwerk ran into a problem it did not expect. You can restart it, "
-                       + (WindowsUi.Current.CanSwitch ? "try a different version, or report" : "or report") + " the bug so it can be fixed.",
+                Text = WindowsUi.Current.CanSwitch
+                    ? Localizer.T("Hofwerk ran into a problem it did not expect. You can restart it, try a different version, or report the bug so it can be fixed.")
+                    : Localizer.T("Hofwerk ran into a problem it did not expect. You can restart it, or report the bug so it can be fixed."),
                 TextWrapping = TextWrapping.Wrap,
                 Opacity = 0.8,
             });
@@ -122,17 +124,17 @@ static class ErrorHandler
             restart.Click += (_, _) =>
             {
                 if (ErrorActions.Restart()) Application.Current.Exit();
-                else Say(status, "Hofwerk could not be started again. Please start it from the Start menu.");
+                else Say(status, Localizer.T("Hofwerk could not be started again. Please start it from the Start menu."));
             };
             send.Click += (_, _) =>
             {
                 if (!ErrorActions.OpenInBrowser(report.IssueUrl()))
-                    Say(status, "The browser could not be opened. The report is in the box below; you can copy it into an issue at " + HofHeaderUrl + "/issues.");
+                    Say(status, Localizer.F("The browser could not be opened. The report is in the box below; you can copy it into an issue at {0}/issues.", HofHeaderUrl));
             };
             other.Click += async (_, _) => await TryOtherVersionAsync(window, other, progress, status);
 
             _lastShown = DateTime.UtcNow;
-            await dialog.ShowAsync();
+            await dialog.ShowTranslated();
         }
         finally
         {
@@ -160,19 +162,19 @@ static class ErrorHandler
             {
                 progress.Value = 0;
                 progress.Visibility = Visibility.Visible;
-                Say(status, "Downloading the other version…");
-                var shown = new Progress<double>(p => { progress.Value = p; status.Text = $"Downloading the other version… {p:P0}"; });
+                Say(status, Localizer.T("Downloading the other version…"));
+                var shown = new Progress<double>(p => { progress.Value = p; status.Text = Localizer.F("Downloading the other version… {0:P0}", p); });
                 await ui.InstallCompatAsync(new UpdateChecker(), AppVersion.Current, Path.Combine(Path.GetTempPath(), "Hofwerk-compat"), shown);
             }
 
             string? file = window.CurrentFileIfSaved;
             if (ui.SwitchToCompat(AppSettings.Load(), file)) Application.Current.Exit();
-            else Say(status, "The other version could not be started.");
+            else Say(status, Localizer.T("The other version could not be started."));
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or TaskCanceledException or UnauthorizedAccessException
                                        or Hofwerk.Installer.Engine.InstallerException)
         {
-            Say(status, $"The other version could not be downloaded: {ex.Message}");
+            Say(status, Localizer.F("The other version could not be downloaded: {0}", ex.Message));
         }
         finally
         {
@@ -185,7 +187,7 @@ static class ErrorHandler
 
     static void NativeBox(ErrorReport report)
     {
-        string text = $"Hofwerk ran into a problem it did not expect:\n\n{report.Summary}\n\nThe details were saved to:\n{CrashLog.Path_}\n\nDo you want to report this problem on GitHub?";
+        string text = Localizer.F("Hofwerk ran into a problem it did not expect:\n\n{0}\n\nThe details were saved to:\n{1}\n\nDo you want to report this problem on GitHub?", report.Summary, CrashLog.Path_);
         const uint MB_YESNO = 0x4, MB_ICONERROR = 0x10, IDYES = 6;
         try
         {

@@ -1,3 +1,4 @@
+﻿using Hofwerk.Localization;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Automation;
@@ -20,7 +21,7 @@ public sealed class ExportWindow : Window
     readonly TextBlock _count = new() { Opacity = 0.8, VerticalAlignment = VerticalAlignment.Center };
     readonly ProgressBar _bar = new() { Minimum = 0, Maximum = 1, IsVisible = false };
     readonly SelectableTextBlock _report = new() { TextWrapping = TextWrapping.Wrap };
-    readonly TextBox _search = new() { Watermark = "Search folders" };
+    readonly TextBox _search = new() { PlaceholderText = "Search folders" };
     readonly Button _all = new() { Content = "Tick all shown" };
     readonly Button _none = new() { Content = "Clear all shown" };
     readonly CheckBox _backup = new() { Content = "Keep a copy (.bak) of files that are replaced", IsChecked = true };
@@ -48,7 +49,7 @@ public sealed class ExportWindow : Window
         {
             TextWrapping = TextWrapping.Wrap,
             Opacity = 0.8,
-            Text = $"Put {model.FileName} into every folder you tick, so every bus that uses it has the latest version. The ticked folders are saved in the file, like HOF Suite does, so next time they are ticked already.",
+            Text = Localizer.F("Put {0} into every folder you tick, so every bus that uses it has the latest version. The ticked folders are saved in the file, like HOF Suite does, so next time they are ticked already.", model.FileName),
         });
         body.Children.Add(_search);
         body.Children.Add(new Border
@@ -117,7 +118,7 @@ public sealed class ExportWindow : Window
         _bar.Value = _model.Progress;
         _report.Text = _model.Report;
         _export.IsEnabled = _model.CanExport || _model.IsDone;
-        _export.Content = _model.IsDone ? "Close" : "Export";
+        _export.Content = Localizer.T(_model.IsDone ? "Close" : "Export");
         _cancel.IsVisible = !_model.IsDone;
         _search.IsEnabled = _all.IsEnabled = _none.IsEnabled = _backup.IsEnabled = !_model.IsRunning && !_model.IsDone;
     }

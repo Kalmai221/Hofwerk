@@ -1,8 +1,10 @@
+<!-- languages -->
+<p align="center"><b>English</b> · <a href="translations/de/README.md">Deutsch</a></p>
+<!-- /languages -->
+
 <p align="center"><img src="branding/hofwerk-logo.svg" alt="Hofwerk" width="112"></p>
 
 # Hofwerk
-
-[**English**](README.md) · [Deutsch](README.de.md)
 
 A modern editor for the **`.hof` files of OMSI 2**: the destination displays, bus stops and routes that let one bus
 model run on many lines. The name is German for "depot works" (*Hof* is OMSI's word for a depot). Hofwerk is a new
@@ -45,13 +47,12 @@ Their `.hof` files are the same files, and they deserve a native editor.
 - **String presets:** names for the string slots ("IBIS 1", "ANNAX (side)" …) so you do not have to remember what
   "String 7" means. Import a strings file of your own (Hofwerk asks what is in it), or see [`Presets/`](Presets/README.md)
   to add one through a pull request.
-- **English and German**, in the app and in the installer. Hofwerk follows your system's language until you choose one ([Deutsch](README.de.md)).
+- **English and German**, in the app and in the installer. Hofwerk follows your system's language until you choose one ([Deutsch](translations/de/README.md)).
 - **Updates inside the app**, light and dark themes, a "What's new" for every version, and an error window with a
   ready-made bug report.
 
-Hofwerk is still in pre-release (`V1-dev1`, `V1-dev2`, `V1-dev3` ...). **V1** is the release that does everything HOF Suite
-does. See the [roadmap](ROADMAP.md) for what is done and what is left, and the [changelog](CHANGELOG.md) for what changed
-in each version.
+**V1** is the release that does everything HOF Suite does (the versions before it were called `V1-dev1` to `V1-dev5`). See the
+[roadmap](ROADMAP.md) for what is done and what comes next, and the [changelog](CHANGELOG.md) for what changed in each version.
 
 ## Hofwerk and HOF Suite
 
@@ -78,7 +79,7 @@ layout (see the [roadmap](ROADMAP.md)), so a detail may be missing.
 | Second Windows version for computers where WinUI fails | Not applicable | Yes (the Avalonia one, downloaded when needed) |
 | Installer | Setup program | One-file installers, online or offline, no administrator rights |
 
-Hofwerk becomes **V1** when the "Not yet" rows are done. After that it goes beyond HOF Suite (see the roadmap).
+Hofwerk 1 does everything in this table. From here it goes beyond HOF Suite (see the roadmap).
 
 ## Install
 

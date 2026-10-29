@@ -1,10 +1,12 @@
 # Roadmap
 
-[**English**](ROADMAP.md) · [Deutsch](ROADMAP.de.md)
+<!-- languages -->
+<p align="center"><b>English</b> · <a href="translations/de/ROADMAP.md">Deutsch</a></p>
+<!-- /languages -->
 
 ## Versions
 
-Hofwerk is released as **pre-releases until it can do everything the original HOF Suite does**. The pre-releases are called
+Hofwerk was released as **pre-releases until it could do everything the original HOF Suite does**. The pre-releases were called
 `V1-dev1`, `V1-dev2`, `V1-dev3` and so on (and `V0.1-dev1` and `V0.1-dev2` before them). **`V1`** is the first final release: the one
 with the same features as HOF Suite. Releases after that continue from there (1.1, 1.2, ...).
 
@@ -34,7 +36,7 @@ HOF Suite and something is missing here, please open an issue.
 - [x] Start a new file from an OMSI **map**: its bus stops, destinations and routes, with the map's picture and name (a first version
   of HOF Suite's *Import map*)
 
-### Still to do for V1
+### Last checks before V1, all done
 
 - [x] Hofwerk read and saved all 238 `.hof` files of a Steam OMSI install (HOF Suite's and other tools' files) without losing a destination, bus stop, route or stop, and what it writes reads back the same
 - [x] **Sort a list** by code or by name (Destinations, Bus stops, Routes), and move an item up or down in its list

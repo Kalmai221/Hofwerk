@@ -41,7 +41,13 @@ internal static class Translator
         owner.SetValue(OriginalsProperty, string.Concat(memory.Select(p => $"{p.Key}{FieldEnd}{p.Value.Original}{FieldEnd}{p.Value.Applied}{RecordEnd}")));
 
     /// <summary>Translates everything now in the window.</summary>
-    public static void Apply(DependencyObject root) => Visit(root, new HashSet<DependencyObject>(ReferenceEqualityComparer.Instance));
+    public static void Apply(DependencyObject root)
+    {
+        // a language written from right to left turns the whole window (or dialog) around
+        if (root is FrameworkElement element)
+            element.FlowDirection = Localizer.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        Visit(root, new HashSet<DependencyObject>(ReferenceEqualityComparer.Instance));
+    }
 
     /// <summary>Shows a dialog built in code, in the language in use.</summary>
     public static Windows.Foundation.IAsyncOperation<ContentDialogResult> ShowTranslated(this ContentDialog dialog)

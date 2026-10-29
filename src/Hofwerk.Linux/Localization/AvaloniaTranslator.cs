@@ -23,6 +23,9 @@ public static class AvaloniaTranslator
     /// <summary>Translates everything now in the window.</summary>
     public static void Apply(Visual root)
     {
+        // a language written from right to left turns the whole window around
+        if (root is Avalonia.Controls.Control window)
+            window.FlowDirection = Localizer.IsRightToLeft ? Avalonia.Media.FlowDirection.RightToLeft : Avalonia.Media.FlowDirection.LeftToRight;
         Visit(root);
         foreach (var visual in root.GetVisualDescendants()) Visit(visual);
     }

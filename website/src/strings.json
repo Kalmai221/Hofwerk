@@ -1,0 +1,76 @@
+{
+  "name": "English",
+  "nav": [
+    [
+      "index.html",
+      "Home"
+    ],
+    [
+      "download.html",
+      "Download"
+    ],
+    [
+      "changelog.html",
+      "What's new"
+    ],
+    [
+      "compare.html",
+      "Compare"
+    ],
+    [
+      "roadmap.html",
+      "Roadmap"
+    ],
+    [
+      "presets.html",
+      "String presets"
+    ]
+  ],
+  "compare_section": "Hofwerk and HOF Suite",
+  "text": {
+    "latest": "Latest",
+    "pre": "Pre-release",
+    "pre_title": "An early version that may have bugs",
+    "download": "Download",
+    "check": "Check the file (SHA-256)",
+    "notes": "What is in this version",
+    "soon": "The first download is on its way. Come back soon.",
+    "intro": "Hofwerk is free. Pick the file for your system, run it, and Hofwerk is ready. It installs just for you and needs no administrator rights.",
+    "early": "Also show the newest early version (a pre-release that may have bugs)",
+    "only_pre": "Every Hofwerk version so far is a <strong>pre-release</strong>: an early version that may have bugs. Hofwerk becomes <strong>V1</strong> when it can do everything HOF Suite does (see the <a href=\"roadmap.html\">roadmap</a>).",
+    "cta": "Download",
+    "cta_version": "Download Hofwerk %s",
+    "tag": "The modern .hof editor for OMSI 2. Edit destinations, bus stops and routes for Windows and Linux.",
+    "dl_desc": "Download Hofwerk for Windows or Linux.",
+    "whatsnew": "What's new",
+    "changelog_lead": "What changed in each version of Hofwerk.",
+    "changelog_desc": "What changed in each version of Hofwerk.",
+    "compare": "Hofwerk and HOF Suite",
+    "compare_desc": "How Hofwerk compares with the original HOF Suite.",
+    "roadmap": "Roadmap",
+    "roadmap_desc": "What is done and what is left before Hofwerk 1.0.",
+    "presets": "String presets",
+    "presets_desc": "How to name the string slots of your bus, and how to share your names.",
+    "notfound": "That page is not here",
+    "back": "Back to the home page",
+    "notfound_title": "Not found",
+    "download_page": "Download"
+  },
+  "downloads": {
+    "linux": [
+      "Linux",
+      "64-bit, .tar.gz",
+      "Unpack it and run the file inside. It installs for you and adds Hofwerk to your applications menu."
+    ],
+    "windows-offline": [
+      "Windows installer",
+      "Works without internet",
+      "The whole app is inside. The best choice if you are not sure."
+    ],
+    "windows-online": [
+      "Windows online installer",
+      "Small, downloads the app",
+      "A small file that downloads the app while it installs. Needs internet."
+    ]
+  }
+}

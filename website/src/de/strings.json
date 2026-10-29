@@ -1,0 +1,76 @@
+{
+  "name": "Deutsch",
+  "nav": [
+    [
+      "index.html",
+      "Start"
+    ],
+    [
+      "download.html",
+      "Download"
+    ],
+    [
+      "changelog.html",
+      "Neuigkeiten"
+    ],
+    [
+      "compare.html",
+      "Vergleich"
+    ],
+    [
+      "roadmap.html",
+      "Roadmap"
+    ],
+    [
+      "presets.html",
+      "String-Vorlagen"
+    ]
+  ],
+  "compare_section": "Hofwerk und HOF Suite",
+  "text": {
+    "latest": "Neueste",
+    "pre": "Vorabversion",
+    "pre_title": "Eine frühe Version, die Fehler haben kann",
+    "download": "Herunterladen",
+    "check": "Datei prüfen (SHA-256)",
+    "notes": "Was in dieser Version steckt",
+    "soon": "Der erste Download ist unterwegs. Schau bald wieder vorbei.",
+    "intro": "Hofwerk ist kostenlos. Wähle die Datei für dein System, starte sie, und Hofwerk ist bereit. Es installiert nur für dich und braucht keine Administratorrechte.",
+    "early": "Auch die neueste frühe Version zeigen (eine Vorabversion, die Fehler haben kann)",
+    "only_pre": "Jede Hofwerk-Version bisher ist eine <strong>Vorabversion</strong>: eine frühe Version, die Fehler haben kann. Hofwerk wird <strong>V1</strong>, wenn es alles kann, was die HOF Suite kann (siehe die <a href=\"roadmap.html\">Roadmap</a>).",
+    "cta": "Herunterladen",
+    "cta_version": "Hofwerk %s herunterladen",
+    "tag": "Der moderne .hof-Editor für OMSI 2. Ziele, Haltestellen und Routen bearbeiten, für Windows und Linux.",
+    "dl_desc": "Hofwerk für Windows oder Linux herunterladen.",
+    "whatsnew": "Neuigkeiten",
+    "changelog_lead": "Was sich in jeder Version von Hofwerk geändert hat. Die Notizen sind auf Englisch.",
+    "changelog_desc": "Was sich in jeder Version von Hofwerk geändert hat (auf Englisch).",
+    "compare": "Hofwerk und HOF Suite",
+    "compare_desc": "Wie Hofwerk im Vergleich zur originalen HOF Suite abschneidet.",
+    "roadmap": "Roadmap",
+    "roadmap_desc": "Was fertig ist und was bis Hofwerk 1.0 noch fehlt.",
+    "presets": "String-Vorlagen",
+    "presets_desc": "Wie du die String-Felder deines Busses benennst und deine Namen teilst.",
+    "notfound": "Diese Seite gibt es nicht",
+    "back": "Zurück zur Startseite",
+    "notfound_title": "Nicht gefunden",
+    "download_page": "Download"
+  },
+  "downloads": {
+    "linux": [
+      "Linux",
+      "64-Bit, .tar.gz",
+      "Entpacken und die Datei darin ausführen. Es installiert für dich und fügt Hofwerk deinem Anwendungsmenü hinzu."
+    ],
+    "windows-offline": [
+      "Windows-Installer",
+      "Funktioniert ohne Internet",
+      "Die ganze App ist darin. Die beste Wahl, wenn du unsicher bist."
+    ],
+    "windows-online": [
+      "Windows-Online-Installer",
+      "Klein, lädt die App herunter",
+      "Eine kleine Datei, die die App während der Installation herunterlädt. Braucht Internet."
+    ]
+  }
+}

@@ -1,10 +1,12 @@
 # Roadmap
 
-[English](ROADMAP.md) · **Deutsch**
+<!-- languages -->
+<p align="center"><a href="../../ROADMAP.md">English</a> · <b>Deutsch</b></p>
+<!-- /languages -->
 
 ## Versionen
 
-Hofwerk erscheint als **Vorabversionen, bis es alles kann, was die originale HOF Suite kann**. Die Vorabversionen heißen
+Hofwerk erschien als **Vorabversionen, bis es alles konnte, was die originale HOF Suite kann**. Die Vorabversionen hießen
 `V1-dev1`, `V1-dev2`, `V1-dev3` und so weiter (davor `V0.1-dev1` und `V0.1-dev2`). **`V1`** ist die erste endgültige Version: die
 mit denselben Funktionen wie die HOF Suite. Spätere Versionen setzen danach fort (1.1, 1.2, ...).
 
@@ -34,7 +36,7 @@ die HOF Suite kennst und hier etwas fehlt, eröffne bitte ein Issue.
   von *Import map* der HOF Suite)
 - [x] **Übersetzungen**: Englisch und Deutsch, in der App und im Installer, mit der Systemsprache als Vorgabe
 
-### Noch zu tun für V1
+### Letzte Prüfungen vor V1, alle erledigt
 
 - [x] Hofwerk hat alle 238 `.hof`-Dateien einer Steam-OMSI-Installation (von der HOF Suite und anderen Werkzeugen) gelesen und gespeichert, ohne ein Ziel, eine Haltestelle, eine Route oder einen Halt zu verlieren, und was es schreibt, wird gleich wieder eingelesen
 - [x] **Eine Liste sortieren** nach Code oder Name (Ziele, Haltestellen, Routen) und einen Eintrag in der Liste nach oben oder unten schieben

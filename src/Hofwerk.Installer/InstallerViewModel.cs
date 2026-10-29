@@ -81,10 +81,10 @@ public partial class InstallerViewModel : ObservableObject
     /// <summary>The language of the installer and of the installed Hofwerk. Picking one switches this window at once.</summary>
     public LanguageChoice SelectedLanguage
     {
-        get => LanguageChoices.FirstOrDefault(c => c.Id == _languageId) ?? LanguageChoices[0];
+        get => LanguageChoices.FirstOrDefault(c => string.Equals(c.Id, _languageId, StringComparison.OrdinalIgnoreCase)) ?? LanguageChoices[0];
         set
         {
-            if (value is null || value.Id == _languageId) return;
+            if (value is null || string.Equals(value.Id, _languageId, StringComparison.OrdinalIgnoreCase)) return;
             _languageId = value.Id;
             Localizer.Use(value.Id);
             OnPropertyChanged();

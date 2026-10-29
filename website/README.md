@@ -16,9 +16,13 @@ It is plain HTML, CSS and a few lines of JavaScript, made by `build.py` (Python 
 
 So the changelog, the roadmap and the comparison are edited in one place only (the Markdown files), and the site follows.
 
-### German
+### Other languages
 
-The site is built twice: English at the top, German under `/de/`, with a language switch on every page. The German pages use `README.de.md`, `ROADMAP.de.md` and `Presets/README.de.md`, and German versions of the layout, the home page and the download help in `website/src/de/`. The page texts that `build.py` writes itself are in its `TEXT` table. The changelog is English on both.
+The site is built once for English (at the top) and once for every folder `website/src/<code>/` that has a `strings.json` (`/de/`, `/pt-BR/`),
+with a language switch on every page. Each of those folders can have its own `layout.html`, `home.html` and `download-help.html`; whatever is
+missing is shown in English. The documents come from `translations/<code>/README.md`, `ROADMAP.md` and `Presets.md` when they exist. The
+page texts `build.py` writes itself are in each `strings.json`. The changelog is English everywhere. How to add a language:
+[src/Hofwerk.Installer.Engine/Languages/README.md](../src/Hofwerk.Installer.Engine/Languages/README.md).
 
 ## Try it on your computer
 

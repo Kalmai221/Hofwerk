@@ -67,15 +67,15 @@ public partial class MainViewModel
     public void ConfigureLanguage(Action<string> use) => _useLanguage = use;
 
     /// <summary>The language setting: "auto" (the language Windows or the desktop is set to) or a language code.</summary>
-    string LanguageSetting => string.IsNullOrWhiteSpace(_settings.Language) ? Localizer.Automatic : _settings.Language.Trim().ToLowerInvariant();
+    string LanguageSetting => string.IsNullOrWhiteSpace(_settings.Language) ? Localizer.Automatic : _settings.Language.Trim();
 
     /// <summary>The language chosen in App settings. Picking one saves it and switches the whole app to it at once.</summary>
     public LanguageChoice SelectedLanguage
     {
-        get => LanguageChoices.FirstOrDefault(c => c.Id == LanguageSetting) ?? LanguageChoices[0];
+        get => LanguageChoices.FirstOrDefault(c => string.Equals(c.Id, LanguageSetting, StringComparison.OrdinalIgnoreCase)) ?? LanguageChoices[0];
         set
         {
-            if (value is null || value.Id == SelectedLanguage.Id) return;
+            if (value is null || string.Equals(value.Id, SelectedLanguage.Id, StringComparison.OrdinalIgnoreCase)) return;
             _settings.Language = value.Id;
             _settings.Save();
             OnPropertyChanged();

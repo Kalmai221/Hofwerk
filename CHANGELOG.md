@@ -6,6 +6,12 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1]
+
+The first final release: Hofwerk now does everything HOF Suite does, and more. Everything since 1-dev5:
+
 ### Added
 - **A pop-up for updates.** When Hofwerk finds a newer version as it starts, a small notice "Update available" appears in the corner of the window. Click it to go straight to the Updates part of App settings; close it with the x, or leave it and it goes away by itself. The update notice on the home page is gone, since the pop-up and the dot next to App settings say the same.
 - **Sort and move in the lists.** The ⋯ button above the Destinations, Bus stops and Routes lists sorts the list by code (numbers in number order) or by name, and moves the selected entry up or down. Undo takes a sort back in one step.
@@ -15,6 +21,8 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 - **Choose which trips to take from a map.** The New file and Import windows have a closed "Choose which trips" list under the map, with a tick for every trip (its line, destination and number of stops), Select all, Select none, and for maps that have both kinds, only the trips that write their stops as station links or only the others, as in HOF Suite's import. Trips you untick are left out, together with the bus stops and destinations only they use.
 
+- **Ready for more languages.** A language can now be a regional one (`pt-BR.json`), count in more than two ways (Russian, Polish and others, with a rule named in its file), and be written from right to left, in which case the windows turn around. A language file in a `Languages` folder next to the program is found without building Hofwerk, and the website builds a page set for every language folder it has, falling back to English for what is missing.
+
 ### Fixed
 - **Switching the language back and forth.** Some texts stayed in the first language when the language was changed again (for example "You have Hofwerk" after going from German to English), and the language box could be left blank. Both now switch properly every time.
 
@@ -23,7 +31,7 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 ### Added
 - **Languages.** Hofwerk and its installer now come in English and German. The language follows your system until you choose one: in the installer (bottom left), and under *App settings → Appearance and language* in the app. The installer remembers its choice for the app. Screens, dialogs, messages and the installer are translated; what Hofwerk writes into your `.hof` files stays as it is. The German is written by the developer and not yet checked by a native speaker, so corrections are welcome.
 - **A guide for adding a language** (`src/Hofwerk.Installer.Engine/Languages/README.md`) and a check, run on every change, that every language has every text.
-- **German README, roadmap and string presets guide**, and a German version of the website (`/de/`), with a language switch. The changelog stays in English.
+- **German README, roadmap and string presets guide** (in `translations/de/`, with a language selector at the top of every document), and a German version of the website (`/de/`), with a language switch. The changelog stays in English.
 - **`Setup --silent --language de`** to choose the language without a window.
 - **A new look for the website.** The home page opens with a destination sign like the ones on OMSI's buses, flipping through destinations; the rest is quieter, with the features as a plain list, flatter download tiles and a light and a dark theme that follow your system.
 

@@ -129,8 +129,11 @@ def check(keys):
         for key, where in sorted(keys.items()):
             if key not in have:
                 print(f'{code}: missing   {key!r} ({where})'); problems += 1
-            elif placeholders(key) != placeholders(have[key]):
-                print(f'{code}: placeholders differ   {key!r}'); problems += 1
+            else:
+                value = have[key]
+                for form in (value if isinstance(value, list) else [value]):      # a language that counts in more ways has a list of texts
+                    if placeholders(key) != placeholders(form):
+                        print(f'{code}: placeholders differ   {key!r}'); problems += 1
         for key in sorted(set(have) - set(keys)):
             print(f'{code}: note, not found by this script (fine if the code builds it another way)   {key!r}')
     print(f'-- {problems} problem(s)', file=sys.stderr)

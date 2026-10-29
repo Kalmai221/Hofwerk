@@ -1,0 +1,35 @@
+name: Documents
+
+# The language selector at the top of the README, the roadmap and the presets guide lists every language that has a folder in
+# translations/. This fails when one of them is out of date (run python translations/update-language-links.py and commit).
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - ROADMAP.md
+      - Presets/README.md
+      - translations/**
+      - src/Hofwerk.Installer.Engine/Languages/*.json
+      - .github/workflows/docs.yml
+  pull_request:
+    paths:
+      - README.md
+      - ROADMAP.md
+      - Presets/README.md
+      - translations/**
+      - src/Hofwerk.Installer.Engine/Languages/*.json
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  language-links:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: The language selectors are up to date
+        run: python3 translations/update-language-links.py --check

@@ -1,6 +1,8 @@
 # String-Vorlagen
 
-[English](README.md) · **Deutsch**
+<!-- languages -->
+<p align="center"><a href="../../Presets/README.md">English</a> · <b>Deutsch</b></p>
+<!-- /languages -->
 
 Eine Vorlage gibt den String-Feldern eines Ziels oder einer Haltestelle aussagekräftige Namen. Ohne sie heißt ein Feld nur
 „String 7"; mit einer Vorlage für deinen Bus wird daraus etwa „Stacked (1st) Primary Text". Vorlagen wählst du in

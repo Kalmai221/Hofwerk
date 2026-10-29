@@ -36,69 +36,94 @@ TAGLINE = 'The modern .hof editor for OMSI 2'
 # The files of a release that people download. The packs the app updates itself from are not part of the website.
 INSTALLER = re.compile(r'^Hofwerk-(?P<kind>Setup|WebSetup)-(?P<version>.+?)-(?P<rid>win-x64|linux-x64)\.(?P<ext>exe|tar\.gz)$')
 
-# The site is built once per language: English at the top, German under /de/. Pages have the same names in both, so the language
-# switch links to the same page in the other one.
-LANGUAGES = ['en', 'de']
-PAGES = {
-    'en': [('index.html', 'Home'), ('download.html', 'Download'), ('changelog.html', "What's new"), ('compare.html', 'Compare'),
-           ('roadmap.html', 'Roadmap'), ('presets.html', 'String presets')],
-    'de': [('index.html', 'Start'), ('download.html', 'Download'), ('changelog.html', 'Neuigkeiten'), ('compare.html', 'Vergleich'),
-           ('roadmap.html', 'Roadmap'), ('presets.html', 'String-Vorlagen')],
-}
-LANGUAGE_NAMES = {'en': 'English', 'de': 'Deutsch'}
-ROOT_OF = {'en': '', 'de': '../'}       # how a page of that language gets to the files at the top of the site
-SOURCE = {   # the repository file each document page is made from, per language
-    'readme': {'en': 'README.md', 'de': 'README.de.md'},
-    'roadmap': {'en': 'ROADMAP.md', 'de': 'ROADMAP.de.md'},
-    'presets': {'en': 'Presets/README.md', 'de': 'Presets/README.de.md'},
-}
+# The site is built once per language: English at the top, every other language in a folder named by its code (/de/, /pt-BR/). A
+# language is a folder website/src/<code>/ with a strings.json (its menu, its page texts, the names of the downloads) and, for the
+# parts that are written out in full, layout.html, home.html and download-help.html. English is the one in website/src itself.
+# Anything a language does not have yet falls back to English, so a half-finished translation never breaks the site. The documents
+# come from README.<code>.md, ROADMAP.<code>.md and Presets/README.<code>.md when those exist.
+DOC_SOURCES = {'readme': 'README', 'roadmap': 'ROADMAP', 'presets': 'Presets/README'}
 
-# What the Download page says about each file, in German (the English comes from describe()).
-DOWNLOAD_TEXT_DE = {
-    'linux': ('Linux', '64-Bit, .tar.gz', 'Entpacken und die Datei darin ausführen. Es installiert für dich und fügt Hofwerk deinem Anwendungsmenü hinzu.'),
-    'windows-offline': ('Windows-Installer', 'Funktioniert ohne Internet', 'Die ganze App ist darin. Die beste Wahl, wenn du unsicher bist.'),
-    'windows-online': ('Windows-Online-Installer', 'Klein, lädt die App herunter', 'Eine kleine Datei, die die App während der Installation herunterlädt. Braucht Internet.'),
-}
-TEXT = {
-    'en': {'latest': 'Latest', 'pre': 'Pre-release', 'pre_title': 'An early version that may have bugs', 'download': 'Download', 'check': 'Check the file (SHA-256)',
-           'notes': 'What is in this version',
-           'soon': 'The first download is on its way. Come back soon.',
-           'intro': 'Hofwerk is free. Pick the file for your system, run it, and Hofwerk is ready. It installs just for you and needs no administrator rights.',
-           'early': 'Also show the newest early version (a pre-release that may have bugs)',
-           'only_pre': 'Every Hofwerk version so far is a <strong>pre-release</strong>: an early version that may have bugs. Hofwerk becomes <strong>V1</strong> when it can do everything HOF Suite does (see the <a href="roadmap.html">roadmap</a>).',
-           'cta': 'Download', 'cta_version': 'Download Hofwerk %s',
-           'tag': TAGLINE + '. Edit destinations, bus stops and routes for Windows and Linux.', 'dl_desc': 'Download Hofwerk for Windows or Linux.',
-           'whatsnew': "What's new", 'changelog_lead': 'What changed in each version of Hofwerk.', 'changelog_desc': 'What changed in each version of Hofwerk.',
-           'compare': 'Hofwerk and HOF Suite', 'compare_desc': 'How Hofwerk compares with the original HOF Suite.',
-           'roadmap': 'Roadmap', 'roadmap_desc': 'What is done and what is left before Hofwerk 1.0.',
-           'presets': 'String presets', 'presets_desc': 'How to name the string slots of your bus, and how to share your names.',
-           'notfound': 'That page is not here', 'back': 'Back to the home page', 'notfound_title': 'Not found', 'download_page': 'Download'},
-    'de': {'latest': 'Neueste', 'pre': 'Vorabversion', 'pre_title': 'Eine frühe Version, die Fehler haben kann', 'download': 'Herunterladen', 'check': 'Datei prüfen (SHA-256)',
-           'notes': 'Was in dieser Version steckt',
-           'soon': 'Der erste Download ist unterwegs. Schau bald wieder vorbei.',
-           'intro': 'Hofwerk ist kostenlos. Wähle die Datei für dein System, starte sie, und Hofwerk ist bereit. Es installiert nur für dich und braucht keine Administratorrechte.',
-           'early': 'Auch die neueste frühe Version zeigen (eine Vorabversion, die Fehler haben kann)',
-           'only_pre': 'Jede Hofwerk-Version bisher ist eine <strong>Vorabversion</strong>: eine frühe Version, die Fehler haben kann. Hofwerk wird <strong>V1</strong>, wenn es alles kann, was die HOF Suite kann (siehe die <a href="roadmap.html">Roadmap</a>).',
-           'cta': 'Herunterladen', 'cta_version': 'Hofwerk %s herunterladen',
-           'tag': 'Der moderne .hof-Editor für OMSI 2. Ziele, Haltestellen und Routen bearbeiten, für Windows und Linux.', 'dl_desc': 'Hofwerk für Windows oder Linux herunterladen.',
-           'whatsnew': 'Neuigkeiten', 'changelog_lead': 'Was sich in jeder Version von Hofwerk geändert hat. Die Notizen sind auf Englisch.',
-           'changelog_desc': 'Was sich in jeder Version von Hofwerk geändert hat (auf Englisch).',
-           'compare': 'Hofwerk und HOF Suite', 'compare_desc': 'Wie Hofwerk im Vergleich zur originalen HOF Suite abschneidet.',
-           'roadmap': 'Roadmap', 'roadmap_desc': 'Was fertig ist und was bis Hofwerk 1.0 noch fehlt.',
-           'presets': 'String-Vorlagen', 'presets_desc': 'Wie du die String-Felder deines Busses benennst und deine Namen teilst.',
-           'notfound': 'Diese Seite gibt es nicht', 'back': 'Zurück zur Startseite', 'notfound_title': 'Nicht gefunden', 'download_page': 'Download'},
-}
+
+def load_languages():
+    """{code: strings} for English and every folder of website/src that has a strings.json; English first, the others by code."""
+    languages = {}
+    with open(os.path.join(SRC, 'strings.json'), encoding='utf-8') as f:
+        languages['en'] = json.load(f)
+    for entry in sorted(os.listdir(SRC)):
+        path = os.path.join(SRC, entry, 'strings.json')
+        if os.path.isfile(path):
+            with open(path, encoding='utf-8') as f:
+                strings = json.load(f)
+            # a text the language does not have yet is the English one
+            strings['text'] = {**languages['en']['text'], **strings.get('text', {})}
+            strings.setdefault('nav', languages['en']['nav'])
+            strings.setdefault('downloads', languages['en']['downloads'])
+            strings.setdefault('compare_section', languages['en']['compare_section'])
+            languages[entry] = strings
+    return languages
+
+
+LANGUAGES = load_languages()
+CODES = list(LANGUAGES)
+
+
+def root_of(code):
+    """How a page of that language gets to the files at the top of the site."""
+    return '' if code == 'en' else '../'
+
+
+def folder_of(code):
+    return '' if code == 'en' else code + '/'
+
+
+def fragment(code, name):
+    """A layout, home page or download help of a language; the English one when the language has not written its own."""
+    own = os.path.join(SRC, code, name)
+    if code != 'en' and os.path.isfile(own):
+        return read(own)
+    if code != 'en':
+        print('  %s: no %s of its own, using the English one' % (code, name))
+    return read(SRC, name)
+
+
+def document(code, kind):
+    """The repository file a document page of a language comes from, falling back to English: translations/<code>/README.md ..."""
+    english, translated = {'readme': ('README.md', 'README.md'), 'roadmap': ('ROADMAP.md', 'ROADMAP.md'), 'presets': ('Presets/README.md', 'Presets.md')}[kind]
+    if code != 'en':
+        own = os.path.join(ROOT, 'translations', code, translated)
+        if os.path.isfile(own):
+            return own
+        print('  %s: no translations/%s/%s, using the English one' % (code, code, translated))
+    return os.path.join(ROOT, english)
+
 
 # Repository files the documents link to, and where they live on the site.
 LINKS = {
-    'ROADMAP.md': 'roadmap.html', 'ROADMAP.de.md': 'roadmap.html',
+    'ROADMAP.md': 'roadmap.html',
     'CHANGELOG.md': 'changelog.html',
-    'Presets/README.md': 'presets.html', 'Presets/README.de.md': 'presets.html',
-    'README.md': 'index.html', 'README.de.md': 'index.html',
+    'Presets/README.md': 'presets.html',
+    'README.md': 'index.html',
     '../../releases': 'download.html',
 }
 IMAGES = {'docs/windows-and-linux.png': 'assets/windows-and-linux.png'}
-IMAGES_DE = {'docs/windows-and-linux.png': '../assets/windows-and-linux.png'}
+
+
+def links_for(code):
+    """
+    The links in the documents of a language. A translation sits in translations/<code>/, so it names the same pages by other paths:
+    the changelog is ../../CHANGELOG.md, and its own roadmap and presets guide are next to it.
+    """
+    links = dict(LINKS)
+    links.update({'Presets.md': 'presets.html', '../../README.md': 'index.html', '../../ROADMAP.md': 'roadmap.html', '../../CHANGELOG.md': 'changelog.html',
+                  '../../Presets/README.md': 'presets.html', '../../../../releases': 'download.html'})
+    return links
+
+
+def without_selector(markdown):
+    """A document without its language selector (the site has its own) and without its title."""
+    text = re.sub(r'<!-- languages -->.*?<!-- /languages -->\n*', '', markdown, flags=re.S)
+    lines = text.split('\n')
+    return '\n'.join(lines[1:] if text.startswith('# ') else lines)
 
 
 def read(*parts):
@@ -208,18 +233,18 @@ def releases_from_folder(folder, out):
 # --------------------------------------------------------------------------------------------------------------- pages
 
 def layout(title, active, body, description, lang='en', page=None):
-    template = read(SRC, 'layout.html') if lang == 'en' else read(SRC, lang, 'layout.html')
-    nav = ''.join('<a href="%s"%s>%s</a>' % (target, ' aria-current="page"' if target == active else '', esc(label)) for target, label in PAGES[lang])
+    template = fragment(lang, 'layout.html')
+    nav = ''.join('<a href="%s"%s>%s</a>' % (target, ' aria-current="page"' if target == active else '', esc(label)) for target, label in LANGUAGES[lang]['nav'])
 
     # the same page in the other languages: a switch for people, and hreflang for search engines
     def address(l):
-        return ROOT_OF[lang] + ('' if l == 'en' else 'de/') + page if lang != l else page
+        return root_of(lang) + folder_of(l) + page if lang != l else page
 
-    switch = ''.join('<a class="lang" href="%s" hreflang="%s" lang="%s">%s</a>' % (address(l), l, l, esc(LANGUAGE_NAMES[l])) for l in LANGUAGES if l != lang) if page else ''
-    alternates = ''.join('<link rel="alternate" hreflang="%s" href="%s">' % (l, address(l)) for l in LANGUAGES) if page else ''
+    switch = ''.join('<a class="lang" href="%s" hreflang="%s" lang="%s">%s</a>' % (address(l), l, l, esc(LANGUAGES[l]['name'])) for l in CODES if l != lang) if page else ''
+    alternates = ''.join('<link rel="alternate" hreflang="%s" href="%s">' % (l, address(l)) for l in CODES) if page else ''
     return (template.replace('{{title}}', esc(title if title == SITE_NAME else '%s · %s' % (title, SITE_NAME)))
             .replace('{{description}}', esc(description)).replace('{{nav}}', nav).replace('{{content}}', body)
-            .replace('{{lang}}', lang).replace('{{root}}', ROOT_OF[lang]).replace('{{switch}}', switch).replace('{{alternates}}', alternates)
+            .replace('{{lang}}', lang).replace('{{root}}', root_of(lang)).replace('{{switch}}', switch).replace('{{alternates}}', alternates)
             .replace('{{year}}', str(datetime.date.today().year)))
 
 
@@ -228,8 +253,8 @@ def document_page(title, intro, markdown, converter):
 
 
 def release_card(release, latest, lang='en'):
-    t = TEXT[lang]
-    root = ROOT_OF[lang]
+    t = LANGUAGES[lang]['text']
+    root = root_of(lang)
     badges = ''
     if latest:
         badges += '<span class="badge latest">%s</span>' % t['latest']
@@ -238,7 +263,7 @@ def release_card(release, latest, lang='en'):
     tiles = []
     for f in sorted(release['files'], key=lambda f: f['order']):
         if lang != 'en':
-            f = {**f, **dict(zip(('title', 'sub', 'text'), DOWNLOAD_TEXT_DE[f['id']]))}
+            f = {**f, **dict(zip(('title', 'sub', 'text'), LANGUAGES[lang]['downloads'][f['id']]))}
         tiles.append(
             '<article class="dl" data-os="%s" data-id="%s">'
             '<h3>%s</h3><p class="sub">%s</p><p>%s</p>'
@@ -256,7 +281,7 @@ def release_card(release, latest, lang='en'):
 
 
 def download_page(releases, lang='en'):
-    t = TEXT[lang]
+    t = LANGUAGES[lang]['text']
     if not releases or not any(r['files'] for r in releases):
         return '<div class="doc"><h1>%s</h1><p class="lead">%s</p></div>' % (t['download_page'], t['soon'])
 
@@ -271,14 +296,14 @@ def download_page(releases, lang='en'):
     elif early and not stable:
         channel = '<p class="notice">' + t['only_pre'] + '</p>'
 
-    help_html = read(SRC, 'download-help.html') if lang == 'en' else read(SRC, lang, 'download-help.html')
+    help_html = fragment(lang, 'download-help.html')
     return '<div class="doc wide"><h1>%s</h1><p class="lead">%s</p>%s<div id="releases">%s</div>%s</div>' % (t['download_page'], esc(intro), channel, shown, help_html)
 
 
 def home_page(releases, lang='en'):
-    t = TEXT[lang]
-    root = ROOT_OF[lang]
-    body = read(SRC, 'home.html') if lang == 'en' else read(SRC, lang, 'home.html')
+    t = LANGUAGES[lang]['text']
+    root = root_of(lang)
+    body = fragment(lang, 'home.html')
     cta = '<a class="button big" href="download.html" data-download-cta>%s</a>' % t['cta']
     if releases and releases[0]['files']:
         newest = releases[0]
@@ -332,21 +357,21 @@ def main():
     changelog = re.sub(r'(?ms)^## \[Unreleased\]\s*\n+\s*Nothing yet\.\s*\n', '', changelog)    # an empty section is just noise on a website
     changelog_body = '\n'.join(line for line in changelog.split('\n')[1:])
     count = 0
-    for lang in LANGUAGES:
-        t = TEXT[lang]
-        converter = Converter(LINKS, IMAGES if lang == 'en' else IMAGES_DE)
-        readme = read(ROOT, SOURCE['readme'][lang])
-        # without the title and the line of language links (the site has its own switch)
-        body_of = lambda path: '\n'.join(l for l in read(ROOT, path).split('\n')[1:] if not re.match(r'^\[\**English', l))
+    for lang in CODES:
+        print('Language', lang)
+        t = LANGUAGES[lang]['text']
+        converter = Converter(links_for(lang), IMAGES if lang == 'en' else {**{k: root_of(lang) + v for k, v in IMAGES.items()}, **{'../../' + k: root_of(lang) + v for k, v in IMAGES.items()}})
+        readme = read(document(lang, 'readme'))
+        body_of = lambda path: without_selector(read(path))   # without the title and the language selector (the site has its own switch)
         pages = {
             'index.html': (SITE_NAME, home_page(releases, lang), t['tag']),
             'download.html': (t['download_page'], download_page(releases, lang), t['dl_desc']),
             'changelog.html': (t['whatsnew'], document_page(t['whatsnew'], t['changelog_lead'], changelog_body, converter), t['changelog_desc']),
-            'compare.html': (t['compare'], document_page(t['compare'], '', section(readme, 'Hofwerk and HOF Suite' if lang == 'en' else 'Hofwerk und HOF Suite'), converter), t['compare_desc']),
-            'roadmap.html': (t['roadmap'], document_page(t['roadmap'], '', body_of(SOURCE['roadmap'][lang]), converter), t['roadmap_desc']),
-            'presets.html': (t['presets'], document_page(t['presets'], '', body_of(SOURCE['presets'][lang]), converter), t['presets_desc']),
+            'compare.html': (t['compare'], document_page(t['compare'], '', section(readme, LANGUAGES[lang]['compare_section']), converter), t['compare_desc']),
+            'roadmap.html': (t['roadmap'], document_page(t['roadmap'], '', body_of(document(lang, 'roadmap')), converter), t['roadmap_desc']),
+            'presets.html': (t['presets'], document_page(t['presets'], '', body_of(document(lang, 'presets')), converter), t['presets_desc']),
         }
-        folder = out if lang == 'en' else os.path.join(out, lang)
+        folder = os.path.join(out, folder_of(lang)) if lang != 'en' else out
         for page, (title, body, description) in pages.items():
             write(os.path.join(folder, page), layout(title, page, body, description, lang, page))
         write(os.path.join(folder, '404.html'), layout(t['notfound_title'], '', '<div class="doc"><h1>%s</h1><p class="lead"><a href="index.html">%s</a></p></div>' % (t['notfound'], t['back']), '', lang))

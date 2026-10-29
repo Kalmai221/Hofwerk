@@ -161,10 +161,10 @@ public class WhatsNewViewModelTests : IDisposable
     [Fact]
     public void A_build_without_notes_of_its_own_says_so_and_shows_the_newest_ones()
     {
-        var vm = NewViewModel("1.0.0");
+        var vm = NewViewModel("9.9.9");                       // a version the changelog has never heard of
 
         Assert.True(vm.HasInstalledNotes);
-        Assert.Contains("1.0.0", vm.InstalledNotesSubtitle);
+        Assert.Contains("9.9.9", vm.InstalledNotesSubtitle);
         Assert.Contains("no notes of its own", vm.InstalledNotesSubtitle);
     }
 

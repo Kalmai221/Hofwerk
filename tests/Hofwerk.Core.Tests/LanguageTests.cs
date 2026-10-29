@@ -166,6 +166,109 @@ public class LanguageTests : IDisposable
         Assert.Equal("auto", AppSettings.Load(Path.Combine(_dir, "settings.json")).Language);
     }
 
+    // ---- more languages ----------------------------------------------------------------------------------------------
+    // A language is a file. These write a few into a folder the program is told about (for this test only), as a translator (or a newer build) would.
+
+    IDisposable MoreLanguages()
+    {
+        string folder = Path.Combine(_dir, "more-languages");
+        Directory.CreateDirectory(folder);
+        File.WriteAllText(Path.Combine(folder, "pt-BR.json"), "{ \"name\": \"Português (Brasil)\", \"strings\": { \"Save as\": \"Salvar como\" } }");
+        File.WriteAllText(Path.Combine(folder, "zh-Hans.json"), "{ \"name\": \"简体中文\", \"plural\": \"none\", \"strings\": { \"Save as\": \"另存为\" } }");
+        File.WriteAllText(Path.Combine(folder, "ru.json"),
+            "{ \"name\": \"Русский\", \"plural\": \"slavic\", \"strings\": { \"Save as\": \"Сохранить как\", " +
+            "\"{0} bus stop\": [\"{0} остановка\", \"{0} остановки\", \"{0} остановок\"] } }");
+        File.WriteAllText(Path.Combine(folder, "ar.json"), "{ \"name\": \"العربية\", \"rightToLeft\": true, \"strings\": { \"Save as\": \"حفظ باسم\" } }");
+        File.WriteAllText(Path.Combine(folder, "broken.json"), "{ not json");
+        return Localizer.UseLanguageFolder(folder);          // only for this test: others running at the same time do not see these languages
+    }
+
+    [Fact]
+    public void A_language_file_in_a_folder_is_a_language_and_a_broken_one_is_skipped()
+    {
+        using var more = MoreLanguages();
+
+        var codes = Localizer.Languages.Select(l => l.Code).ToList();
+
+        Assert.Equal("en", codes[0]);
+        Assert.Contains("pt-BR", codes);
+        Assert.Contains("ru", codes);
+        Assert.DoesNotContain("broken", codes);
+        Assert.Equal("Русский", Localizer.NameOf("ru"));
+        using (Localizer.Override("pt-br")) Assert.Equal("Salvar como", Localizer.T("Save as"));       // any letter case
+    }
+
+    [Theory]
+    [InlineData("pt-BR", "pt-BR")]        // a regional file for its own region
+    [InlineData("pt-PT", "pt-BR")]        // only a regional file of that language: closer than English
+    [InlineData("pt", "pt-BR")]
+    [InlineData("zh-Hans", "zh-Hans")]
+    [InlineData("zh-Hans-CN", "zh-Hans")]  // what a culture belongs to is tried too
+    [InlineData("ru-RU", "ru")]
+    [InlineData("de-AT", "de")]            // a built-in language still works for every region
+    [InlineData("fr-FR", "en")]
+    public void The_system_language_is_matched_to_the_closest_file_even_for_regional_ones(string culture, string expected)
+    {
+        using var more = MoreLanguages();
+
+        Assert.Equal(expected, Localizer.Detect(new CultureInfo(culture)));
+    }
+
+    [Fact]
+    public void A_language_with_more_than_two_ways_of_counting_picks_the_right_form()
+    {
+        using var more = MoreLanguages();
+        using var russian = Localizer.Override("ru");
+
+        string Stops(int n) => Localizer.Count(n, "{0} bus stop", "{0} bus stops");
+
+        Assert.Equal("1 остановка", Stops(1));
+        Assert.Equal("21 остановка", Stops(21));
+        Assert.Equal("2 остановки", Stops(2));
+        Assert.Equal("24 остановки", Stops(24));
+        Assert.Equal("5 остановок", Stops(5));
+        Assert.Equal("11 остановок", Stops(11));       // 11 to 14 are "many", not "one" or "few"
+        Assert.Equal("12 остановок", Stops(12));
+        Assert.Equal("22 остановки", Stops(22));
+    }
+
+    [Theory]
+    [InlineData("one-other", 1, 0)] [InlineData("one-other", 0, 1)] [InlineData("one-other", 2, 1)]
+    [InlineData("french", 0, 0)] [InlineData("french", 1, 0)] [InlineData("french", 2, 1)]
+    [InlineData("none", 1, 0)] [InlineData("none", 7, 0)]
+    [InlineData("polish", 1, 0)] [InlineData("polish", 2, 1)] [InlineData("polish", 22, 1)] [InlineData("polish", 21, 2)] [InlineData("polish", 12, 2)]
+    [InlineData("slavic", 1, 0)] [InlineData("slavic", 21, 0)] [InlineData("slavic", 3, 1)] [InlineData("slavic", 13, 2)] [InlineData("slavic", 0, 2)]
+    [InlineData(null, 1, 0)] [InlineData("unknown-rule", 5, 1)]
+    public void The_counting_rules_pick_a_form(string? rule, int number, int expected)
+    {
+        Assert.Equal(expected, Localizer.PluralIndex(rule, number));
+    }
+
+    [Fact]
+    public void A_language_written_from_right_to_left_says_so_and_only_while_it_is_used()
+    {
+        using var more = MoreLanguages();
+
+        Assert.False(Localizer.IsRightToLeft);
+        using (Localizer.Override("ar")) Assert.True(Localizer.IsRightToLeft);
+        using (Localizer.Override("de")) Assert.False(Localizer.IsRightToLeft);
+        Assert.False(Localizer.IsRightToLeft);
+    }
+
+    [Fact]
+    public void A_language_with_regional_code_can_be_chosen_in_the_drop_down_and_is_kept_in_the_settings()
+    {
+        using var more = MoreLanguages();
+        var used = new List<string>();
+        var vm = ViewModel(used.Add);
+
+        vm.SelectedLanguage = vm.LanguageChoices.Single(c => c.Id == "pt-BR");
+
+        Assert.Equal(["pt-BR"], used);
+        Assert.Equal("pt-BR", AppSettings.Load(Path.Combine(_dir, "settings.json")).Language);
+        Assert.Equal("pt-BR", ViewModel().SelectedLanguage.Id);
+    }
+
     // ---- the installer ---------------------------------------------------------------------------------------------
 
     [Fact]

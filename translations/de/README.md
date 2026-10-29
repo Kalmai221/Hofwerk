@@ -1,8 +1,10 @@
-<p align="center"><img src="branding/hofwerk-logo.svg" alt="Hofwerk" width="112"></p>
+<!-- languages -->
+<p align="center"><a href="../../README.md">English</a> · <b>Deutsch</b></p>
+<!-- /languages -->
+
+<p align="center"><img src="../../branding/hofwerk-logo.svg" alt="Hofwerk" width="112"></p>
 
 # Hofwerk
-
-[English](README.md) · **Deutsch**
 
 Ein moderner Editor für die **`.hof`-Dateien von OMSI 2**: die Zielanzeigen, Haltestellen und Routen, mit denen ein
 Bus-Modell auf vielen Linien fahren kann. Der Name bedeutet „Betriebshof-Werk" (*Hof* ist OMSIs Wort für einen Betriebshof).
@@ -12,7 +14,7 @@ Hofwerk ist eine Neuentwicklung der HOF Suite von 2018 (siehe [Danksagung](#dank
   zweiten, mit Avalonia gezeichneten Version wechseln, die bei Bedarf heruntergeladen wird.
 - **Linux:** Avalonia-App, die ihre gesamte Logik mit der Windows-App teilt. *Sie lässt sich bauen, wurde aber noch nicht auf Linux getestet.*
 
-![Hofwerks Startseite unter Windows und unter Linux](docs/windows-and-linux.png)
+![Hofwerks Startseite unter Windows und unter Linux](../../docs/windows-and-linux.png)
 
 ## Warum ich Hofwerk gemacht habe
 
@@ -43,21 +45,21 @@ Ihre `.hof`-Dateien sind dieselben Dateien, und sie verdienen einen nativen Edit
 - **Import aus einer OMSI-Karte:** Wähle eine Karte (mit Bild und Namen wie in OMSI), und Hofwerk füllt ihre Haltestellen,
   Ziele und Routen ein – für eine neue Datei oder in die geöffnete Datei hinein. Eine einzelne Fahrplandatei (`.ttp`) lässt sich als eine Route hinzufügen.
 - **String-Vorlagen:** Namen für die String-Felder („IBIS 1", „ANNAX (Seite)" …), damit du dir nicht merken musst, was
-  „String 7" bedeutet. Importiere eine eigene Strings-Datei (Hofwerk fragt, was darin steht), oder sieh dir [`Presets/`](Presets/README.de.md)
+  „String 7" bedeutet. Importiere eine eigene Strings-Datei (Hofwerk fragt, was darin steht), oder sieh dir [`Presets/`](Presets.md)
   an, um eine per Pull Request beizutragen.
 - **Updates in der App**, helle und dunkle Designs, „Neuigkeiten" zu jeder Version und ein Fehlerfenster mit
   fertigem Fehlerbericht.
 - **Sprachen:** Englisch und Deutsch, in der App und im Installer. Hofwerk nimmt die Sprache deines Systems, solange du keine andere wählst.
 
-Hofwerk ist noch eine Vorabversion (`V1-dev1`, `V1-dev2`, `V1-dev3` …). **V1** ist die Version, die alles kann, was die HOF Suite
-kann. Was fertig ist und was noch fehlt, steht in der [Roadmap](ROADMAP.de.md), was sich in jeder Version geändert hat, im
-[Änderungsprotokoll](CHANGELOG.md) (nur auf Englisch).
+**V1** ist die Version, die alles kann, was die HOF Suite
+kann. Was fertig ist und was noch fehlt, steht in der [Roadmap](ROADMAP.md), was sich in jeder Version geändert hat, im
+[Änderungsprotokoll](../../CHANGELOG.md) (nur auf Englisch).
 
 ## Hofwerk und HOF Suite
 
 Die [HOF Suite](https://gitlab.com/omsi2/hof-suite) (Lukas G., 2018–2019) ist der Editor, nach dessen Vorbild Hofwerk gebaut ist. Hofwerk liest und
 schreibt dieselben `.hof`-Dateien, du kannst also zwischen beiden wechseln. Die Liste beruht auf dem öffentlichen Änderungsprotokoll und dem
-Quellcode-Aufbau der HOF Suite (siehe [Roadmap](ROADMAP.de.md)), es kann also ein Detail fehlen.
+Quellcode-Aufbau der HOF Suite (siehe [Roadmap](ROADMAP.md)), es kann also ein Detail fehlen.
 
 | | HOF Suite | Hofwerk |
 | --- | --- | --- |
@@ -78,11 +80,11 @@ Quellcode-Aufbau der HOF Suite (siehe [Roadmap](ROADMAP.de.md)), es kann also ei
 | Zweite Windows-Version für Rechner, auf denen WinUI scheitert | Entfällt | Ja (die Avalonia-Version, bei Bedarf heruntergeladen) |
 | Installer | Setup-Programm | Ein-Datei-Installer, online oder offline, ohne Administratorrechte |
 
-Hofwerk wird **V1**, wenn die „Noch nicht"-Zeilen erledigt sind. Danach geht es über die HOF Suite hinaus (siehe Roadmap).
+Hofwerk 1 kann alles in dieser Tabelle. Ab hier geht es über die HOF Suite hinaus (siehe Roadmap).
 
 ## Installation
 
-Lade den Installer für dein System von der Hofwerk-Website herunter (Seite „Download"; dieselben Dateien liegen auf der Seite [Releases](../../releases)). Jeder ist eine einzelne Datei. Unter Windows gibt es
+Lade den Installer für dein System von der Hofwerk-Website herunter (Seite „Download"; dieselben Dateien liegen auf der Seite [Releases](../../../../releases)). Jeder ist eine einzelne Datei. Unter Windows gibt es
 zwei: `Hofwerk-Setup-<Version>-win-x64.exe` enthält die App (funktioniert offline), und `Hofwerk-WebSetup-<Version>-win-x64.exe` ist
 klein und lädt die App während der Installation herunter. Beide zeigen ihre Schritte: Herunterladen, Entpacken, Dateien verschieben, Aufräumen, Schließen.
 
@@ -122,7 +124,7 @@ pwsh installer/build-installer.ps1 -Rid win-x64 -Version 0.1.0
 ## Eine Sprache hinzufügen
 
 Jede Sprache ist eine JSON-Datei in `src/Hofwerk.Installer.Engine/Languages/`. Wie man eine neue anlegt und prüft, steht in der
-[Anleitung dort](src/Hofwerk.Installer.Engine/Languages/README.md) (auf Englisch).
+[Anleitung dort](../../src/Hofwerk.Installer.Engine/Languages/README.md) (auf Englisch).
 
 ## Projektaufbau
 
@@ -136,16 +138,16 @@ Jede Sprache ist eine JSON-Datei in `src/Hofwerk.Installer.Engine/Languages/`. W
 | `src/Hofwerk.Installer` | Das Setup-Fenster (Avalonia). Dasselbe Programm ohne angehängte App ist das Deinstallationsprogramm. |
 | `installer/` | Skripte, die die Ein-Datei-Installer bauen und so testen, wie Nutzer ihnen begegnen (UI Automation). |
 | `Presets/` | In die App eingebaute String-Vorlagen. Ein Ordner pro Vorlage. |
-| `tests/` | Unit-Tests, darunter ein Round-Trip-Test mit echten OMSI-Dateien, wenn OMSI installiert ist. Starte sie mit `./test.ps1` ([so geht's](tests/README.md)). |
+| `tests/` | Unit-Tests, darunter ein Round-Trip-Test mit echten OMSI-Dateien, wenn OMSI installiert ist. Starte sie mit `./test.ps1` ([so geht's](../../tests/README.md)). |
 | `docs/` | Bilder für diese README und die Website. |
-| `website/` | Die Website: Downloads, Neuigkeiten, Vergleich, Roadmap. Siehe [website/README.md](website/README.md). |
+| `website/` | Die Website: Downloads, Neuigkeiten, Vergleich, Roadmap. Siehe [website/README.md](../../website/README.md). |
 
 ## Releases
 
 Ein Tag wie `V1-dev3` führt die Tests aus, baut die Windows- und Linux-Installer, testet sie und veröffentlicht sie als
 GitHub-Release (`.github/workflows/release.yml`). Die Website (`.github/workflows/website.yml`) kopiert dann die neuesten Installer auf ihre Download-Seite. Das Release enthält die Installer, die gepackte App, die In-App-Updates herunterladen
 (`Hofwerk-App-*.hwpack`), die gepackte zweite Windows-Version (`Hofwerk-Compat-*.hwpack`) und Notizen aus dem passenden
-Abschnitt von [CHANGELOG.md](CHANGELOG.md). Verschiebe die Notizen vor dem Taggen von `[Unreleased]` unter eine neue Versionsüberschrift; eine Prüfung bei jedem Pull
+Abschnitt von [CHANGELOG.md](../../CHANGELOG.md). Verschiebe die Notizen vor dem Taggen von `[Unreleased]` unter eine neue Versionsüberschrift; eine Prüfung bei jedem Pull
 Request stellt sicher, dass jede Version Notizen hat.
 
 ## Danksagung
@@ -161,8 +163,8 @@ die String-Vorlagen beisteuern.
 
 - Die originale **HOF Suite** von **Lukas G.** (© 2018): https://gitlab.com/omsi2/hof-suite. Die Vorlage „HOF Suite Default"
   stammt daraus. Hofwerk ist eine neue Codebasis, kein Fork. Die Lizenz verlangt Namensnennung, Links zum
-  Original und öffentlichen Quelltext; Einzelheiten in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-- Alle, die in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) für String-Vorlagen genannt werden.
+  Original und öffentlichen Quelltext; Einzelheiten in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md).
+- Alle, die in [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) für String-Vorlagen genannt werden.
 - OMSI 2 ist ein Produkt seiner jeweiligen Inhaber. Dieses Projekt steht in keiner Verbindung zu ihnen.
 
-*Dies ist die deutsche Fassung der [englischen README](README.md). Bei Abweichungen gilt die englische.*
+*Dies ist die deutsche Fassung der [englischen README](../../README.md). Bei Abweichungen gilt die englische.*

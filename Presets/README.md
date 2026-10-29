@@ -1,6 +1,8 @@
 # String presets
 
-[**English**](README.md) · [Deutsch](README.de.md)
+<!-- languages -->
+<p align="center"><b>English</b> · <a href="../translations/de/Presets.md">Deutsch</a></p>
+<!-- /languages -->
 
 A preset gives the string slots of a destination or bus stop meaningful names. Without one, a slot is just
 "String 7"; with a preset for your bus it becomes something like "Stacked (1st) Primary Text". Presets are chosen in

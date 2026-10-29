@@ -362,21 +362,6 @@
                                     </Button>
                                 </StackPanel>
 
-                                <!-- A newer version, when there is one -->
-                                <Border CornerRadius="10" Padding="14,12" Background="#26FFFFFF" IsVisible="{Binding UpdateAvailable}">
-                                    <StackPanel Spacing="8">
-                                        <StackPanel Spacing="1">
-                                            <TextBlock Text="{Binding UpdateHeadline}" FontWeight="SemiBold" Foreground="White"
-                                                       AutomationProperties.Name="Update available" />
-                                            <TextBlock Text="{Binding UpdateDetail}" Foreground="#E6FFFFFF" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <ProgressBar Minimum="0" Maximum="1" Value="{Binding UpdateProgress}" IsIndeterminate="{Binding UpdateIndeterminate}" IsVisible="{Binding IsUpdateBusy}" />
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Content="Update now" Command="{Binding InstallUpdateCommand}" AutomationProperties.Name="Update now" />
-                                            <Button Content="What's new" Click="OnShowUpdateNotes" AutomationProperties.Name="What's new in the update" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -494,7 +479,7 @@
                                 </StackPanel>
                                 <WrapPanel ItemSpacing="40" LineSpacing="12">
                                     <ToggleSwitch Content="Autosave" OnContent="On" OffContent="Off" IsChecked="{Binding AutoSave}" AutomationProperties.Name="Autosave" />
-                                    <ComboBox ItemsSource="{x:Static vm:MainViewModel.AutoSaveChoices}" SelectedIndex="{Binding AutoSaveChoice}"
+                                    <ComboBox ItemsSource="{Binding AutoSaveOptions}" SelectedIndex="{Binding AutoSaveChoice}"
                                               IsEnabled="{Binding AutoSave}" MinWidth="320" AutomationProperties.Name="Autosave timing" />
                                 </WrapPanel>
                             </StackPanel>
@@ -505,7 +490,7 @@
                             <StackPanel Spacing="14">
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Name="UpdatesHeading" Text="Updates" FontWeight="SemiBold" FontSize="16" />
                                         <TextBlock Foreground="{DynamicResource Muted}"><Run Text="You have Hofwerk" /> <Run Text="{Binding CurrentVersion}" /></TextBlock>
                                         <Button Content="{Binding InstalledNotesTitle}" Classes="link" Click="OnShowInstalledNotes" Padding="0" Background="Transparent"
                                                 Foreground="{DynamicResource SystemAccentColor}" HorizontalAlignment="Left" AutomationProperties.Name="What's new" />
@@ -766,13 +751,26 @@
                     <Grid x:Name="DestinationsPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="8">
-                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                                    <TextBlock Text="{Binding Termini.Count, StringFormat='{}{0} in this file'}" Classes="caption" Margin="0" VerticalAlignment="Center" />
-                                    <Button Grid.Column="1" Content="Add" Command="{Binding AddTerminusCommand}" AutomationProperties.Name="Add destination" />
-                                    <Button Grid.Column="2" Content="Copy" Command="{Binding DuplicateTerminusCommand}" AutomationProperties.Name="Duplicate destination" />
-                                    <Button Grid.Column="3" Content="Remove" Command="{Binding RemoveTerminusCommand}" AutomationProperties.Name="Remove destination" />
+                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+                                    <TextBlock Classes="caption" Margin="0" Grid.ColumnSpan="3"><Run Text="{Binding Termini.Count}" /><Run Text=" in this file" /></TextBlock>
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="0" Content="Add" Command="{Binding AddTerminusCommand}" AutomationProperties.Name="Add destination" />
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="1" Content="Copy" Command="{Binding DuplicateTerminusCommand}" AutomationProperties.Name="Duplicate destination" />
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="2" Content="Remove" Command="{Binding RemoveTerminusCommand}" AutomationProperties.Name="Remove destination" />
                                 </Grid>
-                                <TextBox Text="{Binding TerminusFilter}" PlaceholderText="Search destinations" AutomationProperties.Name="Search destinations" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBox Text="{Binding TerminusFilter}" PlaceholderText="Search destinations" AutomationProperties.Name="Search destinations" />
+                                    <Button Grid.Column="1" Content="…" ToolTip.Tip="Sort, move and more" AutomationProperties.Name="More for destinations">
+                                        <Button.Flyout><MenuFlyout>
+                                            <MenuItem Header="Sort by code" Command="{Binding SortTerminiByCodeCommand}" />
+                                            <MenuItem Header="Sort by name" Command="{Binding SortTerminiByNameCommand}" />
+                                            <MenuItem Header="Move up" Command="{Binding MoveTerminusUpCommand}" />
+                                            <MenuItem Header="Move down" Command="{Binding MoveTerminusDownCommand}" />
+                                            <Separator />
+                                            <MenuItem Header="Add a destination with code 1000" Command="{Binding AddAddPlateDestinationCommand}" />
+                                            <MenuItem Header="Add the KPP destinations" Command="{Binding AddKppDestinationsCommand}" />
+                                        </MenuFlyout></Button.Flyout>
+                                    </Button>
+                                </Grid>
                             </StackPanel>
                             <ListBox Classes="entries" ItemsSource="{Binding FilteredTermini}" SelectedItem="{Binding SelectedTerminus}">
                                 <ListBox.ItemTemplate>
@@ -815,13 +813,22 @@
                     <Grid x:Name="BusStopsPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="8">
-                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                                    <TextBlock Text="{Binding BusStops.Count, StringFormat='{}{0} in this file'}" Classes="caption" Margin="0" VerticalAlignment="Center" />
-                                    <Button Grid.Column="1" Content="Add" Command="{Binding AddBusStopCommand}" AutomationProperties.Name="Add bus stop" />
-                                    <Button Grid.Column="2" Content="Copy" Command="{Binding DuplicateBusStopCommand}" AutomationProperties.Name="Duplicate bus stop" />
-                                    <Button Grid.Column="3" Content="Remove" Command="{Binding RemoveBusStopCommand}" AutomationProperties.Name="Remove bus stop" />
+                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+                                    <TextBlock Classes="caption" Margin="0" Grid.ColumnSpan="3"><Run Text="{Binding BusStops.Count}" /><Run Text=" in this file" /></TextBlock>
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="0" Content="Add" Command="{Binding AddBusStopCommand}" AutomationProperties.Name="Add bus stop" />
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="1" Content="Copy" Command="{Binding DuplicateBusStopCommand}" AutomationProperties.Name="Duplicate bus stop" />
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="2" Content="Remove" Command="{Binding RemoveBusStopCommand}" AutomationProperties.Name="Remove bus stop" />
                                 </Grid>
-                                <TextBox Text="{Binding BusStopFilter}" PlaceholderText="Search bus stops" AutomationProperties.Name="Search bus stops" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBox Text="{Binding BusStopFilter}" PlaceholderText="Search bus stops" AutomationProperties.Name="Search bus stops" />
+                                    <Button Grid.Column="1" Content="…" ToolTip.Tip="Sort, move and more" AutomationProperties.Name="More for bus stops">
+                                        <Button.Flyout><MenuFlyout>
+                                            <MenuItem Header="Sort by name" Command="{Binding SortBusStopsByNameCommand}" />
+                                            <MenuItem Header="Move up" Command="{Binding MoveBusStopUpCommand}" />
+                                            <MenuItem Header="Move down" Command="{Binding MoveBusStopDownCommand}" />
+                                        </MenuFlyout></Button.Flyout>
+                                    </Button>
+                                </Grid>
                             </StackPanel>
                             <ListBox Classes="entries" ItemsSource="{Binding FilteredBusStops}" SelectedItem="{Binding SelectedBusStop}">
                                 <ListBox.ItemTemplate>
@@ -860,13 +867,23 @@
                     <Grid x:Name="RoutesPanel" IsVisible="False" ColumnDefinitions="320,*" ColumnSpacing="16">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="8">
-                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                                    <TextBlock Text="{Binding Routes.Count, StringFormat='{}{0} in this file'}" Classes="caption" Margin="0" VerticalAlignment="Center" />
-                                    <Button Grid.Column="1" Content="Add" Command="{Binding AddRouteCommand}" AutomationProperties.Name="Add route" />
-                                    <Button Grid.Column="2" Content="Copy" Command="{Binding DuplicateRouteCommand}" AutomationProperties.Name="Duplicate route" />
-                                    <Button Grid.Column="3" Content="Remove" Command="{Binding RemoveRouteCommand}" AutomationProperties.Name="Remove route" />
+                                <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
+                                    <TextBlock Classes="caption" Margin="0" Grid.ColumnSpan="3"><Run Text="{Binding Routes.Count}" /><Run Text=" in this file" /></TextBlock>
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="0" Content="Add" Command="{Binding AddRouteCommand}" AutomationProperties.Name="Add route" />
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="1" Content="Copy" Command="{Binding DuplicateRouteCommand}" AutomationProperties.Name="Duplicate route" />
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="4,6" Grid.Row="1" Grid.Column="2" Content="Remove" Command="{Binding RemoveRouteCommand}" AutomationProperties.Name="Remove route" />
                                 </Grid>
-                                <TextBox Text="{Binding RouteFilter}" PlaceholderText="Search routes" AutomationProperties.Name="Search routes" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBox Text="{Binding RouteFilter}" PlaceholderText="Search routes" AutomationProperties.Name="Search routes" />
+                                    <Button Grid.Column="1" Content="…" ToolTip.Tip="Sort, move and more" AutomationProperties.Name="More for routes">
+                                        <Button.Flyout><MenuFlyout>
+                                            <MenuItem Header="Sort by code" Command="{Binding SortRoutesByCodeCommand}" />
+                                            <MenuItem Header="Sort by name" Command="{Binding SortRoutesByNameCommand}" />
+                                            <MenuItem Header="Move up" Command="{Binding MoveRouteUpCommand}" />
+                                            <MenuItem Header="Move down" Command="{Binding MoveRouteDownCommand}" />
+                                        </MenuFlyout></Button.Flyout>
+                                    </Button>
+                                </Grid>
                             </StackPanel>
                             <ListBox Classes="entries" ItemsSource="{Binding FilteredRoutes}" SelectedItem="{Binding SelectedRoute}">
                                 <ListBox.ItemTemplate>
@@ -923,6 +940,7 @@
                                                 <Button Content="↑" Command="{Binding SelectedRoute.MoveStopUpCommand}" AutomationProperties.Name="Move stop up" />
                                                 <Button Content="↓" Command="{Binding SelectedRoute.MoveStopDownCommand}" AutomationProperties.Name="Move stop down" />
                                                 <Button Content="Remove" Command="{Binding SelectedRoute.RemoveStopCommand}" AutomationProperties.Name="Remove stop from route" />
+                                                <Button Content="Reverse" Command="{Binding SelectedRoute.ReverseStopsCommand}" ToolTip.Tip="Reverse the order of the stops" AutomationProperties.Name="Reverse stops" />
                                                 <Button Content="Clear" Command="{Binding SelectedRoute.ClearStopsCommand}" AutomationProperties.Name="Clear route stops" />
                                             </StackPanel>
                                             <StackPanel x:Name="RouteStopsBox" Grid.Column="2" Spacing="6">
@@ -955,5 +973,25 @@
                 </Grid>
             </Grid>
         </DockPanel>
+
+        <!-- Pop-ups (see MainViewModel.Notifications): in the corner above the status line; a click goes to what they are about -->
+        <ItemsControl Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="360" Margin="0,0,20,40" ItemsSource="{Binding Notifications}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AppNotification">
+                    <Grid Margin="0,8,0,0">
+                        <Button Click="OnToastClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12" CornerRadius="8"
+                                Background="{DynamicResource CardBackground}" BorderBrush="{DynamicResource SystemAccentColor}" BorderThickness="1"
+                                AutomationProperties.Name="{Binding Title}">
+                            <StackPanel Spacing="2" Margin="0,0,26,0">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Opacity="0.8" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnToastClose" Content="✕" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6,2" Margin="0,6,6,0" Background="Transparent"
+                                BorderThickness="0" AutomationProperties.Name="Close" ToolTip.Tip="Close" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </Window>

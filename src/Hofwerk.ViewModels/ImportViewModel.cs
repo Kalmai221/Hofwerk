@@ -25,7 +25,11 @@ public sealed partial class ImportViewModel : ObservableObject
         _read = read ?? MapImporter.Read;
         _readTrip = readTrip ?? MapImporter.ReadTripFile;
         foreach (var map in maps) Maps.Add(map);
+        TripPicker.Changed += Changed;
     }
+
+    /// <summary>Which trips of the chosen map to take (all of them to begin with).</summary>
+    public TripSelection TripPicker { get; } = new();
 
     public ObservableCollection<OmsiMap> Maps { get; } = [];
     public bool HasMaps => Maps.Count > 0;
@@ -43,7 +47,7 @@ public sealed partial class ImportViewModel : ObservableObject
     bool AnyPart => ImportBusStops || ImportDestinations || ImportRoutes;
 
     /// <summary>What was found in the chosen map or timetable file; null until there is one.</summary>
-    public MapData? Data => FromTrip ? _tripData : _mapData;
+    public MapData? Data => FromTrip ? _tripData : TripPicker.Apply(_mapData);
 
     /// <summary>What importing would do to the open file right now.</summary>
     public MergeResult? Result => Data is { IsEmpty: false } data && AnyPart && !IsReading ? _preview(data, Options) : null;
@@ -65,6 +69,7 @@ public sealed partial class ImportViewModel : ObservableObject
                 if (_mapData.IsEmpty) return Localizer.T("This map has no timetable data (TTData) to import from.");
             }
 
+            if (!FromTrip && TripPicker.HasTrips && TripPicker.SelectedCount == 0) return Localizer.T("Tick at least one trip.");
             if (!AnyPart) return Localizer.T("Tick what to take.");
             return Result?.Describe() ?? "";
         }
@@ -108,6 +113,7 @@ public sealed partial class ImportViewModel : ObservableObject
     {
         int number = ++_readNumber;
         _mapData = null;
+        TripPicker.Load(null);
         if (value is null) { IsReading = false; Changed(); return; }
 
         IsReading = true;
@@ -117,6 +123,7 @@ public sealed partial class ImportViewModel : ObservableObject
 
         if (number != _readNumber) return;
         _mapData = data;
+        TripPicker.Load(data);
         IsReading = false;
         Changed();
     }

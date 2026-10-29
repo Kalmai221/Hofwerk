@@ -127,6 +127,16 @@
             <Grid x:Name="PageHost" Padding="24,8,24,16" SizeChanged="OnPageHostSizeChanged">
                 <Grid.Resources>
                     <!-- Release notes: a group title and its points (used for the installed version and for an update) -->
+                    <DataTemplate x:Key="TripChoiceTemplate" x:DataType="vm:TripChoice">
+                        <Grid ColumnSpacing="10" MinHeight="40">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay}" MinWidth="0" AutomationProperties.Name="{x:Bind Name}" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{x:Bind Detail}" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
                     <DataTemplate x:Key="ChangeGroupTemplate" x:DataType="notes:ChangeGroup">
                         <StackPanel Spacing="4" Margin="0,0,0,10">
                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" Visibility="{x:Bind local:MainWindow.NotEmptyVisible(Title)}" />
@@ -206,24 +216,6 @@
                                     </Button>
                                 </StackPanel>
 
-                                <!-- A newer version, when there is one -->
-                                <Border CornerRadius="10" Padding="14,12" Background="#26FFFFFF"
-                                        Visibility="{x:Bind ViewModel.UpdateAvailable, Mode=OneWay}">
-                                    <StackPanel Spacing="8">
-                                        <StackPanel Spacing="1">
-                                            <TextBlock Text="{x:Bind ViewModel.UpdateHeadline, Mode=OneWay}" FontWeight="SemiBold" Foreground="White"
-                                                       AutomationProperties.Name="Update available" />
-                                            <TextBlock Text="{x:Bind ViewModel.UpdateDetail, Mode=OneWay}" Foreground="#E6FFFFFF" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <ProgressBar Minimum="0" Maximum="1" Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}" IsIndeterminate="{x:Bind ViewModel.UpdateIndeterminate, Mode=OneWay}"
-                                                     Visibility="{x:Bind ViewModel.IsUpdateBusy, Mode=OneWay}" />
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Content="Update now" Command="{x:Bind ViewModel.InstallUpdateCommand}"
-                                                    AutomationProperties.Name="Update now" />
-                                            <Button Content="What's new" Click="OnShowUpdateNotes" AutomationProperties.Name="What's new in the update" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -362,7 +354,7 @@
                                 <local:WrapPanel HorizontalSpacing="40" VerticalSpacing="12">
                                     <ToggleSwitch Header="Autosave" OnContent="On" OffContent="Off"
                                                   IsOn="{x:Bind ViewModel.AutoSave, Mode=TwoWay}" AutomationProperties.Name="Autosave" />
-                                    <ComboBox Header="Save" ItemsSource="{x:Bind local:MainWindow.AutoSaveChoices}" SelectedIndex="{x:Bind ViewModel.AutoSaveChoice, Mode=TwoWay}"
+                                    <ComboBox Header="Save" ItemsSource="{x:Bind ViewModel.AutoSaveOptions}" SelectedIndex="{x:Bind ViewModel.AutoSaveChoice, Mode=TwoWay}"
                                               IsEnabled="{x:Bind ViewModel.AutoSave, Mode=OneWay}" MinWidth="320" AutomationProperties.Name="Autosave timing" />
                                 </local:WrapPanel>
                             </StackPanel>
@@ -374,7 +366,7 @@
                                 <Grid ColumnSpacing="12">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="Updates" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                        <TextBlock x:Name="UpdatesHeading" Text="Updates" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                         <TextBlock Opacity="0.65" TextWrapping="Wrap">
                                             <Run Text="You have Hofwerk" /> <Run Text="{x:Bind ViewModel.CurrentVersion}" />
                                         </TextBlock>
@@ -648,7 +640,19 @@
                                 </StackPanel>
                                 <Button Grid.Column="1" Command="{x:Bind ViewModel.AddTerminusCommand}" Padding="9,7" ToolTipService.ToolTip="Add a destination" AutomationProperties.Name="Add destination"><FontIcon Glyph="&#xE710;" FontSize="14" /></Button>
                                 <Button Grid.Column="2" Command="{x:Bind ViewModel.DuplicateTerminusCommand}" Padding="9,7" ToolTipService.ToolTip="Duplicate the selected destination" AutomationProperties.Name="Duplicate destination"><FontIcon Glyph="&#xE8C8;" FontSize="14" /></Button>
-                                <Button Grid.Column="3" Command="{x:Bind ViewModel.RemoveTerminusCommand}" Padding="9,7" ToolTipService.ToolTip="Remove the selected destination" AutomationProperties.Name="Remove destination"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
+                                    <Button Command="{x:Bind ViewModel.RemoveTerminusCommand}" Padding="9,7" ToolTipService.ToolTip="Remove the selected destination" AutomationProperties.Name="Remove destination"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                    <Button Padding="9,7" ToolTipService.ToolTip="Sort, move and more" AutomationProperties.Name="More for destinations"><FontIcon Glyph="&#xE712;" FontSize="14" />
+                                    <Button.Flyout><MenuFlyout>
+                                        <MenuFlyoutItem Text="Sort by code" Command="{x:Bind ViewModel.SortTerminiByCodeCommand}" />
+                                        <MenuFlyoutItem Text="Sort by name" Command="{x:Bind ViewModel.SortTerminiByNameCommand}" />
+                                        <MenuFlyoutItem Text="Move up" Command="{x:Bind ViewModel.MoveTerminusUpCommand}" />
+                                        <MenuFlyoutItem Text="Move down" Command="{x:Bind ViewModel.MoveTerminusDownCommand}" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="Add a destination with code 1000" Command="{x:Bind ViewModel.AddAddPlateDestinationCommand}" />
+                                        <MenuFlyoutItem Text="Add the KPP destinations" Command="{x:Bind ViewModel.AddKppDestinationsCommand}" />
+                                    </MenuFlyout></Button.Flyout></Button>
+                                </StackPanel>
                             </Grid>
                             <TextBox Grid.Row="1" PlaceholderText="Search destinations" Text="{x:Bind ViewModel.TerminusFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.FilteredTermini}" SelectedItem="{x:Bind ViewModel.SelectedTerminus, Mode=TwoWay}">
@@ -748,7 +752,15 @@
                                 </StackPanel>
                                 <Button Grid.Column="1" Command="{x:Bind ViewModel.AddBusStopCommand}" Padding="9,7" ToolTipService.ToolTip="Add a bus stop" AutomationProperties.Name="Add bus stop"><FontIcon Glyph="&#xE710;" FontSize="14" /></Button>
                                 <Button Grid.Column="2" Command="{x:Bind ViewModel.DuplicateBusStopCommand}" Padding="9,7" ToolTipService.ToolTip="Duplicate the selected bus stop" AutomationProperties.Name="Duplicate bus stop"><FontIcon Glyph="&#xE8C8;" FontSize="14" /></Button>
-                                <Button Grid.Column="3" Command="{x:Bind ViewModel.RemoveBusStopCommand}" Padding="9,7" ToolTipService.ToolTip="Remove the selected bus stop" AutomationProperties.Name="Remove bus stop"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
+                                    <Button Command="{x:Bind ViewModel.RemoveBusStopCommand}" Padding="9,7" ToolTipService.ToolTip="Remove the selected bus stop" AutomationProperties.Name="Remove bus stop"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                    <Button Padding="9,7" ToolTipService.ToolTip="Sort, move and more" AutomationProperties.Name="More for bus stops"><FontIcon Glyph="&#xE712;" FontSize="14" />
+                                    <Button.Flyout><MenuFlyout>
+                                        <MenuFlyoutItem Text="Sort by name" Command="{x:Bind ViewModel.SortBusStopsByNameCommand}" />
+                                        <MenuFlyoutItem Text="Move up" Command="{x:Bind ViewModel.MoveBusStopUpCommand}" />
+                                        <MenuFlyoutItem Text="Move down" Command="{x:Bind ViewModel.MoveBusStopDownCommand}" />
+                                    </MenuFlyout></Button.Flyout></Button>
+                                </StackPanel>
                             </Grid>
                             <TextBox Grid.Row="1" PlaceholderText="Search bus stops" Text="{x:Bind ViewModel.BusStopFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.FilteredBusStops}" SelectedItem="{x:Bind ViewModel.SelectedBusStop, Mode=TwoWay}">
@@ -829,7 +841,16 @@
                                 </StackPanel>
                                 <Button Grid.Column="1" Command="{x:Bind ViewModel.AddRouteCommand}" Padding="9,7" ToolTipService.ToolTip="Add a route" AutomationProperties.Name="Add route"><FontIcon Glyph="&#xE710;" FontSize="14" /></Button>
                                 <Button Grid.Column="2" Command="{x:Bind ViewModel.DuplicateRouteCommand}" Padding="9,7" ToolTipService.ToolTip="Duplicate the selected route" AutomationProperties.Name="Duplicate route"><FontIcon Glyph="&#xE8C8;" FontSize="14" /></Button>
-                                <Button Grid.Column="3" Command="{x:Bind ViewModel.RemoveRouteCommand}" Padding="9,7" ToolTipService.ToolTip="Remove the selected route" AutomationProperties.Name="Remove route"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
+                                    <Button Command="{x:Bind ViewModel.RemoveRouteCommand}" Padding="9,7" ToolTipService.ToolTip="Remove the selected route" AutomationProperties.Name="Remove route"><FontIcon Glyph="&#xE74D;" FontSize="14" /></Button>
+                                    <Button Padding="9,7" ToolTipService.ToolTip="Sort, move and more" AutomationProperties.Name="More for routes"><FontIcon Glyph="&#xE712;" FontSize="14" />
+                                    <Button.Flyout><MenuFlyout>
+                                        <MenuFlyoutItem Text="Sort by code" Command="{x:Bind ViewModel.SortRoutesByCodeCommand}" />
+                                        <MenuFlyoutItem Text="Sort by name" Command="{x:Bind ViewModel.SortRoutesByNameCommand}" />
+                                        <MenuFlyoutItem Text="Move up" Command="{x:Bind ViewModel.MoveRouteUpCommand}" />
+                                        <MenuFlyoutItem Text="Move down" Command="{x:Bind ViewModel.MoveRouteDownCommand}" />
+                                    </MenuFlyout></Button.Flyout></Button>
+                                </StackPanel>
                             </Grid>
                             <TextBox Grid.Row="1" PlaceholderText="Search routes" Text="{x:Bind ViewModel.RouteFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.FilteredRoutes}" SelectedItem="{x:Bind ViewModel.SelectedRoute, Mode=TwoWay}">
@@ -918,6 +939,7 @@
                                     <Button Command="{x:Bind ViewModel.SelectedRoute.RemoveStopCommand, Mode=OneWay}" ToolTipService.ToolTip="Remove the selected stop from the route" AutomationProperties.Name="Remove stop from route"><FontIcon Glyph="&#xE72B;" FontSize="14" /></Button>
                                     <Button Command="{x:Bind ViewModel.SelectedRoute.MoveStopUpCommand, Mode=OneWay}" ToolTipService.ToolTip="Move the stop up" AutomationProperties.Name="Move stop up"><FontIcon Glyph="&#xE74A;" FontSize="14" /></Button>
                                     <Button Command="{x:Bind ViewModel.SelectedRoute.MoveStopDownCommand, Mode=OneWay}" ToolTipService.ToolTip="Move the stop down" AutomationProperties.Name="Move stop down"><FontIcon Glyph="&#xE74B;" FontSize="14" /></Button>
+                                    <Button Command="{x:Bind ViewModel.SelectedRoute.ReverseStopsCommand, Mode=OneWay}" ToolTipService.ToolTip="Reverse the order of the stops" AutomationProperties.Name="Reverse stops"><FontIcon Glyph="&#xE8CB;" FontSize="14" /></Button>
                                     <Button Command="{x:Bind ViewModel.SelectedRoute.ClearStopsCommand, Mode=OneWay}" ToolTipService.ToolTip="Remove all stops from the route" AutomationProperties.Name="Remove all stops"><FontIcon Glyph="&#xE894;" FontSize="14" /></Button>
                                 </StackPanel>
 
@@ -975,6 +997,30 @@
             <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.FileDisplayPath, Mode=OneWay}" Opacity="0.6" TextTrimming="CharacterEllipsis"
                        TextAlignment="Right" HorizontalAlignment="Right" ToolTipService.ToolTip="{x:Bind ViewModel.FilePath, Mode=OneWay}" />
         </Grid>
+
+        <!-- Pop-ups (see MainViewModel.Notifications): in the corner above the status bar; a click goes to what they are about -->
+        <ItemsControl x:Name="Toasts" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="360" Margin="0,0,20,16" IsTabStop="False"
+                      ItemsSource="{x:Bind ViewModel.Notifications}">
+            <ItemsControl.ItemContainerTransitions>
+                <TransitionCollection><EntranceThemeTransition FromHorizontalOffset="80" /><RepositionThemeTransition /></TransitionCollection>
+            </ItemsControl.ItemContainerTransitions>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:AppNotification">
+                    <Grid Margin="0,8,0,0">
+                        <Button Click="OnToastClick" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12" CornerRadius="8"
+                                Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
+                                AutomationProperties.Name="{x:Bind Title}">
+                            <StackPanel Spacing="2" Margin="0,0,26,0">
+                                <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" TextAlignment="Left" />
+                                <TextBlock Text="{x:Bind Message}" TextWrapping="Wrap" Opacity="0.8" TextAlignment="Left" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="OnToastClose" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="6" Margin="0,6,6,0" Background="Transparent" BorderThickness="0"
+                                AutomationProperties.Name="Close" ToolTipService.ToolTip="Close"><FontIcon Glyph="&#xE711;" FontSize="10" /></Button>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <!-- Laid over the window for a moment while the theme changes, so the change fades instead of flipping (see Motion.cs) -->
         <Border x:Name="ThemeFade" Grid.RowSpan="4" IsHitTestVisible="False" Visibility="Collapsed" />

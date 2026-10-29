@@ -9,10 +9,10 @@ namespace Hofwerk.Linux.Views;
 
 public enum UnsavedAnswer { Cancel, Save, DontSave }
 
-/// <summary>Shown when the window is closed with changes that are not saved.</summary>
+/// <summary>Shown when the window is closed, or another file is opened, with changes that are not saved.</summary>
 public sealed class UnsavedChangesWindow : Window
 {
-    public UnsavedChangesWindow(string fileName)
+    public UnsavedChangesWindow(string fileName, bool closing = true)
     {
         Title = "Save your changes?";
         Width = 460;
@@ -40,7 +40,9 @@ public sealed class UnsavedChangesWindow : Window
         body.Children.Add(new TextBlock { Text = "Save your changes?", FontSize = 20, FontWeight = FontWeight.SemiBold });
         body.Children.Add(new TextBlock
         {
-            Text = Localizer.F("{0} has changes that are not saved. If you close without saving, they are lost.", fileName),
+            Text = closing
+                ? Localizer.F("{0} has changes that are not saved. If you close without saving, they are lost.", fileName)
+                : Localizer.F("{0} has changes that are not saved. If you go on without saving, they are lost.", fileName),
             TextWrapping = TextWrapping.Wrap,
         });
         body.Children.Add(buttons);

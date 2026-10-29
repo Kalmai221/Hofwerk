@@ -36,8 +36,13 @@ die HOF Suite kennst und hier etwas fehlt, eröffne bitte ein Issue.
 
 ### Noch zu tun für V1
 
-- [ ] **Eine visuelle Routen-Zeitleiste** (von Anfang an geplant)
-- [ ] Ein letzter vollständiger Vergleich mit der HOF Suite anhand echter `.hof`-Dateien, um Fehlendes oder Abweichendes zu finden
+- [x] Hofwerk hat alle 238 `.hof`-Dateien einer Steam-OMSI-Installation (von der HOF Suite und anderen Werkzeugen) gelesen und gespeichert, ohne ein Ziel, eine Haltestelle, eine Route oder einen Halt zu verlieren, und was es schreibt, wird gleich wieder eingelesen
+- [x] **Eine Liste sortieren** nach Code oder Name (Ziele, Haltestellen, Routen) und einen Eintrag in der Liste nach oben oder unten schieben
+- [x] **Die Haltestellen einer Route umkehren** (für die Rückfahrt)
+- [x] **Das Zusatzschild-Ziel** (Code 1000) und **die KPP-Ziele** (ein Ziel „Options" und eine Kopie jedes Ziels unter 1000 mit Code + 20000) mit einem Klick hinzufügen
+- [x] **Vor „Neu" und „Öffnen" nach ungespeicherten Änderungen fragen**, nicht nur beim Schließen des Fensters („Importieren" fügt zur offenen Datei hinzu und „Rückgängig" nimmt es zurück, fragt also nicht)
+- [x] **Auswählen, welche Fahrten aus einer Karte importiert werden**: Die Fenster „Neue Datei" und „Importieren" haben eine zugeklappte Liste „Fahrten auswählen" mit einem Haken für jede Fahrt, „Alle auswählen", „Keine auswählen" und (bei Karten, die beides haben) nur die Fahrten mit Haltestellen-Verknüpfungen oder nur die anderen. Was nicht angehakt ist, bleibt samt den Haltestellen und Zielen weg, die nur es braucht
+- [x] Die Depot-Einstellungen, die Stringliste sowie die Karten- und Fahrten-Import-Fenster der HOF Suite durchgesehen: Dort fehlt sonst nichts. Ihr eigenes Programm-Einstellungsfenster (Links, Fahrzeugordner) wurde nicht gelesen
 
 ### Schon in Hofwerk, über die HOF Suite hinaus
 

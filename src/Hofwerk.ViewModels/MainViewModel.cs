@@ -234,9 +234,24 @@ public partial class MainViewModel : ViewModelBase
 
     bool _loading;
 
+    bool _grouping, _groupTouched;
+
+    /// <summary>Runs <paramref name="edit"/> as one change: a sort that moves fifty entries is one step for Undo, not fifty.</summary>
+    void Grouped(Action edit)
+    {
+        _grouping = true;
+        try { edit(); }
+        finally
+        {
+            _grouping = false;
+            if (_groupTouched) { _groupTouched = false; Touch(); }
+        }
+    }
+
     void Touch()
     {
         if (_loading) return;
+        if (_grouping) { _groupTouched = true; return; }
         IsDirty = true;
         OnEdited();
     }

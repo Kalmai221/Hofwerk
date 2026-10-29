@@ -107,6 +107,11 @@ public partial class MainViewModel
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         await Task.Run(() => UpdateChecker.CleanUpAfterUpdate(AppContext.BaseDirectory));
 
+        // A way to see the pop-up without a newer version (used by the tests): start Hofwerk with HOFWERK_SIMULATE_UPDATE=1.
+        if (Environment.GetEnvironmentVariable("HOFWERK_SIMULATE_UPDATE") == "1")
+            Notify(new AppNotification(UpdateNotificationId, Localizer.T("Update available"),
+                Localizer.F("Hofwerk {0} is ready to install. Click to see it in App settings.", "9.9"), TargetUpdates));
+
         if (_settings.CheckForUpdates) await CheckForUpdatesAsync(quiet: true);
     }
 
@@ -123,6 +128,7 @@ public partial class MainViewModel
             _update = await _updater.CheckAsync(_currentVersion, IncludePreReleases);
             UpdateStatus = _update is null ? Localizer.F("You have the latest version ({0}).", _currentVersion) : "";
             if (_update is not null) Status = Localizer.F("Hofwerk {0} is available – see Settings.", _update.Version);
+            NotifyAboutUpdate(quiet);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or IOException)
         {

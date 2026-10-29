@@ -56,6 +56,7 @@ public sealed partial class MainWindow : Window
         ApplyTheme(ViewModel.ThemeId, animate: false);
         ViewModel.ThemeChanged += id => ApplyTheme(id, animate: true);
         // After an update download the installer is running; close so it can replace the files.
+        ViewModel.NavigateRequested += OnNavigateRequested;
         ViewModel.ExitRequested += () => DispatcherQueue.TryEnqueue(() => { _closeConfirmed = true; Application.Current.Exit(); });
         AppWindow.Closing += OnWindowClosing;
         Root.AddHandler(UIElement.PointerPressedEvent, new Microsoft.UI.Xaml.Input.PointerEventHandler(OnRootPointerPressed), true);
@@ -303,6 +304,7 @@ public sealed partial class MainWindow : Window
     // A new depot: empty, or filled from an OMSI map. Choose what to start with, then where to save it, and it opens ready to edit.
     async void OnNew(object sender, RoutedEventArgs e)
     {
+        if (!await ConfirmUnsavedAsync(closing: false)) return;
         var model = ViewModel.StartNewFile();
         if (!await ShowNewFileDialogAsync(model)) return;
 
@@ -338,6 +340,42 @@ public sealed partial class MainWindow : Window
         var item = new GridViewItem { Content = tile, Tag = map };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, map.Title);
         return item;
+    }
+
+    // The trips of the chosen map as a list with ticks, and buttons to tick them all, none, or by the way they write their stops (as in
+    // HOF Suite's import). Closed to begin with: most of the time every trip is wanted.
+    Expander BuildTripPicker(TripSelection picker)
+    {
+        var summary = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 };
+        var all = new Button { Content = "Select all", Command = picker.SelectAllCommand };
+        var none = new Button { Content = "Select none", Command = picker.SelectNoneCommand };
+        var links = new Button { Content = "Only trips with station links", Command = picker.SelectStationLinksCommand };
+        var plain = new Button { Content = "Only trips with stop names", Command = picker.SelectPlainCommand };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        foreach (var button in new[] { all, none, links, plain }) buttons.Children.Add(button);
+
+        var list = new ListView
+        {
+            ItemsSource = picker.Trips,
+            ItemTemplate = (DataTemplate)PageHost.Resources["TripChoiceTemplate"],
+            SelectionMode = ListViewSelectionMode.None,
+            MaxHeight = 220,
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(list, "Trips");
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(summary);
+        panel.Children.Add(buttons);
+        panel.Children.Add(list);
+
+        var expander = new Expander { Header = "Choose which trips", Content = panel, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        void Refresh()
+        {
+            summary.Text = picker.Summary;
+            links.Visibility = plain.Visibility = picker.HasBothKinds ? Visibility.Visible : Visibility.Collapsed;
+        }
+        picker.Changed += Refresh;
+        Refresh();
+        return expander;
     }
 
     async Task<bool> ShowNewFileDialogAsync(NewFileViewModel model)
@@ -376,6 +414,8 @@ public sealed partial class MainWindow : Window
         partsRow.Children.Add(routes);
         parts.Children.Add(partsRow);
         mapPanel.Children.Add(parts);
+        var trips = BuildTripPicker(model.TripPicker);
+        mapPanel.Children.Add(trips);
 
         var content = new StackPanel { Spacing = 14, MinWidth = 700 };
         content.Children.Add(kind);
@@ -386,7 +426,7 @@ public sealed partial class MainWindow : Window
             XamlRoot = Root.XamlRoot,
             RequestedTheme = Root.ActualTheme,
             Title = "New .hof file",
-            Content = content,
+            Content = new ScrollViewer { Content = content, MaxHeight = 620 },
             PrimaryButtonText = "Choose where to save…",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Primary,
@@ -396,6 +436,7 @@ public sealed partial class MainWindow : Window
         void Refresh()
         {
             mapPanel.Visibility = model.FromMap ? Visibility.Visible : Visibility.Collapsed;
+            trips.Visibility = model.TripPicker.HasTrips ? Visibility.Visible : Visibility.Collapsed;
             summary.Text = model.Summary;
             reading.Visibility = model.IsReading ? Visibility.Visible : Visibility.Collapsed;
             dialog.IsPrimaryButtonEnabled = model.CanContinue;
@@ -426,13 +467,14 @@ public sealed partial class MainWindow : Window
         if (e.ClickedItem is HofFileEntry entry) OpenAndShow(entry.Path);
     }
 
-    void OpenAndShow(string path)
+    async void OpenAndShow(string path)
     {
+        if (!await ConfirmUnsavedAsync(closing: false)) return;
         if (ViewModel.Open(path)) SelectSection("settings");
     }
 
     void SelectSection(string tag) =>
-        Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().First(i => i.Tag as string == tag);
+        Nav.SelectedItem = Nav.MenuItems.Concat(Nav.FooterMenuItems).OfType<NavigationViewItem>().First(i => i.Tag as string == tag);
 
     // A folder is entered, a file is opened.
     void OnPickOmsiItem(object sender, ItemClickEventArgs e)
@@ -604,7 +646,6 @@ public sealed partial class MainWindow : Window
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
     }
 
-    public static IReadOnlyList<string> AutoSaveChoices => MainViewModel.AutoSaveChoices.Select(Hofwerk.Localization.Localizer.T).ToList();
 
     // Puts the fixed texts of the window into the language in use (later, so lists and pages that are still being built are included).
     void QueueTranslate() => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () => Translator.Apply(Root));
@@ -628,33 +669,65 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            var dialog = new ContentDialog
-            {
-                XamlRoot = Root.XamlRoot,
-                RequestedTheme = Root.ActualTheme,
-                Title = "Save your changes?",
-                Content = Localizer.F("{0} has changes that are not saved. If you close without saving, they are lost.", ViewModel.FileDisplayName),
-                PrimaryButtonText = "Save",
-                SecondaryButtonText = "Don't save",
-                CloseButtonText = "Cancel",
-                DefaultButton = ContentDialogButton.Primary,
-            };
-            var answer = await dialog.ShowTranslated();
-            if (answer == ContentDialogResult.None) return;                       // stay open
-
-            if (answer == ContentDialogResult.Primary)
-            {
-                try { ViewModel.Save(ViewModel.FilePath!); }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    ViewModel.Status = Localizer.F("Could not save: {0}", ex.Message);           // the file is still open, nothing is lost
-                    return;
-                }
-            }
+            if (!await ConfirmUnsavedAsync(closing: true)) return;                // stay open
             _closeConfirmed = true;
             Close();
         }
         finally { _askingToClose = false; }
+    }
+
+    // Before the open file is closed or replaced: with nothing unsaved (or autosave on) it is simply fine; otherwise ask.
+    // True when it is fine to go on: the work was saved, or the person chose not to keep it.
+    async Task<bool> ConfirmUnsavedAsync(bool closing)
+    {
+        if (ViewModel.EverythingSavedForClose()) return true;
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            RequestedTheme = Root.ActualTheme,
+            Title = "Save your changes?",
+            Content = closing
+                ? Localizer.F("{0} has changes that are not saved. If you close without saving, they are lost.", ViewModel.FileDisplayName)
+                : Localizer.F("{0} has changes that are not saved. If you go on without saving, they are lost.", ViewModel.FileDisplayName),
+            PrimaryButtonText = "Save",
+            SecondaryButtonText = "Don't save",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        var answer = await dialog.ShowTranslated();
+        if (answer == ContentDialogResult.None) return false;
+
+        if (answer == ContentDialogResult.Primary)
+        {
+            try { ViewModel.Save(ViewModel.FilePath!); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                ViewModel.Status = Localizer.F("Could not save: {0}", ex.Message);               // the file is still open, nothing is lost
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // ---- Pop-ups: a click goes to what the pop-up is about ---------------------------------------------------------------------
+
+    void OnToastClick(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AppNotification notification) ViewModel.OpenNotificationCommand.Execute(notification);
+    }
+
+    void OnToastClose(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AppNotification notification) ViewModel.CloseNotificationCommand.Execute(notification);
+    }
+
+    void OnNavigateRequested(string target)
+    {
+        if (target != MainViewModel.TargetUpdates) return;
+        SelectSection("appsettings");
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+            () => UpdatesHeading.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = true, VerticalAlignmentRatio = 0.05 }));
     }
 
     void OnRemoveExportLocation(object sender, RoutedEventArgs e)
@@ -697,10 +770,11 @@ public sealed partial class MainWindow : Window
         partsRow.Children.Add(destinations);
         partsRow.Children.Add(routes);
         var summary = new TextBlock { TextWrapping = TextWrapping.Wrap };
+        var trips = BuildTripPicker(model.TripPicker);
 
         var content = new StackPanel { Spacing = 12, MinWidth = 700 };
         content.Children.Add(new TextBlock { Text = "What is added goes in next to what the file already has. Nothing is added twice.", Opacity = 0.7, TextWrapping = TextWrapping.Wrap });
-        foreach (UIElement part in new UIElement[] { kind, mapPanel, tripPanel, reading, new TextBlock { Text = "Take" }, partsRow, summary }) content.Children.Add(part);
+        foreach (UIElement part in new UIElement[] { kind, mapPanel, tripPanel, reading, new TextBlock { Text = "Take" }, partsRow, trips, summary }) content.Children.Add(part);
 
         var dialog = new ContentDialog
         {
@@ -720,6 +794,7 @@ public sealed partial class MainWindow : Window
             tripPanel.Visibility = model.FromTrip ? Visibility.Visible : Visibility.Collapsed;
             reading.Visibility = model.IsReading ? Visibility.Visible : Visibility.Collapsed;
             tripName.Text = model.TripFile is { Length: > 0 } file ? Path.GetFileName(file) : "";
+            trips.Visibility = model.TripPicker.HasTrips && !model.FromTrip ? Visibility.Visible : Visibility.Collapsed;
             summary.Text = model.Summary;
             dialog.IsPrimaryButtonEnabled = model.CanImport;
         }

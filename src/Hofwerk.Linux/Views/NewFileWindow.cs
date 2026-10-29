@@ -20,10 +20,12 @@ public sealed class NewFileWindow : Window
     // The maps as pictures with their names, like OMSI's own map list (and HOF Suite's): click one to choose it.
     readonly ListBox _maps = new() { SelectionMode = SelectionMode.Single, MaxHeight = 280 };
     readonly Button _continue = new() { Content = "Choose where to save…", IsDefault = true };
+    readonly Expander _trips;
 
     public NewFileWindow(NewFileViewModel model, string? mapsFolder)
     {
         _model = model;
+        _trips = TripPickerPanel.Create(model.TripPicker);
         Title = "New .hof file";
         Width = 760;
         SizeToContent = SizeToContent.Height;
@@ -63,6 +65,7 @@ public sealed class NewFileWindow : Window
         partsRow.Children.Add(destinations);
         partsRow.Children.Add(routes);
         _mapPanel.Children.Add(partsRow);
+        _mapPanel.Children.Add(_trips);
 
         var cancel = new Button { Content = "Cancel", IsCancel = true };
         cancel.Click += (_, _) => Close(false);
@@ -148,6 +151,7 @@ public sealed class NewFileWindow : Window
     void Refresh()
     {
         _mapPanel.IsVisible = _model.FromMap;
+        _trips.IsVisible = _model.TripPicker.HasTrips;
         _summary.Text = _model.Summary;
         _reading.IsVisible = _model.IsReading;
         _continue.IsEnabled = _model.CanContinue;

@@ -30,6 +30,7 @@ public partial class MainWindow : Window
         // Window width changes how the pages are laid out; the content area width is what matters, not the window's.
         SizeChanged += (_, _) => ApplyAdaptiveLayout();
         Closing += OnWindowClosing;
+        DataContextChanged += (_, _) => { if (DataContext is MainViewModel vm) vm.NavigateRequested += OnNavigateRequested; };
         AddHandler(PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         Opened += async (_, _) =>
         {
@@ -224,6 +225,7 @@ public partial class MainWindow : Window
     // A new, empty depot: pick where to put it, and it opens ready to edit.
     async void OnNew(object? sender, RoutedEventArgs e)
     {
+        if (!await ConfirmUnsavedAsync(closing: false)) return;
         // First what to start with (empty, or from an OMSI map), then where to save it.
         var model = Vm.StartNewFile();
         string? maps = Vm.OmsiFolder is { } omsi ? System.IO.Path.Combine(omsi, "Maps") : null;
@@ -267,8 +269,12 @@ public partial class MainWindow : Window
 
     public void ShowSettings() => SelectSection("settings");
 
-    void SelectSection(string tag) =>
-        Nav.SelectedItem = Nav.Items.OfType<ListBoxItem>().First(i => i.Tag as string == tag);
+    // The sections are in the list at the top and App settings is in the one at the bottom.
+    void SelectSection(string tag)
+    {
+        if (NavFooter.Items.OfType<ListBoxItem>().FirstOrDefault(i => i.Tag as string == tag) is { } footer) NavFooter.SelectedItem = footer;
+        else Nav.SelectedItem = Nav.Items.OfType<ListBoxItem>().First(i => i.Tag as string == tag);
+    }
 
     // A folder is entered, a file is opened.
     void OnPickOmsiItem(object? sender, SelectionChangedEventArgs e)
@@ -399,22 +405,51 @@ public partial class MainWindow : Window
     {
         try
         {
-            var answer = await new UnsavedChangesWindow(Vm.FileDisplayName).ShowDialog<UnsavedAnswer>(this);
-            if (answer == UnsavedAnswer.Cancel) return;                           // stay open
-
-            if (answer == UnsavedAnswer.Save)
-            {
-                try { Vm.Save(Vm.FilePath!); }
-                catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
-                {
-                    Vm.Status = Localizer.F("Could not save: {0}", ex.Message);                  // the file is still open, nothing is lost
-                    return;
-                }
-            }
+            if (!await ConfirmUnsavedAsync(closing: true)) return;                // stay open
             _closeConfirmed = true;
             Close();
         }
         finally { _askingToClose = false; }
+    }
+
+    // Before the open file is closed or replaced: with nothing unsaved (or autosave on) it is simply fine; otherwise ask.
+    // True when it is fine to go on: the work was saved, or the person chose not to keep it.
+    async Task<bool> ConfirmUnsavedAsync(bool closing)
+    {
+        if (Vm.EverythingSavedForClose()) return true;
+
+        var answer = await new UnsavedChangesWindow(Vm.FileDisplayName, closing).ShowDialog<UnsavedAnswer>(this);
+        if (answer == UnsavedAnswer.Cancel) return false;
+
+        if (answer == UnsavedAnswer.Save)
+        {
+            try { Vm.Save(Vm.FilePath!); }
+            catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+            {
+                Vm.Status = Localizer.F("Could not save: {0}", ex.Message);                  // the file is still open, nothing is lost
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // ---- Pop-ups: a click goes to what the pop-up is about ---------------------------------------------------------------------
+
+    void OnToastClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is AppNotification notification) Vm.OpenNotificationCommand.Execute(notification);
+    }
+
+    void OnToastClose(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.DataContext is AppNotification notification) Vm.CloseNotificationCommand.Execute(notification);
+    }
+
+    void OnNavigateRequested(string target)
+    {
+        if (target != MainViewModel.TargetUpdates) return;
+        SelectSection("appsettings");
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdatesHeading.BringIntoView(), Avalonia.Threading.DispatcherPriority.Background);
     }
 
     void OnRemoveExportLocation(object? sender, RoutedEventArgs e)
@@ -436,8 +471,9 @@ public partial class MainWindow : Window
         if (await new PresetImportWindow(import).ShowDialog<bool>(this)) Vm.FinishPresetImport(import);
     }
 
-    void OpenAndShow(string path)
+    async void OpenAndShow(string path)
     {
+        if (!await ConfirmUnsavedAsync(closing: false)) return;
         if (Vm.Open(path)) SelectSection("settings");
     }
 

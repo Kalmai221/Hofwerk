@@ -223,6 +223,76 @@ public class UpdateTests : IDisposable
         Assert.False(vm.UpdateAvailable);
     }
 
+    // ---- The pop-up ---------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_new_version_found_at_start_pops_up_once_and_a_click_goes_to_the_updates_in_App_settings()
+    {
+        var github = new FakeGitHub(Releases(Release("v0.2.0", false)), []);
+        var vm = NewViewModel(github, "0.1.0", [], out _);
+        vm.NotificationTime = TimeSpan.Zero;                   // stays until clicked
+        var went = new List<string>();
+        vm.NavigateRequested += went.Add;
+
+        await vm.CheckForUpdatesOnStartAsync();
+
+        var popup = Assert.Single(vm.Notifications);
+        Assert.Equal("Update available", popup.Title);
+        Assert.Contains("0.2.0", popup.Message);
+        Assert.Equal(MainViewModel.TargetUpdates, popup.Target);
+
+        vm.OpenNotificationCommand.Execute(popup);
+        Assert.Empty(vm.Notifications);                        // clicking it takes it away
+        Assert.Equal([MainViewModel.TargetUpdates], went);
+
+        await vm.CheckForUpdatesOnStartAsync();                // the same version is not announced again
+        Assert.Empty(vm.Notifications);
+    }
+
+    [Fact]
+    public async Task A_check_you_ask_for_does_not_pop_up_and_closing_a_pop_up_goes_nowhere()
+    {
+        var github = new FakeGitHub(Releases(Release("v0.2.0", false)), []);
+        var vm = NewViewModel(github, "0.1.0", [], out _);
+        vm.NotificationTime = TimeSpan.Zero;
+        var went = new List<string>();
+        vm.NavigateRequested += went.Add;
+
+        await vm.CheckForUpdatesCommand.ExecuteAsync(null);    // you are already looking at App settings
+        Assert.Empty(vm.Notifications);
+
+        vm.Notify(new AppNotification("x", "Title", "Text", MainViewModel.TargetUpdates));
+        vm.CloseNotificationCommand.Execute(vm.Notifications[0]);
+        Assert.Empty(vm.Notifications);
+        Assert.Empty(went);
+    }
+
+    [Fact]
+    public void A_pop_up_with_the_same_id_replaces_the_one_that_is_up_and_goes_away_by_itself()
+    {
+        var vm = NewViewModel(new FakeGitHub("[]", []), "0.1.0", [], out _);
+        vm.NotificationTime = TimeSpan.FromMilliseconds(50);
+
+        vm.Notify(new AppNotification("a", "First", "", ""));
+        vm.Notify(new AppNotification("a", "Second", "", ""));
+        Assert.Equal(["Second"], vm.Notifications.Select(n => n.Title));
+
+        Assert.True(SpinWait.SpinUntil(() => vm.Notifications.Count == 0, TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task The_pop_up_is_in_the_language_in_use()
+    {
+        var github = new FakeGitHub(Releases(Release("v0.2.0", false)), []);
+        var vm = NewViewModel(github, "0.1.0", [], out _);
+        vm.NotificationTime = TimeSpan.Zero;
+        using var german = Hofwerk.Localization.Localizer.Override("de");
+
+        await vm.CheckForUpdatesOnStartAsync();
+
+        Assert.Equal("Update verfügbar", vm.Notifications[0].Title);
+    }
+
     [Fact]
     public async Task The_start_check_can_be_turned_off()
     {

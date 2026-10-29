@@ -15,8 +15,11 @@ public sealed record OmsiMap(string Name, string Folder, string? DisplayName = n
     public string Title => string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName;
 }
 
-/// <summary>One trip of a map's timetable (a .ttp file): where it goes, its line, and the bus stops it serves in order.</summary>
-public sealed record MapTrip(string Name, string Destination, string Line, IReadOnlyList<string> Stops);
+/// <summary>
+/// One trip of a map's timetable (a .ttp file): where it goes, its line, and the bus stops it serves in order.
+/// <see cref="UsesStationLinks"/> is true when the file writes its stops as numbers that Busstops.cfg gives names to (HOF Suite's "type 2").
+/// </summary>
+public sealed record MapTrip(string Name, string Destination, string Line, IReadOnlyList<string> Stops, bool UsesStationLinks = false);
 
 /// <summary>What Hofwerk found in a map's timetable files.</summary>
 public sealed class MapData
@@ -27,6 +30,26 @@ public sealed class MapData
     public IReadOnlyList<MapTrip> Trips { get; init; } = [];
 
     public bool IsEmpty => BusStops.Count == 0 && Trips.Count == 0;
+
+    /// <summary>
+    /// The map as if it only had these trips: their destinations and the bus stops they serve (the stops that only Busstops.cfg lists are
+    /// left out, since no chosen trip stops there).
+    /// </summary>
+    public MapData WithTrips(IEnumerable<MapTrip> trips)
+    {
+        var chosen = trips.ToList();
+        var stops = new List<string>();
+        var seenStops = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var destinations = new List<string>();
+        var seenDestinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var trip in chosen)
+        {
+            if (trip.Destination.Trim() is { Length: > 0 } destination && seenDestinations.Add(destination)) destinations.Add(destination);
+            foreach (string stop in trip.Stops)
+                if (stop.Trim() is { Length: > 0 } name && seenStops.Add(name)) stops.Add(name);
+        }
+        return new MapData { Name = Name, BusStops = stops, Destinations = destinations, Trips = chosen };
+    }
 
     /// <summary>"22 bus stops, 2 destinations, 17 routes".</summary>
     public string Summary => string.Join(", ", Localizer.Count(BusStops.Count, "{0} bus stop", "{0} bus stops"),
@@ -286,17 +309,21 @@ public static class MapImporter
         string line = trip + 3 < lines.Length ? lines[trip + 3].Trim() : "";
 
         var stops = new List<string>();
+        bool stationLinks = false;
         for (int i = 0; i < lines.Length; i++)
         {
             // A stop is written one of two ways, and a file can use either (HOF Suite 1.3 added the second, "station links"):
             //   [station] / id / distance / NAME / ...      the name is in the trip file
             //   [station_typ2] / NUMBER                      only a number; the name is the [busstop] with that number in Busstops.cfg
             if (lines[i] == "[station]" && i + 3 < lines.Length && lines[i + 3].Trim() is { Length: > 0 } stop) stops.Add(stop);
-            else if (lines[i] == "[station_typ2]" && i + 1 < lines.Length
-                     && int.TryParse(lines[i + 1].Trim(), out int number) && ids.Value.TryGetValue(number, out string? linked))
-                stops.Add(linked);      // a number the map does not know is left out rather than dropping the whole trip
+            else if (lines[i] == "[station_typ2]" && i + 1 < lines.Length)
+            {
+                stationLinks = true;
+                if (int.TryParse(lines[i + 1].Trim(), out int number) && ids.Value.TryGetValue(number, out string? linked))
+                    stops.Add(linked);      // a number the map does not know is left out rather than dropping the whole trip
+            }
         }
-        return new MapTrip(Path.GetFileNameWithoutExtension(file), destination, line, stops);
+        return new MapTrip(Path.GetFileNameWithoutExtension(file), destination, line, stops, stationLinks);
     }
 
     /// <summary>

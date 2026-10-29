@@ -18,7 +18,27 @@ internal static class Translator
 {
     sealed record Seen(string Original, string Applied);
 
-    static readonly ConditionalWeakTable<object, Dictionary<string, Seen>> Memory = new();
+    // The English original of each text is kept on the element itself (an attached property), not in a table keyed by the C# object:
+    // WinUI can give out a new C# object for the same Run each time it is asked, and the table would lose what it remembered, so a
+    // text translated once could never be taken back to English or on to another language.
+    static readonly DependencyProperty OriginalsProperty =
+        DependencyProperty.RegisterAttached("Originals", typeof(string), typeof(Translator), new PropertyMetadata(""));
+
+    const char RecordEnd = '', FieldEnd = '';
+
+    static Dictionary<string, Seen> ReadMemory(DependencyObject owner)
+    {
+        var memory = new Dictionary<string, Seen>();
+        foreach (string record in ((string)owner.GetValue(OriginalsProperty)).Split(RecordEnd, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var fields = record.Split(FieldEnd);
+            if (fields.Length == 3) memory[fields[0]] = new Seen(fields[1], fields[2]);
+        }
+        return memory;
+    }
+
+    static void WriteMemory(DependencyObject owner, Dictionary<string, Seen> memory) =>
+        owner.SetValue(OriginalsProperty, string.Concat(memory.Select(p => $"{p.Key}{FieldEnd}{p.Value.Original}{FieldEnd}{p.Value.Applied}{RecordEnd}")));
 
     /// <summary>Translates everything now in the window.</summary>
     public static void Apply(DependencyObject root) => Visit(root, new HashSet<DependencyObject>(ReferenceEqualityComparer.Instance));
@@ -32,11 +52,13 @@ internal static class Translator
 
     static string Translate(object owner, string property, string current)
     {
-        var memory = Memory.GetOrCreateValue(owner);
+        var target = (DependencyObject)owner;
+        var memory = ReadMemory(target);
         // A text that is not the one set last time was changed by the program since, so it is a new English original.
         string original = memory.TryGetValue(property, out var seen) && seen.Applied == current ? seen.Original : current;
         string result = Localizer.T(original);
         memory[property] = new Seen(original, result);
+        WriteMemory(target, memory);
         return result;
     }
 
@@ -124,12 +146,30 @@ internal static class Translator
             foreach (var item in nav.FooterMenuItems) if (item is DependencyObject d) Visit(d, seen);
         }
 
+        // the items of a menu that opens from a button
+        if (node is Button { Flyout: MenuFlyout flyout })
+            foreach (var item in flyout.Items) VisitMenuItem(item);
+
         // children of elements that are not on the screen yet (a dialog built in code)
         if (node is Panel panel) foreach (var child in panel.Children) Visit(child, seen);
         if (node is Border border && border.Child is { } borderChild) Visit(borderChild, seen);
 
         int count = VisualTreeHelper.GetChildrenCount(node);
         for (int i = 0; i < count; i++) Visit(VisualTreeHelper.GetChild(node, i), seen);
+    }
+
+    static void VisitMenuItem(MenuFlyoutItemBase item)
+    {
+        switch (item)
+        {
+            case MenuFlyoutSubItem sub:
+                Set(sub, "Text", sub.Text, value => sub.Text = value);
+                foreach (var child in sub.Items) VisitMenuItem(child);
+                break;
+            case MenuFlyoutItem entry:
+                Set(entry, "Text", entry.Text, value => entry.Text = value);
+                break;
+        }
     }
 
     static void VisitInline(Inline inline)

@@ -225,6 +225,15 @@ public partial class RouteViewModel : ObservableObject
         SelectedStop = keep;
     }
 
+    /// <summary>Turns the route around: the last stop becomes the first (for the trip back).</summary>
+    [RelayCommand]
+    void ReverseStops()
+    {
+        var keep = SelectedStop;
+        for (int i = 0; i < Stops.Count - 1; i++) Stops.Move(Stops.Count - 1, i);
+        SelectedStop = keep;
+    }
+
     [RelayCommand]
     void ClearStops()
     {

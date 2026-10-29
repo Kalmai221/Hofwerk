@@ -18,6 +18,9 @@ public partial class MainViewModel
     public ObservableCollection<ThemeChoice> ThemeChoices { get; } = [];
     public ObservableCollection<LanguageChoice> LanguageChoices { get; } = [];
 
+    /// <summary>The autosave timings, named in the language in use (<see cref="AutoSaveChoice"/> is the one picked).</summary>
+    public ObservableCollection<string> AutoSaveOptions { get; } = [];
+
     void BuildChoices()
     {
         ThemeChoices.Clear();
@@ -26,6 +29,17 @@ public partial class MainViewModel
 
         LanguageChoices.Clear();
         foreach (var choice in Localizer.Choices()) LanguageChoices.Add(choice);
+
+        AutoSaveOptions.Clear();
+        foreach (string option in AutoSaveChoices) AutoSaveOptions.Add(Localizer.T(option));
+    }
+
+    // A drop-down that is emptied and filled again loses its selection, and a change announced while the drop-down is still busy with
+    // that is ignored by the binding, so the picked entry would show blank. Announcing it a moment later gets it shown again.
+    void RaiseLater(params string[] names)
+    {
+        void Raise() { foreach (string name in names) OnPropertyChanged(name); }
+        if (_uiContext is null) Raise(); else _uiContext.Post(_ => Raise(), null);
     }
 
     void OnLanguageChanged()
@@ -33,6 +47,7 @@ public partial class MainViewModel
         BuildChoices();
         OnPropertyChanged(nameof(SelectedTheme));
         OnPropertyChanged(nameof(SelectedLanguage));
+        RaiseLater(nameof(SelectedTheme), nameof(SelectedLanguage), nameof(AutoSaveChoice));
         OnPropertyChanged(nameof(ActivePresetName));
         OnPropertyChanged(nameof(WindowTitle));
         OnPropertyChanged(nameof(FileStateText));

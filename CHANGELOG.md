@@ -6,7 +6,17 @@ same features as HOF Suite (see the [roadmap](ROADMAP.md)). `V0.1-dev1` and `V0.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+- **A pop-up for updates.** When Hofwerk finds a newer version as it starts, a small notice "Update available" appears in the corner of the window. Click it to go straight to the Updates part of App settings; close it with the x, or leave it and it goes away by itself. The update notice on the home page is gone, since the pop-up and the dot next to App settings say the same.
+- **Sort and move in the lists.** The ⋯ button above the Destinations, Bus stops and Routes lists sorts the list by code (numbers in number order) or by name, and moves the selected entry up or down. Undo takes a sort back in one step.
+- **Reverse a route.** A button next to the stops of a route turns their order around, for the trip back.
+- **Add-plate and KPP destinations.** From the ⋯ button of the Destinations list: add a destination with code 1000, or the KPP set (an "Options" destination, and a copy of every destination under 1000 at its code plus 20000). Nothing that is already there is added twice.
+- **A question before New and Open.** Starting a new file or opening another one while the open file has changes that are not saved asks whether to save them first, as closing the window already did.
+
+- **Choose which trips to take from a map.** The New file and Import windows have a closed "Choose which trips" list under the map, with a tick for every trip (its line, destination and number of stops), Select all, Select none, and for maps that have both kinds, only the trips that write their stops as station links or only the others, as in HOF Suite's import. Trips you untick are left out, together with the bus stops and destinations only they use.
+
+### Fixed
+- **Switching the language back and forth.** Some texts stayed in the first language when the language was changed again (for example "You have Hofwerk" after going from German to English), and the language box could be left blank. Both now switch properly every time.
 
 ## [1-dev5] - pre-release
 

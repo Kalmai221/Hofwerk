@@ -84,7 +84,17 @@ public static class AvaloniaTranslator
         if (control is ContentControl content)
             SetObject(content, "Content", content.Content, value => content.Content = value);
 
+        // the items of a menu that opens from a button
+        if (control is Button { Flyout: MenuFlyout flyout })
+            foreach (var item in flyout.Items.OfType<MenuItem>()) VisitMenuItem(item);
+
         SetObject(control, "ToolTip", ToolTip.GetTip(control), value => ToolTip.SetTip(control, value));
         Set(control, "AutomationName", AutomationProperties.GetName(control), value => AutomationProperties.SetName(control, value));
+    }
+
+    static void VisitMenuItem(MenuItem item)
+    {
+        SetObject(item, "Header", item.Header, value => item.Header = value);
+        foreach (var child in item.Items.OfType<MenuItem>()) VisitMenuItem(child);
     }
 }

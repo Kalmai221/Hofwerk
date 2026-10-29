@@ -19,11 +19,13 @@ public sealed class ImportWindow : Window
     readonly ProgressBar _reading = new() { IsIndeterminate = true, IsVisible = false };
     readonly TextBlock _tripName = new() { Opacity = 0.8, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     readonly TextBlock _summary = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+    readonly Expander _trips;
     readonly Button _import = new() { Content = "Import", IsDefault = true };
 
     public ImportWindow(ImportViewModel model, string? mapsFolder)
     {
         _model = model;
+        _trips = TripPickerPanel.Create(model.TripPicker);
         Title = "Import into this file";
         Width = 760;
         SizeToContent = SizeToContent.Height;
@@ -80,6 +82,7 @@ public sealed class ImportWindow : Window
         body.Children.Add(_reading);
         body.Children.Add(new TextBlock { Text = "Take", Margin = new Thickness(0, 4, 0, 0) });
         body.Children.Add(partsRow);
+        body.Children.Add(_trips);
         body.Children.Add(_summary);
 
         var layout = new DockPanel { Margin = new Thickness(24, 20, 24, 18) };
@@ -128,6 +131,7 @@ public sealed class ImportWindow : Window
     void Refresh()
     {
         _mapPanel.IsVisible = !_model.FromTrip;
+        _trips.IsVisible = _model.TripPicker.HasTrips && !_model.FromTrip;
         _tripPanel.IsVisible = _model.FromTrip;
         _reading.IsVisible = _model.IsReading;
         _tripName.Text = _model.TripFile is { Length: > 0 } file ? System.IO.Path.GetFileName(file) : "";

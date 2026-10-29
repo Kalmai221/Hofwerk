@@ -22,7 +22,11 @@ public sealed partial class NewFileViewModel : ObservableObject
     {
         _read = read ?? MapImporter.Read;
         foreach (var map in maps) Maps.Add(map);
+        TripPicker.Changed += Changed;
     }
+
+    /// <summary>Which trips of the chosen map to take (all of them to begin with).</summary>
+    public TripSelection TripPicker { get; } = new();
 
     public ObservableCollection<OmsiMap> Maps { get; } = [];
     public bool HasMaps => Maps.Count > 0;
@@ -46,16 +50,18 @@ public sealed partial class NewFileViewModel : ObservableObject
             if (SelectedMap is null) return Maps.Count == 0 ? Localizer.T("No maps were found in OMSI's Maps folder. Choose a map folder yourself.") : Localizer.T("Choose a map.");
             if (IsReading) return Localizer.T("Reading the map…");
             if (Data is null) return "";
-            return Data.IsEmpty ? Localizer.T("This map has no timetable data (TTData) to import from.") : Localizer.F("Found {0}.", Data.Summary);
+            if (Data.IsEmpty) return Localizer.T("This map has no timetable data (TTData) to import from.");
+            if (TripPicker.HasTrips && TripPicker.SelectedCount == 0) return Localizer.T("Tick at least one trip.");
+            return Localizer.F("Found {0}.", Data.Summary);
         }
     }
 
     /// <summary>The button that goes on to choosing where to save is available when there is something to make.</summary>
-    public bool CanContinue => !FromMap || (Data is { IsEmpty: false } && !IsReading && (ImportBusStops || ImportDestinations || ImportRoutes));
+    public bool CanContinue => !FromMap || (TripPicker.Apply(Data) is { IsEmpty: false } && !IsReading && (ImportBusStops || ImportDestinations || ImportRoutes));
 
     public NewFilePlan ToPlan() =>
         FromMap && Data is not null
-            ? new NewFilePlan(Data, new MapImportOptions(ImportBusStops, ImportDestinations, ImportRoutes))
+            ? new NewFilePlan(TripPicker.Apply(Data), new MapImportOptions(ImportBusStops, ImportDestinations, ImportRoutes))
             : new NewFilePlan(null, new MapImportOptions());
 
     /// <summary>A name to offer for the file: the map's, or a plain one.</summary>
@@ -80,7 +86,7 @@ public sealed partial class NewFileViewModel : ObservableObject
     partial void OnImportBusStopsChanged(bool value) => Changed();
     partial void OnImportDestinationsChanged(bool value) => Changed();
     partial void OnImportRoutesChanged(bool value) => Changed();
-    partial void OnDataChanged(MapData? value) => Changed();
+    partial void OnDataChanged(MapData? value) { TripPicker.Load(value); Changed(); }
     partial void OnIsReadingChanged(bool value) => Changed();
 
     // Reads the map on another thread; if another map is chosen meanwhile, the older answer is dropped.

@@ -228,7 +228,8 @@ public partial class MainViewModel
         get { int i = Array.IndexOf(AutoSaveSecondsByChoice, _settings.AutoSaveSeconds); return i < 0 ? 1 : i; }
         set
         {
-            value = Math.Clamp(value, 0, AutoSaveSecondsByChoice.Length - 1);
+            if (value < 0) return;       // the drop-down was emptied (the language changed): that is not a choice
+            value = Math.Min(value, AutoSaveSecondsByChoice.Length - 1);
             if (AutoSaveSecondsByChoice[value] == _settings.AutoSaveSeconds) return;
             _settings.AutoSaveSeconds = AutoSaveSecondsByChoice[value];
             _settings.Save();

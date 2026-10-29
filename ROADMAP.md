@@ -36,8 +36,13 @@ HOF Suite and something is missing here, please open an issue.
 
 ### Still to do for V1
 
-- [ ] **A visual route timeline** (planned from the start)
-- [ ] A last full comparison against HOF Suite with real `.hof` files, to catch anything that is missing or different
+- [x] Hofwerk read and saved all 238 `.hof` files of a Steam OMSI install (HOF Suite's and other tools' files) without losing a destination, bus stop, route or stop, and what it writes reads back the same
+- [x] **Sort a list** by code or by name (Destinations, Bus stops, Routes), and move an item up or down in its list
+- [x] **Reverse a route's stops** (for the return trip)
+- [x] **Add the add-plate destination** (code 1000) and **the KPP destinations** (an "Options" destination, and a copy of every destination under 1000 at code + 20000) with one click
+- [x] **Ask about unsaved changes before New and Open**, not only when the window is closed (Import adds to the open file and Undo takes it back, so it does not ask)
+- [x] **Choose which trips to import from a map**: the New file and Import dialogs have a closed "Choose which trips" list with a tick for every trip, Select all, Select none, and (for maps that have both) only the trips that write their stops as station links or only the others. What is not ticked is left out together with the stops and destinations only it uses
+- [x] Went through HOF Suite's depot settings, string list, map and trip import screens: nothing else is missing there. Its own program settings form (links, vehicle folders) was not read
 
 ### Already in Hofwerk, beyond HOF Suite
 

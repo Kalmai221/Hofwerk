@@ -28,6 +28,6 @@ desktop.ini
 
 # Python (the website build)
 __pycache__/
-_site/
+_site*/
 
 branding/preview.png

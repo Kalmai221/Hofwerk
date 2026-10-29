@@ -106,7 +106,7 @@ public class TripSelectionTests
         var map = Map();
         var vm = new NewFileViewModel([new OmsiMap("Test", "C:\\x")], _ => map) { FromMap = true };
         vm.AddMapFolder(Path.GetTempPath());                  // a map is chosen and read
-        SpinWait.SpinUntil(() => vm.Data is not null, TimeSpan.FromSeconds(5));
+        Assert.True(SpinWait.SpinUntil(() => !vm.IsReading && vm.TripPicker.HasTrips, TimeSpan.FromSeconds(10)));    // the map is read on another thread
         vm.TripPicker.Trips[0].IsSelected = false;
         vm.TripPicker.Trips[1].IsSelected = false;
 
@@ -127,7 +127,7 @@ public class TripSelectionTests
         var doc = new HofDocument { TerminusStringCount = 1 };
         var vm = new ImportViewModel([new OmsiMap("Test", "C:\\x")], (data, options) => MapImporter.Preview(doc, data, options), _ => map);
         vm.AddMapFolder(Path.GetTempPath());
-        SpinWait.SpinUntil(() => vm.Data is not null, TimeSpan.FromSeconds(5));
+        Assert.True(SpinWait.SpinUntil(() => !vm.IsReading && vm.TripPicker.HasTrips, TimeSpan.FromSeconds(10)));    // the map is read on another thread
 
         Assert.Equal(3, vm.Result!.NewRoutes);
         vm.TripPicker.SelectNoneCommand.Execute(null);
